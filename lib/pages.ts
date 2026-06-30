@@ -13,7 +13,9 @@ export const PAGES: PageEntry[] = [
   { slug: ["our-works"], file: "our-works.html", route: "/our-works" },
   { slug: ["our-team"], file: "our-team.html", route: "/our-team" },
   { slug: ["our-partners"], file: "our-partners.html", route: "/our-partners" },
-  { slug: ["our-partners-list"], file: "our-partners-list.html", route: "/our-partners-list" },
+  // NOTE: our-partners-list.html is excluded — the crawl captured Wix's 404
+  // document ("Page not found.") for that URL, so serving it as a 200 route
+  // would be misleading. Links to it fall through to the live-site rewrite below.
   { slug: ["contact-us"], file: "contact-us.html", route: "/contact-us" },
   { slug: ["case-study"], file: "case-study.html", route: "/case-study" },
   { slug: ["o"], file: "o.html", route: "/o" },
@@ -29,6 +31,18 @@ const FILE_TO_ROUTE: Record<string, string> = Object.fromEntries(
 
 // Source HTML lives at the repo root (where Next runs).
 const CONTENT_DIR = process.cwd();
+
+// Canonical live site, used as the fallback target for captured internal links
+// that point at pages this English-only build doesn't serve (Spanish pages, the
+// truncated case-study captures, the 404'd our-partners-list).
+const LIVE_ORIGIN = "https://www.galvezandpartners.com";
+
+function toLiveUrl(resolvedPath: string): string {
+  const clean = resolvedPath
+    .replace(/\.html$/i, "")
+    .replace(/(^|\/)index$/i, "$1");
+  return LIVE_ORIGIN + "/" + clean;
+}
 
 export type PageData = {
   html: string;
@@ -66,14 +80,19 @@ function rewriteHref(url: string, pageDir: string): string {
   if (!pathPart.toLowerCase().endsWith(".html")) return url;
   const resolved = path.posix.normalize(path.posix.join(pageDir, pathPart));
   const route = FILE_TO_ROUTE[resolved];
-  return route ? route + suffix : url;
+  // In-scope page -> clean Next route. Otherwise the captured page isn't served
+  // by this build, so point at the canonical live site rather than leaving a
+  // relative link that would 404 in the Next app.
+  return route ? route + suffix : toLiveUrl(resolved) + suffix;
 }
 
 function rewriteLinks(html: string, file: string): string {
   const dir = path.posix.dirname(file);
   const pageDir = dir === "." ? "" : dir;
+  // Match up to the *matching* delimiter quote so values containing the other
+  // quote char are handled — e.g. href="case-study/arizona-alzheimer's-...html".
   return html.replace(
-    /(\shref=)(["'])([^"']*)\2/gi,
+    /(\shref=)(["'])((?:(?!\2).)*)\2/gi,
     (_m, pre: string, q: string, url: string) =>
       pre + q + rewriteHref(url, pageDir) + q
   );

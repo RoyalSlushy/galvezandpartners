@@ -42,11 +42,13 @@ npm run dev      # http://localhost:3000
 | `components/Enhancements.tsx` | Client-side carousel / menu / reveal / language toggle |
 | `app/enhance.css` | Styling overrides for the above |
 
-**Scope:** the app wires up the **12 well-formed English pages** (home, our-works,
-our-team, our-partners, our-partners-list, contact-us, case-study index, `o`, and
-4 case studies). The Spanish (`/es`) pages and two truncated case-study captures
-(`arizona-alzheimer's-consortium`, `case-study-6`) are not included; the language
-toggle therefore shows English as active with the Spanish option inert.
+**Scope:** the app wires up the **11 well-formed English pages** (home, our-works,
+our-team, our-partners, contact-us, case-study index, `o`, and 4 case studies).
+Not included: the Spanish (`/es`) pages, the two truncated case-study captures
+(`arizona-alzheimer's-consortium`, `case-study-6`), and `our-partners-list`
+(its capture is Wix's 404 document). Captured internal links to any of these are
+rewritten to the canonical live site so they stay reachable instead of 404ing;
+the language toggle shows English as active with the Spanish option inert.
 
 ---
 
