@@ -45,6 +45,52 @@ For each remaining page above, save it from the browser
 its `_files` folder to the repo (or zip the whole save and upload it). Once
 provided, each page is wired into this static structure.
 
+## Network setup (for automated crawling in a Claude Code web session)
+
+To let a cloud session crawl and mirror the live site directly (instead of
+hand-saving each page), the environment's outbound network access must be
+opened to the site + its Wix CDN hosts. Default Claude Code environments use
+the **Trusted** policy, which only allows package registries/git — so the
+crawl is blocked until this is changed.
+
+**Steps (done once, per environment):**
+
+1. In the Claude Code web app, open the environment switcher and click the
+   **⚙️ gear** next to the cloud environment (e.g. `Default`) to edit it.
+   (Or use **"+ Add cloud environment…"** to create one with these settings.)
+2. In the dialog, set **Network access** to **Custom** (or **Full**).
+3. With **Custom**, an **Allowed domains** field appears — add, one per line:
+
+   ```text
+   galvezandpartners.com
+   www.galvezandpartners.com
+   *.wixstatic.com
+   *.parastorage.com
+   *.wixapps.net
+   *.wix.com
+   ```
+
+   Keep **"Also include default list of common package managers"** checked so
+   git/npm keep working.
+4. **Save**, then **start a new session** — network rules are fixed at session
+   start, so changes only apply to a fresh session.
+
+Those Wix hosts serve the site's images (`static.wixstatic.com`,
+`video.wixstatic.com`), CSS/JS bundles (`static.parastorage.com`,
+`siteassets.parastorage.com`), and runtime data (`panorama.wixapps.net`).
+
+**Then, in the new session:** ask Claude to *"crawl galvezandpartners.com"* on
+branch `claude/galvezandpartners-clone-tyjm94`. It will drive the pre-installed
+headless Chromium to spider every page listed under **Status**, download the
+HTML + CSS/JS/images, rewrite links to be local, and commit a self-contained
+mirror.
+
+> **Caveat:** opening egress is necessary but may not be sufficient — the live
+> site sits behind a Wix WAF that returns `403` to automated fetchers. A real
+> headless browser usually passes its bot check, but if it doesn't, fall back
+> to uploading browser **"Save Page As → Complete"** captures (see *To complete
+> the full-site clone* above). The two approaches can be mixed.
+
 ## Viewing locally
 
 ```sh
