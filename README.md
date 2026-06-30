@@ -1,8 +1,58 @@
-# galvezandpartners.com — site mirror
+# galvezandpartners.com — site mirror + Next.js app
 
 A static mirror of **galvezandpartners.com** (Galvez & Partners / G&P Advertising,
 a Phoenix, AZ advertising & marketing firm), captured by an automated crawl of
-the live site.
+the live site — now also served through a **Next.js (App Router, TypeScript)**
+application that preserves the original UI.
+
+## Next.js app
+
+The captured HTML is the source content; the Next.js app renders it per route so
+the cloned UI is kept intact while gaining real routing and restored
+interactivity.
+
+```sh
+npm install
+npm run dev      # http://localhost:3000
+# or: npm run build && npm run start
+```
+
+**How it works**
+
+- Each route reads its captured `*.html` file at build time and renders it with
+  `dangerouslySetInnerHTML`. All Wix CSS is inlined in the page's `<head>`
+  `<style>` blocks, so the layout is reproduced exactly; images/fonts still load
+  from the Wix CDNs by absolute URL.
+- The dead Wix runtime `<script>`s are stripped. Interactivity is re-implemented
+  in `components/Enhancements.tsx` (a client component): swipable card carousel,
+  on-scroll section reveal, and the mobile hamburger menu + EN/ES language
+  toggle. Styling overrides live in `app/enhance.css`.
+- Internal `*.html` links in the captured markup are rewritten to clean Next
+  routes (`index.html` → `/`, `our-works.html` → `/our-works`,
+  `case-study/la-bombita.html` → `/case-study/la-bombita`, …).
+
+**Project layout**
+
+| Path | Purpose |
+|------|---------|
+| `app/page.tsx` | Home route (`/`) |
+| `app/[...slug]/page.tsx` | All other routes (statically generated) |
+| `lib/pages.ts` | Page manifest + HTML parsing / link rewriting |
+| `components/WixPage.tsx` | Renders a captured page's markup |
+| `components/Enhancements.tsx` | Client-side carousel / menu / reveal / language toggle |
+| `app/enhance.css` | Styling overrides for the above |
+
+**Scope:** the app wires up the **11 well-formed English pages** (home, our-works,
+our-team, our-partners, contact-us, case-study index, `o`, and 4 case studies).
+Not included: the Spanish (`/es`) pages, the two truncated case-study captures
+(`arizona-alzheimer's-consortium`, `case-study-6`), and `our-partners-list`
+(its capture is Wix's 404 document). Captured internal links to any of these are
+rewritten to the canonical live site so they stay reachable instead of 404ing;
+the language toggle shows English as active with the Spanish option inert.
+
+---
+
+## Captured mirror
 
 ## What's captured
 
