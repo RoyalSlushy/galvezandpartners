@@ -559,5 +559,417 @@ url("https://static.wixstatic.com/ufonts/0d6674_d3e4bc5b90ae4aecabc055d3358aa42b
 
 
 
+<!-- GP-ENHANCE:START — custom interactivity & styling overrides (carousel, hero, scroll-reveal, mobile menu, language toggle) -->
+<style id="gp-enhance-css">
+/* ---- 2) Hero: full-white text ---- */
+#comp-lyt35lcb, #comp-lyt35lcb *,
+#comp-lyt3c0cf, #comp-lyt3c0cf * { color: #ffffff !important; }
+
+/* ---- 2) Hero: gradient overlay behind text -> multiply blend ---- */
+#comp-lyozxl3u .wixui-gradient-background { mix-blend-mode: multiply !important; }
+
+/* ---- 1) Carousel ----
+   Wix already grid-stacks all slides in cell 1/1 (full card height); we keep that
+   layout and only toggle opacity / z-index, so the navy card never collapses. */
+#comp-lyrl5vkw { touch-action: pan-y; background: transparent !important; }
+#comp-lyrl5vkw.gp-carousel-ready .gp-slide {
+  position: relative;
+  transition: opacity .45s ease, transform .45s ease;
+  will-change: opacity, transform;
+  opacity: 0; pointer-events: none; z-index: 0;
+  visibility: visible !important; /* Wix hides non-current slides via visibility; we control via opacity */
+}
+#comp-lyrl5vkw.gp-carousel-ready .gp-slide.gp-active { opacity: 1; pointer-events: auto; z-index: 2; }
+#comp-lyrl5vkw.gp-grab { cursor: grab; }
+#comp-lyrl5vkw.gp-grabbing { cursor: grabbing; }
+/* make the Prev/Next controls feel interactive and keep them above the slides */
+#comp-lyrl5vkw [class*="SlideshowButton"] { cursor: pointer; position: relative; z-index: 5; }
+/* dots */
+.gp-dots {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 6; pointer-events: auto;
+}
+.gp-dots button {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,.4); cursor: pointer; transition: background .2s, transform .2s;
+}
+.gp-dots button.gp-dot-active { background: #E0A94F; transform: scale(1.25); }
+
+/* ---- 3) Scroll-reveal for the "next section" ---- */
+.gp-reveal { opacity: 0; transform: translateY(34px); transition: opacity .8s ease, transform .8s ease; }
+.gp-reveal.gp-revealed { opacity: 1 !important; transform: translateY(0) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .gp-reveal { transition: none; }
+}
+
+/* ---- 4) Mobile menu open state + language toggle ---- */
+[data-hook="hamburger-overlay-root"].gp-menu-open { visibility: visible !important; animation: gpFadeIn .25s ease both; }
+@keyframes gpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.gp-lang {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 22px auto 6px; font-size: 18px; letter-spacing: 1px; line-height: 1;
+}
+.gp-lang a {
+  color: #ffffff; text-decoration: none; opacity: .6; padding: 6px 8px;
+  transition: opacity .2s ease, color .2s ease; border-radius: 4px;
+}
+.gp-lang a:hover, .gp-lang a:focus { opacity: 1; }
+.gp-lang a.gp-current { color: #E0A94F; opacity: 1; font-weight: 700; cursor: default; }
+.gp-lang .gp-sep { color: #ffffff; opacity: .35; }
+</style>
+<script id="gp-enhance-js">
+(function () {
+  "use strict";
+  var ready = function (fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  };
+  function safe(label, fn) { try { fn(); } catch (e) { /* keep other fixes alive */ if (window.console) console.warn("[gp-enhance] " + label + " failed:", e); } }
+
+  // ============================================================
+  // 1) CARD CAROUSEL — swipable, one card at a time, wrap-around
+  // ============================================================
+  function initCarousel() {
+    var slideshow = document.getElementById("comp-lyrl5vkw");
+    if (!slideshow || slideshow.__gpInit) return;
+    var repeater = document.getElementById("comp-lyrl5vl5");
+    if (!repeater) return;
+    var host = repeater.querySelector('[data-testid="responsive-container-content"]') || repeater;
+    var slides = Array.prototype.filter.call(host.children, function (n) { return n.nodeType === 1; });
+    if (slides.length < 2) return;
+    slideshow.__gpInit = true;
+    slideshow.classList.add("gp-carousel-ready");
+
+    var current = 0, animating = false;
+
+    slides.forEach(function (s, i) {
+      s.classList.add("gp-slide");
+      // Wix shows only the current slide and hides the rest via `visibility:hidden`
+      // (inherited by all descendants) plus per-slide opacity reveal animations that
+      // never ran in this static mirror. Force every slide + its content visible; we
+      // drive show/hide purely through slide-level opacity below.
+      s.style.setProperty("visibility", "visible", "important");
+      Array.prototype.forEach.call(s.querySelectorAll("*"), function (el) {
+        if (parseFloat(getComputedStyle(el).opacity) < 1) el.style.setProperty("opacity", "1", "important");
+        if (getComputedStyle(el).visibility === "hidden") el.style.setProperty("visibility", "visible", "important");
+      });
+      if (i === 0) { s.classList.add("gp-active"); s.style.opacity = "1"; s.style.transform = "translateX(0)"; s.style.pointerEvents = "auto"; s.style.zIndex = "2"; }
+      else { s.style.opacity = "0"; s.style.transform = "translateX(40px)"; s.style.pointerEvents = "none"; s.style.zIndex = "0"; }
+      s.setAttribute("aria-hidden", i === 0 ? "false" : "true");
+    });
+
+    function go(target, dir) {
+      var n = slides.length;
+      target = ((target % n) + n) % n;
+      if (target === current || animating) return;
+      if (typeof dir !== "number") dir = (target > current) ? 1 : -1;
+      animating = true;
+      var oldEl = slides[current], newEl = slides[target];
+
+      // animate old out
+      oldEl.style.transition = "opacity .45s ease, transform .45s ease";
+      oldEl.style.transform = "translateX(" + (dir > 0 ? "-40px" : "40px") + ")";
+      oldEl.style.opacity = "0";
+      oldEl.style.pointerEvents = "none";
+      oldEl.style.zIndex = "1";
+      oldEl.classList.remove("gp-active");
+      oldEl.setAttribute("aria-hidden", "true");
+
+      // prep new starting from opposite side, no transition
+      newEl.classList.add("gp-active");
+      newEl.style.transition = "none";
+      newEl.style.transform = "translateX(" + (dir > 0 ? "40px" : "-40px") + ")";
+      newEl.style.opacity = "0";
+      newEl.style.pointerEvents = "none";
+      newEl.style.zIndex = "2";
+      // force reflow, then animate in
+      void newEl.offsetWidth;
+      newEl.style.transition = "opacity .45s ease, transform .45s ease";
+      newEl.style.transform = "translateX(0)";
+      newEl.style.opacity = "1";
+      newEl.setAttribute("aria-hidden", "false");
+
+      current = target;
+      updateDots();
+      window.setTimeout(function () { newEl.style.pointerEvents = "auto"; oldEl.style.zIndex = "0"; animating = false; }, 470);
+    }
+    function next() { go(current + 1, 1); }
+    function prev() { go(current - 1, -1); }
+
+    // Wire native Prev/Next controls (left = prev, right = next, by x-position)
+    var ctrls = Array.prototype.slice.call(slideshow.querySelectorAll('[class*="SlideshowButton"]'));
+    // keep only the outermost control roots (avoid inner button duplicates)
+    var roots = ctrls.filter(function (el) { return !ctrls.some(function (o) { return o !== el && o.contains(el); }); });
+    if (roots.length >= 2) {
+      roots.sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
+      var prevBtn = roots[0], nextBtn = roots[roots.length - 1];
+      var bind = function (el, fn) {
+        el.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); fn(); }, true);
+        var inner = el.querySelector("button"); if (inner) { inner.disabled = false; inner.removeAttribute("disabled"); }
+      };
+      bind(prevBtn, prev); bind(nextBtn, next);
+    }
+
+    // Dots
+    var dots = document.createElement("div");
+    dots.className = "gp-dots"; dots.setAttribute("aria-hidden", "false");
+    var dotBtns = slides.map(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", "Show slide " + (i + 1));
+      if (i === 0) b.className = "gp-dot-active";
+      b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); go(i); });
+      dots.appendChild(b); return b;
+    });
+    slideshow.appendChild(dots);
+    function updateDots() { dotBtns.forEach(function (b, i) { b.className = (i === current) ? "gp-dot-active" : ""; }); }
+
+    // Swipe / drag
+    slideshow.classList.add("gp-grab");
+    var dragging = false, startX = 0, startY = 0, dx = 0, decided = false, horiz = false, pointerId = null;
+    var TH = 48;
+    function onDown(x, y, id, ev) {
+      if (animating) return;
+      dragging = true; decided = false; horiz = false; dx = 0; startX = x; startY = y; pointerId = id;
+      // Capture the pointer so move events keep firing even when the cursor/finger
+      // leaves the card's box mid-drag (mouse pointers have no implicit capture).
+      if (id != null && slideshow.setPointerCapture) { try { slideshow.setPointerCapture(id); } catch (e) {} }
+      slides[current].style.transition = "none";
+      slideshow.classList.add("gp-grabbing");
+    }
+    function onMove(x, y, ev) {
+      if (!dragging) return;
+      dx = x - startX; var dy = y - startY;
+      if (!decided) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        decided = true; horiz = Math.abs(dx) > Math.abs(dy);
+      }
+      if (!horiz) return;
+      if (ev && ev.cancelable) ev.preventDefault();
+      slides[current].style.transform = "translateX(" + (dx * 0.6) + "px)";
+      slides[current].style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 600));
+    }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false; slideshow.classList.remove("gp-grabbing");
+      var cur = slides[current];
+      if (horiz && Math.abs(dx) > TH) {
+        // restore styles then transition to neighbour
+        cur.style.transition = "opacity .45s ease, transform .45s ease";
+        if (dx < 0) next(); else prev();
+      } else {
+        cur.style.transition = "opacity .3s ease, transform .3s ease";
+        cur.style.transform = "translateX(0)"; cur.style.opacity = "1";
+      }
+    }
+    // Pointer events (covers mouse + touch on modern browsers)
+    if (window.PointerEvent) {
+      slideshow.addEventListener("pointerdown", function (e) {
+        if (e.target.closest('[class*="SlideshowButton"]') || e.target.closest(".gp-dots") || e.target.closest("a")) return;
+        onDown(e.clientX, e.clientY, e.pointerId, e);
+      });
+      slideshow.addEventListener("pointermove", function (e) { onMove(e.clientX, e.clientY, e); });
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    } else {
+      slideshow.addEventListener("touchstart", function (e) {
+        if (e.target.closest('[class*="SlideshowButton"]') || e.target.closest(".gp-dots") || e.target.closest("a")) return;
+        var t = e.touches[0]; onDown(t.clientX, t.clientY, null, e);
+      }, { passive: true });
+      slideshow.addEventListener("touchmove", function (e) { var t = e.touches[0]; onMove(t.clientX, t.clientY, e); }, { passive: false });
+      slideshow.addEventListener("touchend", onUp);
+      // mouse drag fallback
+      slideshow.addEventListener("mousedown", function (e) {
+        if (e.target.closest('[class*="SlideshowButton"]') || e.target.closest(".gp-dots") || e.target.closest("a")) return;
+        onDown(e.clientX, e.clientY, null, e);
+      });
+      window.addEventListener("mousemove", function (e) { if (dragging) onMove(e.clientX, e.clientY, e); });
+      window.addEventListener("mouseup", onUp);
+    }
+
+    // Keyboard
+    slideshow.setAttribute("tabindex", slideshow.getAttribute("tabindex") || "0");
+    slideshow.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+    });
+  }
+
+  // ============================================================
+  // 3) SCROLL-REVEAL — "the next section" fades/rises into view
+  // ============================================================
+  function initReveal() {
+    var section = document.getElementById("comp-lzcwzr7b");
+    if (!section || section.__gpReveal) return;
+    section.__gpReveal = true;
+
+    // collect EVERY element currently stuck at opacity:0 (Wix scroll-animations that never ran).
+    // NOTE: opacity is NOT inherited — each element composites its own opacity — so a hidden
+    // child stays invisible even if its parent is revealed. We must reveal all of them.
+    var hidden = Array.prototype.filter.call(section.querySelectorAll("*"), function (el) {
+      var cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      return parseFloat(cs.opacity) < 0.99;
+    });
+    if (!hidden.length) return;
+
+    // the outermost hidden elements drive the staggered fade-up; nested ones just fade.
+    var outer = hidden.filter(function (el) {
+      return !hidden.some(function (o) { return o !== el && o.contains(el); });
+    });
+    var isOuter = function (el) { return outer.indexOf(el) !== -1; };
+
+    hidden.forEach(function (el) {
+      el.style.setProperty("opacity", "0", "important");
+      if (isOuter(el)) {
+        el.classList.add("gp-reveal"); // adds the translateY fade-up
+      } else {
+        el.style.transition = "opacity .8s ease"; // nested: fade only (no transform => no compounding)
+      }
+    });
+    outer.sort(function (a, b) { return a.getBoundingClientRect().top - b.getBoundingClientRect().top; });
+
+    var reveal = function () {
+      outer.forEach(function (el, i) {
+        window.setTimeout(function () { el.classList.add("gp-revealed"); el.style.setProperty("opacity", "1", "important"); }, i * 90);
+      });
+      // reveal nested children alongside their group
+      hidden.forEach(function (el) {
+        if (!isOuter(el)) window.setTimeout(function () { el.style.setProperty("opacity", "1", "important"); }, 140);
+      });
+    };
+
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { if (en.isIntersecting) { reveal(); io.disconnect(); } });
+      }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+      io.observe(section);
+    } else {
+      reveal();
+    }
+  }
+
+  // ============================================================
+  // 4) MOBILE HAMBURGER MENU + LANGUAGE TOGGLE
+  // ============================================================
+  function initMenu() {
+    var overlays = Array.prototype.slice.call(document.querySelectorAll('[data-hook="hamburger-overlay-root"]'));
+    if (!overlays.length) return;
+    var openBtns = Array.prototype.slice.call(document.querySelectorAll('[class*="HamburgerOpenButton"]'));
+
+    function lcp(a, b) { var i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; }
+    function overlayFor(btn) {
+      // pair by longest-common-id-prefix, fall back to climbing the DOM
+      if (btn.id) {
+        var best = null, bestLen = -1;
+        overlays.forEach(function (ov) { if (!ov.id) return; var l = lcp(btn.id, ov.id); if (l > bestLen) { bestLen = l; best = ov; } });
+        if (best && bestLen > 4) return best;
+      }
+      var n = btn;
+      while (n) { var ov = n.querySelector && n.querySelector('[data-hook="hamburger-overlay-root"]'); if (ov) return ov; n = n.parentElement; }
+      return overlays[0];
+    }
+
+    var scrollY = 0;
+    function lockScroll(lock) {
+      if (lock) { scrollY = window.scrollY || 0; document.body.style.overflow = "hidden"; }
+      else { document.body.style.overflow = ""; }
+    }
+    function open(ov) {
+      ov.classList.add("gp-menu-open");
+      ov.setAttribute("data-visible", "true");
+      lockScroll(true);
+      var focusable = ov.querySelector('button[aria-label], a[href]'); if (focusable) try { focusable.focus(); } catch (e) {}
+    }
+    function close(ov) {
+      ov.classList.remove("gp-menu-open");
+      ov.setAttribute("data-visible", "false");
+      if (!document.querySelector('[data-hook="hamburger-overlay-root"].gp-menu-open')) lockScroll(false);
+    }
+    function isOpen(ov) { return ov.classList.contains("gp-menu-open"); }
+
+    openBtns.forEach(function (btn) {
+      if (btn.__gpBound) return; btn.__gpBound = true;
+      btn.addEventListener("click", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var ov = overlayFor(btn); if (ov) open(ov);
+      }, true);
+    });
+
+    overlays.forEach(function (ov) {
+      if (ov.__gpBound) return; ov.__gpBound = true;
+      // close buttons
+      Array.prototype.slice.call(ov.querySelectorAll('[class*="HamburgerCloseButton"], button[aria-label="Close"], button[aria-label="Cerrar"]')).forEach(function (cb) {
+        cb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); close(ov); }, true);
+      });
+      // backdrop click closes
+      var backdrop = ov.querySelector('[class*="HamburgerOverlay"][class*="overlay"]');
+      if (backdrop) backdrop.addEventListener("click", function (e) { if (e.target === backdrop) close(ov); });
+      // clicking a real nav link closes (then navigates)
+      Array.prototype.slice.call(ov.querySelectorAll('a[href]')).forEach(function (a) {
+        a.addEventListener("click", function () { close(ov); });
+      });
+      // inject language toggle
+      injectLangToggle(ov);
+    });
+
+    // ESC closes any open overlay (bind once — initMenu may run several times on boot)
+    if (!document.__gpEscBound) {
+      document.__gpEscBound = true;
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" || e.key === "Esc") {
+          Array.prototype.forEach.call(document.querySelectorAll('[data-hook="hamburger-overlay-root"].gp-menu-open'), close);
+        }
+      });
+    }
+  }
+
+  function injectLangToggle(container) {
+    if (container.querySelector(".gp-lang")) return;
+    var get = function (sel) { var l = document.querySelector(sel); return l ? l.getAttribute("href") : null; };
+    var enHref = get('link[rel="alternate"][hreflang="en-us"]') || get('link[rel="alternate"][hreflang="x-default"]');
+    var esHref = get('link[rel="alternate"][hreflang="es-mx"]') || get('link[rel="alternate"][hreflang^="es"]');
+    if (!enHref && !esHref) return;
+    var cur = (document.documentElement.getAttribute("lang") || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en";
+
+    var wrap = document.createElement("div");
+    wrap.className = "gp-lang";
+    wrap.setAttribute("role", "navigation");
+    wrap.setAttribute("aria-label", "Language");
+
+    function link(href, label, code) {
+      var a = document.createElement("a");
+      if (cur === code) { a.className = "gp-current"; a.setAttribute("aria-current", "true"); a.removeAttribute("href"); }
+      else if (href) { a.setAttribute("href", href); }
+      a.textContent = label;
+      return a;
+    }
+    var sep = document.createElement("span"); sep.className = "gp-sep"; sep.textContent = "/";
+    wrap.appendChild(link(enHref, "English", "en"));
+    wrap.appendChild(sep);
+    wrap.appendChild(link(esHref, "Español", "es"));
+
+    // place it after the vertical nav inside the overlay, else append
+    var nav = container.querySelector('.wixui-vertical-menu, nav[aria-label="Site"], nav');
+    if (nav && nav.parentNode) nav.parentNode.insertBefore(wrap, nav.nextSibling);
+    else container.appendChild(wrap);
+  }
+
+  // ---- boot ----
+  ready(function () {
+    var run = function () {
+      safe("hero", function () { /* hero styling is pure CSS; nothing to do here */ });
+      safe("carousel", initCarousel);
+      safe("reveal", initReveal);
+      safe("menu", initMenu);
+    };
+    run();
+    // Wix hydrates/repaints asynchronously; re-run a couple of times to catch late DOM.
+    window.setTimeout(run, 600);
+    window.setTimeout(run, 1800);
+  });
+})();
+</script>
+<!-- GP-ENHANCE:END -->
 </body>
 </html>
