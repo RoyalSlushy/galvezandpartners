@@ -1,0 +1,57 @@
+/* === G&P interactivity & styling overrides (ported into the Next.js app) ===
+   Restores behaviour that the dead Wix runtime no longer provides:
+   carousel, hero styling, scroll-reveal, mobile menu + language toggle. */
+
+/* ---- Hero: full-white text ---- */
+#comp-lyt35lcb, #comp-lyt35lcb *,
+#comp-lyt3c0cf, #comp-lyt3c0cf * { color: #ffffff !important; }
+
+/* ---- Hero: gradient overlay behind text -> multiply blend ---- */
+#comp-lyozxl3u .wixui-gradient-background { mix-blend-mode: multiply !important; }
+
+/* ---- Carousel ----
+   Wix grid-stacks all slides in cell 1/1 (full card height); we keep that
+   layout and only toggle opacity / z-index, so the navy card never collapses. */
+#comp-lyrl5vkw { touch-action: pan-y; background: transparent !important; }
+#comp-lyrl5vkw.gp-carousel-ready .gp-slide {
+  position: relative;
+  transition: opacity .45s ease, transform .45s ease;
+  will-change: opacity, transform;
+  opacity: 0; pointer-events: none; z-index: 0;
+  visibility: visible !important; /* Wix hides non-current slides via visibility; we control via opacity */
+}
+#comp-lyrl5vkw.gp-carousel-ready .gp-slide.gp-active { opacity: 1; pointer-events: auto; z-index: 2; }
+#comp-lyrl5vkw.gp-grab { cursor: grab; }
+#comp-lyrl5vkw.gp-grabbing { cursor: grabbing; }
+#comp-lyrl5vkw [class*="SlideshowButton"] { cursor: pointer; position: relative; z-index: 5; }
+.gp-dots {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 6; pointer-events: auto;
+}
+.gp-dots button {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,.4); cursor: pointer; transition: background .2s, transform .2s;
+}
+.gp-dots button.gp-dot-active { background: #E0A94F; transform: scale(1.25); }
+
+/* ---- Scroll-reveal for the "next section" ---- */
+.gp-reveal { opacity: 0; transform: translateY(34px); transition: opacity .8s ease, transform .8s ease; }
+.gp-reveal.gp-revealed { opacity: 1 !important; transform: translateY(0) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .gp-reveal { transition: none; }
+}
+
+/* ---- Mobile menu open state + language toggle ---- */
+[data-hook="hamburger-overlay-root"].gp-menu-open { visibility: visible !important; animation: gpFadeIn .25s ease both; }
+@keyframes gpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.gp-lang {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 22px auto 6px; font-size: 18px; letter-spacing: 1px; line-height: 1;
+}
+.gp-lang a {
+  color: #ffffff; text-decoration: none; opacity: .6; padding: 6px 8px;
+  transition: opacity .2s ease, color .2s ease; border-radius: 4px;
+}
+.gp-lang a:hover, .gp-lang a:focus { opacity: 1; }
+.gp-lang a.gp-current { color: #E0A94F; opacity: 1; font-weight: 700; cursor: default; }
+.gp-lang .gp-sep { color: #ffffff; opacity: .35; }
