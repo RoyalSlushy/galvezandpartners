@@ -1,95 +1,67 @@
-# galvezandpartners.com — site clone
+# galvezandpartners.com — site mirror
 
-A static clone of **galvezandpartners.com** (Galvez & Partners / G&P Advertising,
-a Phoenix, AZ advertising & marketing firm).
+A static mirror of **galvezandpartners.com** (Galvez & Partners / G&P Advertising,
+a Phoenix, AZ advertising & marketing firm), captured by an automated crawl of
+the live site.
 
-## Status
+## What's captured
 
-| Page | Path | Status |
-|------|------|--------|
-| Home | `/` | ✅ captured (`index.html`) |
-| Our Works | `/our-works` | ⏳ not yet captured |
-| Our Team | `/our-team` | ⏳ not yet captured |
-| Our Partners | `/our-partners` | ⏳ not yet captured |
-| Our Partners List | `/our-partners-list` | ⏳ not yet captured |
-| Contact Us | `/contact-us` | ⏳ not yet captured |
-| Spanish home | `/es` | ⏳ not yet captured |
-| Case studies | `/case-study/*` | ⏳ not yet captured |
+Every page listed in the site's `sitemap.xml` was crawled — both the English
+site and its Spanish (`/es`) counterpart, including the dynamic case-study
+pages. **28 pages total** (14 English + 14 Spanish).
 
-## How this was built
+| Page | URL | Local file |
+|------|-----|------------|
+| Home | `/` | `index.html` |
+| Our Works | `/our-works` | `our-works.html` |
+| Our Team | `/our-team` | `our-team.html` |
+| Our Partners | `/our-partners` | `our-partners.html` |
+| Our Partners (list) | `/our-partners-list` | `our-partners-list.html` |
+| Contact Us | `/contact-us` | `contact-us.html` |
+| Case Studies (index) | `/case-study` | `case-study.html` |
+| "o" page | `/o` | `o.html` |
+| Case study: Case Study 6 | `/case-study/case-study-6` | `case-study/case-study-6.html` |
+| Case study: Arizona Alzheimer's Consortium | `/case-study/arizona-alzheimer's-consortium` | `case-study/arizona-alzheimer's-consortium.html` |
+| Case study: La Bombita | `/case-study/la-bombita` | `case-study/la-bombita.html` |
+| Case study: Helios Education Foundation | `/case-study/helios-education-foundation` | `case-study/helios-education-foundation.html` |
+| Case study: Precision Aging Network | `/case-study/precision-aging-network` | `case-study/precision-aging-network.html` |
+| Case study: ELG Accident Attorneys | `/case-study/elg-accident-attorneys` | `case-study/elg-accident-attorneys.html` |
 
-The live site is hosted on **Wix (Thunderbolt)**. It could not be crawled
-automatically from the build environment (the site's WAF blocks automated
-fetchers and this environment's network policy blocks direct downloads), so the
-clone is assembled from browser **"Save Page As → Webpage, Complete"** captures
-provided by the site owner.
+The Spanish site mirrors the same set under `es/` (`es/index.html`,
+`es/our-works.html`, `es/case-study/la-bombita.html`, …).
 
-`index.html` is the saved homepage, committed byte-for-byte as provided.
+## How it was crawled
 
-## Assets
+The live site is hosted on **Wix (Thunderbolt)**, which **server-renders** the
+full text content of each page into the initial HTML — so headings, copy, and
+links are all present in the captured files even before any JavaScript runs.
 
-The saved homepage references a companion assets folder,
-`Home _ G&P Advertising_files/` (JavaScript bundles, CSS, and images), and a
-number of Wix CDN hosts (`static.wixstatic.com`, `static.parastorage.com`).
+`tools/crawl.py` performs the crawl:
 
-- The page's **text content is server-rendered inline**, so headings and copy
-  display even without the assets.
-- Full styling, scripts, and images require the companion assets folder (drop
-  its contents into `Home _ G&P Advertising_files/`) and/or network access to
-  the Wix CDNs.
+1. Reads the page list from the site's sitemaps (`sitemap.xml`,
+   `es_es-sitemap.xml`, and the per-section sitemaps they reference).
+2. Downloads each page's server-rendered HTML over `curl` (with retry/backoff).
+3. **Rewrites internal navigation links** — the `<a href>` / `<link href>`
+   entries that point at another captured page — to **relative local paths**, so
+   you can click through the whole mirror offline. Apostrophe/ampersand
+   encodings (`%27`, `&#x27;`, `&#39;`, `&amp;`) are normalised so every link
+   variant resolves to the right local file.
+4. Leaves **Wix CDN asset URLs absolute** — images (`static.wixstatic.com`),
+   CSS/JS bundles (`static.parastorage.com`), fonts, and runtime data
+   (`*.wixapps.net`). A Wix site's styling and imagery are served from these
+   hosts and reconstructed client-side, so they can't be meaningfully bundled
+   into a static folder; keeping them absolute means the pages render fully when
+   you have network access, and degrade to (fully readable) unstyled content
+   when you don't.
 
-## To complete the full-site clone
+Links to paths that aren't part of this mirror (e.g. the Wix `/es/blank`
+placeholder) are left absolute so they still resolve against the live site.
 
-For each remaining page above, save it from the browser
-(`File → Save Page As → Webpage, Complete`) and add both the `.html` file and
-its `_files` folder to the repo (or zip the whole save and upload it). Once
-provided, each page is wired into this static structure.
+To re-run the crawl (e.g. to refresh the mirror):
 
-## Network setup (for automated crawling in a Claude Code web session)
-
-To let a cloud session crawl and mirror the live site directly (instead of
-hand-saving each page), the environment's outbound network access must be
-opened to the site + its Wix CDN hosts. Default Claude Code environments use
-the **Trusted** policy, which only allows package registries/git — so the
-crawl is blocked until this is changed.
-
-**Steps (done once, per environment):**
-
-1. In the Claude Code web app, open the environment switcher and click the
-   **⚙️ gear** next to the cloud environment (e.g. `Default`) to edit it.
-   (Or use **"+ Add cloud environment…"** to create one with these settings.)
-2. In the dialog, set **Network access** to **Custom** (or **Full**).
-3. With **Custom**, an **Allowed domains** field appears — add, one per line:
-
-   ```text
-   galvezandpartners.com
-   www.galvezandpartners.com
-   *.wixstatic.com
-   *.parastorage.com
-   *.wixapps.net
-   *.wix.com
-   ```
-
-   Keep **"Also include default list of common package managers"** checked so
-   git/npm keep working.
-4. **Save**, then **start a new session** — network rules are fixed at session
-   start, so changes only apply to a fresh session.
-
-Those Wix hosts serve the site's images (`static.wixstatic.com`,
-`video.wixstatic.com`), CSS/JS bundles (`static.parastorage.com`,
-`siteassets.parastorage.com`), and runtime data (`panorama.wixapps.net`).
-
-**Then, in the new session:** ask Claude to *"crawl galvezandpartners.com"* on
-branch `claude/galvezandpartners-clone-tyjm94`. It will drive the pre-installed
-headless Chromium to spider every page listed under **Status**, download the
-HTML + CSS/JS/images, rewrite links to be local, and commit a self-contained
-mirror.
-
-> **Caveat:** opening egress is necessary but may not be sufficient — the live
-> site sits behind a Wix WAF that returns `403` to automated fetchers. A real
-> headless browser usually passes its bot check, but if it doesn't, fall back
-> to uploading browser **"Save Page As → Complete"** captures (see *To complete
-> the full-site clone* above). The two approaches can be mixed.
+```sh
+python3 tools/crawl.py .
+```
 
 ## Viewing locally
 
@@ -97,3 +69,17 @@ mirror.
 python3 -m http.server 8000
 # open http://localhost:8000/
 ```
+
+With network access the pages render with full Wix styling and images. Offline,
+the text content and internal navigation still work; styling/images won't load
+because they live on the Wix CDNs.
+
+## Notes
+
+- Network egress to the site + its Wix CDN hosts must be reachable for the crawl
+  to run and for the mirror to render with assets. In a Claude Code web session
+  this means the environment's network policy must allow `galvezandpartners.com`
+  and the Wix hosts (`*.wixstatic.com`, `*.parastorage.com`, `*.wixapps.net`).
+  This session's environment had egress open, so the crawl ran directly.
+- `robots.txt` on the live site is `Allow: /` (only `*?lightbox=` is
+  disallowed, which the crawl does not request).
