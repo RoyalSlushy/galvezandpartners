@@ -39,13 +39,13 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
-  --header-h: 154px; /* mobile header height (25% taller than the previous 123px) */
+  --header-h: 100px; /* mobile header height (slightly taller than the 88px base) */
 }
 
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 168px; /* 25% taller than the previous 134px */
+    --header-h: 112px; /* slightly taller than the 96px base */
   }
 }
 
@@ -53,6 +53,22 @@
 .hero-fill {
   min-height: calc(100vh - var(--header-h));
   min-height: calc(100svh - var(--header-h));
+}
+
+/* On desktop the hero is exactly the viewport minus the header, split 2:1
+   between the image and the carousel/CTA row. The 6rem subtracts the row's
+   top margin (mt-8 = 2rem) and the section's bottom padding (pb-16 = 4rem),
+   so the image, gap, row and padding add back up to the full section height. */
+@media (min-width: 751px) {
+  .hero-fill {
+    height: calc(100svh - var(--header-h));
+  }
+  .hero-image {
+    height: calc((100svh - var(--header-h) - 6rem) * 2 / 3);
+  }
+  .hero-row {
+    height: calc((100svh - var(--header-h) - 6rem) / 3);
+  }
 }
 
 @layer base {
