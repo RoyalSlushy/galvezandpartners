@@ -39,6 +39,20 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
+  --header-h: 123px; /* mobile header height (~40% taller than the 88px base) */
+}
+
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height */
+@media (min-width: 751px) {
+  :root {
+    --header-h: 134px; /* ~40% taller than the 96px base */
+  }
+}
+
+/* Homepage hero fills the viewport below the header */
+.hero-fill {
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100svh - var(--header-h));
 }
 
 @layer base {

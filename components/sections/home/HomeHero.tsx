@@ -4,10 +4,10 @@ import Carousel from "@/components/ui/Carousel";
 import { HERO, SERVICES } from "@/content/home";
 
 /**
- * Homepage hero: storefront image with "We Are Storytellers." overlay, then a
- * row with the "Let's Connect" CTA (left) and the services carousel (right) on
- * desktop — stacked (carousel above CTA) on mobile. This mirrors the approved
- * CTA/carousel swap.
+ * Homepage hero: fills the viewport below the header. A storefront image with
+ * the "We Are Storytellers." overlay grows to take the available height, then a
+ * row with the services carousel (left) and the "Let's Connect" CTA (right) on
+ * desktop — stacked (carousel above CTA) on mobile.
  */
 export default function HomeHero() {
   const slides = SERVICES.map((s) => (
@@ -18,15 +18,15 @@ export default function HomeHero() {
   ));
 
   return (
-    <section className="w-full bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-8">
-      <Container>
-        {/* Storefront image + headline */}
-        <div className="relative overflow-hidden rounded-2xl">
+    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-2">
+      <Container className="flex flex-1 flex-col">
+        {/* Storefront image + headline — grows to fill the remaining viewport height */}
+        <div className="relative min-h-[260px] flex-1 overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={HERO.image}
             alt="Galvez & Partners storytelling"
-            className="h-[42vw] max-h-[520px] min-h-[260px] w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
@@ -35,18 +35,18 @@ export default function HomeHero() {
           </div>
         </div>
 
-        {/* CTA (left) + carousel (right) */}
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-[minmax(0,0.5fr)_minmax(0,1.5fr)]">
-          <div className="order-2 flex items-center justify-center rounded-2xl bg-gold p-8 text-center sm:order-1">
+        {/* Carousel (left) + CTA (right) on desktop; carousel above CTA on mobile */}
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.5fr)]">
+          <div className="rounded-2xl bg-navy-soft py-6">
+            <Carousel slides={slides} ariaLabel="Our services" />
+          </div>
+          <div className="flex items-center justify-center rounded-2xl bg-gold p-8 text-center">
             <div>
               <p className="font-display text-f5 leading-none text-navy">Ready?</p>
               <Button href={HERO.ctaHref} variant="outline" className="mt-5 border-navy text-navy hover:bg-navy hover:text-gold">
                 {HERO.ctaLabel}
               </Button>
             </div>
-          </div>
-          <div className="order-1 rounded-2xl bg-navy-soft py-6 sm:order-2">
-            <Carousel slides={slides} ariaLabel="Our services" />
           </div>
         </div>
       </Container>
