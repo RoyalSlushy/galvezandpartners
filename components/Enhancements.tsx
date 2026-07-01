@@ -286,6 +286,105 @@ export default function Enhancements() {
       });
     }
 
+    // ===== 2) HOMEPAGE SECTION / SUBSECTION ENTER ANIMATIONS =====
+    // Every homepage <section> (and the subsections inside it) rises/fades in as
+    // it scrolls into view. The hidden state is applied here in JS, so pages
+    // render fully without it; sections already in view reveal on first frame.
+    function initHomeEnter() {
+      // Homepage only — identified by the hero section id.
+      if (!document.getElementById("comp-lyozxl3u")) return;
+      const root: any = document.documentElement;
+      if (root.__gpEnter) return;
+      root.__gpEnter = true;
+
+      const reduce = !!(
+        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      );
+
+      // Homepage content sections: skip the one initReveal already animates, skip
+      // anything inside the (sticky) header, and keep only the outermost sections
+      // so nested Wix sub-sections don't animate twice.
+      const header: any = document.getElementById("comp-kbgakxea");
+      let sections: any[] = Array.prototype.filter.call(
+        document.querySelectorAll('section[id^="comp-"]'),
+        (s: any) =>
+          s.id !== "comp-lzcwzr7b" &&
+          !s.closest("header") &&
+          !(header && header !== s && header.contains(s))
+      );
+      sections = sections.filter(
+        (s: any) => !sections.some((o: any) => o !== s && o.contains(s))
+      );
+
+      // Walk down single-child wrappers to the first container that branches into
+      // several component boxes — those are the section's "subsections".
+      function subsectionsOf(sec: any): any[] {
+        let container: any =
+          sec.querySelector('[data-testid="responsive-container-content"]') || sec;
+        for (let i = 0; i < 6; i++) {
+          const kids: any[] = Array.prototype.filter.call(
+            container.children,
+            (c: any) =>
+              c.nodeType === 1 && /^comp-/.test(c.id || "") && c.id !== "comp-lyrl5vkw"
+          );
+          if (kids.length >= 2) return kids;
+          if (kids.length === 1) {
+            const inner =
+              kids[0].querySelector('[data-testid="responsive-container-content"]') || kids[0];
+            if (inner === container) break;
+            container = inner;
+            continue;
+          }
+          break;
+        }
+        return [];
+      }
+
+      const groups: { el: any; subs: any[] }[] = [];
+      sections.forEach((sec: any) => {
+        if (sec.__gpEnter) return;
+        sec.__gpEnter = true;
+        sec.classList.add("gp-enter");
+        // Stagger subsections — but not for the hero, whose children include the
+        // carousel/CTA that other enhancements already manage.
+        const subs = sec.id === "comp-lyozxl3u" ? [] : subsectionsOf(sec);
+        const staged: any[] = [];
+        subs.forEach((el: any, i: number) => {
+          if (el.classList.contains("gp-reveal")) return; // leave initReveal's targets alone
+          el.classList.add("gp-enter");
+          el.style.transitionDelay = 0.09 * (i + 1) + "s";
+          staged.push(el);
+        });
+        groups.push({ el: sec, subs: staged });
+      });
+
+      const enter = (g: { el: any; subs: any[] }) => {
+        g.el.classList.add("gp-entered");
+        g.subs.forEach((el: any) => el.classList.add("gp-entered"));
+      };
+
+      if (reduce || !("IntersectionObserver" in window)) {
+        groups.forEach(enter);
+        return;
+      }
+
+      const byEl = new Map<any, { el: any; subs: any[] }>();
+      groups.forEach((g) => byEl.set(g.el, g));
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((en) => {
+            if (en.isIntersecting) {
+              const g = byEl.get(en.target);
+              if (g) enter(g);
+              io.unobserve(en.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+      );
+      groups.forEach((g) => io.observe(g.el));
+    }
+
     // ===== 3) SCROLL-REVEAL — the "next section" fades/rises into view =====
     function initReveal() {
       const section: any = document.getElementById("comp-lzcwzr7b");
@@ -517,6 +616,7 @@ export default function Enhancements() {
 
     // ----- boot -----
     const run = () => {
+      safe("home-enter", initHomeEnter);
       safe("carousel", initCarousel);
       safe("reveal", initReveal);
       safe("menu", initMenu);
