@@ -1,14 +1,13 @@
-import type { Metadata } from "next";
-import WixPage from "@/components/WixPage";
-import { getPageData } from "@/lib/pages";
+import HomeHero from "@/components/sections/home/HomeHero";
+import ServicesGrid from "@/components/sections/home/ServicesGrid";
+import MulticulturalReveal from "@/components/sections/home/MulticulturalReveal";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const page = await getPageData([]);
-  return { title: page?.title, description: page?.description };
-}
-
-export default async function Home() {
-  const page = await getPageData([]);
-  if (!page) return null;
-  return <WixPage html={page.html} />;
+export default function Home() {
+  return (
+    <>
+      <HomeHero />
+      <ServicesGrid />
+      <MulticulturalReveal />
+    </>
+  );
 }

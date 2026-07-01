@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import "./enhance.css";
+import "./globals.css";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { SITE } from "@/content/site";
 
 export const metadata: Metadata = {
   title: {
-    default: "Galvez & Partners | G&P Advertising",
-    template: "%s",
+    default: `${SITE.name} | ${SITE.brand}`,
+    template: `%s | ${SITE.name}`,
   },
-  description:
-    "Galvez & Partners (G&P Advertising) — a multicultural advertising & marketing firm in Phoenix, AZ.",
+  description: SITE.description,
 };
 
 export const viewport: Viewport = {
@@ -20,11 +22,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // The captured Wix pages set <html lang="en"> and <body class="responsive">;
-  // we mirror those so the inlined Wix CSS resolves exactly as on the original.
   return (
     <html lang="en">
-      <body className="responsive">{children}</body>
+      <body className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }
