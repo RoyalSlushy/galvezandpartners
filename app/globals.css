@@ -39,13 +39,13 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
-  --header-h: 123px; /* mobile header height (~40% taller than the 88px base) */
+  --header-h: 154px; /* mobile header height (25% taller than the previous 123px) */
 }
 
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 134px; /* ~40% taller than the 96px base */
+    --header-h: 168px; /* 25% taller than the previous 134px */
   }
 }
 

@@ -18,10 +18,10 @@ export default function HomeHero() {
   ));
 
   return (
-    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-2">
+    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-0">
       <Container className="flex flex-1 flex-col">
-        {/* Storefront image + headline — grows to fill the remaining viewport height */}
-        <div className="relative min-h-[260px] flex-1 overflow-hidden rounded-2xl">
+        {/* Storefront image + headline — ~2x the height of the carousel/CTA row below */}
+        <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl sm:min-h-[760px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={HERO.image}
@@ -36,7 +36,7 @@ export default function HomeHero() {
         </div>
 
         {/* Carousel (left) + CTA (right) on desktop; carousel above CTA on mobile */}
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.5fr)]">
+        <div className="mt-8 grid shrink-0 grid-cols-1 gap-6 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.5fr)]">
           <div className="rounded-2xl bg-navy-soft py-6">
             <Carousel slides={slides} ariaLabel="Our services" />
           </div>
