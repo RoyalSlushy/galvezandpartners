@@ -1,19 +1,15 @@
 import { type ReactNode } from "react";
 
-/** Centered max-width wrapper matching the Wix 980px site width. */
+/** Centered max-width wrapper matching the 1200px site width used by the header and body. */
 export default function Container({
   children,
   className = "",
-  wide = false,
 }: {
   children: ReactNode;
   className?: string;
-  wide?: boolean;
 }) {
   return (
-    <div
-      className={`mx-auto w-full px-5 sm:px-8 ${wide ? "max-w-[1200px]" : "max-w-site"} ${className}`}
-    >
+    <div className={`mx-auto w-full max-w-site px-5 sm:px-8 ${className}`}>
       {children}
     </div>
   );

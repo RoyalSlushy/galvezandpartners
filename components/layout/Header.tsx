@@ -5,10 +5,10 @@ import MobileMenu from "./MobileMenu";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 
-/** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. Sticky, width flush with the body Container. */
+/** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. Width flush with the body Container. */
 export default function Header() {
   return (
-    <header className="sticky top-0 z-40 w-full bg-navy/95 backdrop-blur">
+    <header className="w-full bg-navy">
       <div className="mx-auto flex max-w-site items-center justify-between gap-6 px-5 py-4 sm:px-8">
         {/* Logo */}
         <Link href="/" aria-label="Galvez & Partners — home" className="shrink-0">

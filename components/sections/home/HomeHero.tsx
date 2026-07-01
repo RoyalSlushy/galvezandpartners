@@ -19,7 +19,7 @@ export default function HomeHero() {
 
   return (
     <section className="w-full bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-8">
-      <Container wide>
+      <Container>
         {/* Storefront image + headline */}
         <div className="relative overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
