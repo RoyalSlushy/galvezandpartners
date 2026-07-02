@@ -18,10 +18,11 @@ export default function HomeHero() {
   ));
 
   return (
-    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-16 pt-0">
+    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-4 pt-0">
       <Container className="flex flex-1 flex-col">
-        {/* Storefront image + headline — 2x the height of the carousel/CTA row on desktop */}
-        <div className="hero-image relative min-h-[280px] flex-1 overflow-hidden rounded-2xl sm:flex-none">
+        {/* Storefront image + headline — 2x the height of the carousel/CTA row on desktop.
+            container-type lets the headline scale with the image width (cqi), not the viewport. */}
+        <div className="hero-image relative min-h-[280px] flex-1 overflow-hidden rounded-2xl [container-type:inline-size] sm:flex-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={HERO.image}
@@ -30,7 +31,7 @@ export default function HomeHero() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
-            <h1 className="font-heading text-f4 leading-none text-white">{HERO.headline}</h1>
+            <h1 className="font-heading text-[clamp(2rem,4.5cqi,3rem)] leading-none text-white">{HERO.headline}</h1>
             <p className="mt-3 max-w-2xl font-body text-f9 text-white/85">{HERO.sub}</p>
           </div>
         </div>
