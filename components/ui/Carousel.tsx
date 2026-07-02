@@ -139,7 +139,7 @@ export default function Carousel({
       </button>
 
       {/* Dots */}
-      <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-2">
+      <div className="absolute bottom-3 left-6 z-10 flex gap-2">
         {slides.map((_, i) => (
           <button
             key={i}

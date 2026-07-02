@@ -81,12 +81,16 @@
     align-items: center;
     gap: 2rem;
   }
+  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
+     leaving the body the rest of the row for maximum breathing room. */
   .hero-slide > h3 {
-    flex: 0 0 40%;
+    flex: 0 0 auto;
+    width: min-content;
   }
   .hero-slide-body {
     margin-top: 0;
     max-width: none;
+    flex: 1;
   }
 }
 
