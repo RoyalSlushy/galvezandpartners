@@ -13,7 +13,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" aria-label="Galvez & Partners — home" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-14 w-auto sm:h-16" />
+          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
         </Link>
 
         {/* Desktop nav + right cluster, with the CTA pushed to the far right */}
