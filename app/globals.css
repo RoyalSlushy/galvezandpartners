@@ -39,13 +39,15 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
-  --header-h: 150px; /* mobile header height (50% taller than the previous 100px) */
+  /* Must match the header's rendered footprint (logo height + its py + my),
+     since the hero-fill calc below subtracts it. Mobile: logo 56 + py-0.5 + my-3. */
+  --header-h: 84px;
 }
 
-/* Desktop (Tailwind `sm` breakpoint = 751px) header height */
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height: logo 64 + py-0.5 + my-3. */
 @media (min-width: 751px) {
   :root {
-    --header-h: 168px; /* 50% taller than the previous 112px */
+    --header-h: 92px;
   }
 }
 
@@ -68,6 +70,23 @@
   }
   .hero-row {
     height: calc((100svh - var(--header-h) - 3rem) / 3);
+  }
+}
+
+/* When the carousel card is wide enough, lay each slide's heading and body
+   side by side instead of stacked (the card is a container-type: inline-size). */
+@container (min-width: 620px) {
+  .hero-slide {
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  .hero-slide > h3 {
+    flex: 0 0 40%;
+  }
+  .hero-slide-body {
+    margin-top: 0;
+    max-width: none;
   }
 }
 
