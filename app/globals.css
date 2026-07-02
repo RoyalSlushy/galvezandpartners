@@ -39,15 +39,13 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
-  /* Must match the header's rendered footprint (logo height + its py + my),
-     since the hero-fill calc below subtracts it. Mobile: logo 56 + py-1 + my-3. */
-  --header-h: 88px;
+  --header-h: 150px; /* mobile header height (50% taller than the previous 100px) */
 }
 
-/* Desktop (Tailwind `sm` breakpoint = 751px) header height: logo 64 + py-1 + my-3. */
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 96px;
+    --header-h: 168px; /* 50% taller than the previous 112px */
   }
 }
 
