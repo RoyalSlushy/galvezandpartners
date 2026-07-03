@@ -40,14 +40,14 @@
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
   /* Must match the header's rendered footprint (logo height + its py + my),
-     since the hero-fill calc below subtracts it. Mobile: logo 64 + py-0.5 + my-3. */
-  --header-h: 92px;
+     since the hero-fill calc below subtracts it. Mobile: logo 64 + py-0.5 + my-4. */
+  --header-h: 100px;
 }
 
-/* Desktop (Tailwind `sm` breakpoint = 751px) header height: logo 80 + py-0.5 + my-3. */
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height: logo 88 + py-0.5 + my-4. */
 @media (min-width: 751px) {
   :root {
-    --header-h: 108px;
+    --header-h: 124px;
   }
 }
 
@@ -73,8 +73,21 @@
   }
 }
 
+/* The carousel card is a query container: inline-size on mobile (where the card
+   is content-height), but a full size-container on desktop, where hero-row gives
+   it a definite height — so the slide heading can scale with the card's height
+   (cqh) while the width-based layout query below still works. */
+.hero-card {
+  container-type: inline-size;
+}
+@media (min-width: 751px) {
+  .hero-card {
+    container-type: size;
+  }
+}
+
 /* When the carousel card is wide enough, lay each slide's heading and body
-   side by side instead of stacked (the card is a container-type: inline-size). */
+   side by side instead of stacked. */
 @container (min-width: 620px) {
   .hero-slide {
     flex-direction: row;
