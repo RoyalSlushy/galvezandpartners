@@ -9,7 +9,7 @@ export default function NavLinks({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Site" className={className}>
-      <ul className="flex items-center gap-10">
+      <ul className="flex items-center gap-8">
         {NAV.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

@@ -22,7 +22,7 @@ export default function SocialIcons({
   iconClassName?: string;
 }) {
   return (
-    <ul className={`flex items-center gap-4 ${className}`}>
+    <ul className={`flex items-center gap-3 ${className}`}>
       {socials.map((s) => (
         <li key={s.icon}>
           <a

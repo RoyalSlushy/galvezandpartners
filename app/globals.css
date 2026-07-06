@@ -39,13 +39,13 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
-  --header-h: 124px; /* mobile header height */
+  --header-h: 108px; /* mobile header height (shorter, to tighten the header->hero gap) */
 }
 
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+    --header-h: 120px; /* shorter, to tighten the header->hero gap */
   }
 }
 
@@ -55,12 +55,19 @@
   min-height: calc(100svh - var(--header-h));
 }
 
-/* On desktop the hero is exactly the viewport minus the header. The storefront
-   image flex-grows to fill whatever height the (max-height-capped) carousel/CTA
-   row leaves, rather than being locked to a fixed 2:1 ratio. */
+/* On desktop the hero is exactly the viewport minus the header, split 2:1
+   between the image and the carousel/CTA row. The 3rem subtracts the row's
+   top margin (mt-8 = 2rem) and the section's bottom padding (pb-4 = 1rem),
+   so the image, gap, row and padding add back up to the full section height. */
 @media (min-width: 751px) {
   .hero-fill {
     height: calc(100svh - var(--header-h));
+  }
+  .hero-image {
+    height: calc((100svh - var(--header-h) - 3rem) * 2 / 3);
+  }
+  .hero-row {
+    height: calc((100svh - var(--header-h) - 3rem) / 3);
   }
 }
 
@@ -91,17 +98,6 @@
   }
 }
 
-/* Slowly "breathe" the hero background gradient in and out by drifting an
-   oversized gradient up and down. */
-@keyframes hero-breathe {
-  0%, 100% { background-position: 50% 0%; }
-  50% { background-position: 50% 100%; }
-}
-.hero-breathe {
-  background-size: 100% 140%;
-  animation: hero-breathe 8s ease-in-out infinite;
-}
-
 @layer base {
   body {
     @apply bg-navy font-body text-white antialiased;
@@ -130,8 +126,5 @@
     transition: none !important;
     transform: none !important;
     opacity: 1 !important;
-  }
-  .hero-breathe {
-    animation: none !important;
   }
 }
