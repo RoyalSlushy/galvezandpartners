@@ -98,6 +98,17 @@
   }
 }
 
+/* Slowly "breathe" the hero background gradient in and out by drifting an
+   oversized gradient up and down. */
+@keyframes hero-breathe {
+  0%, 100% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+}
+.hero-breathe {
+  background-size: 100% 140%;
+  animation: hero-breathe 12s ease-in-out infinite;
+}
+
 @layer base {
   body {
     @apply bg-navy font-body text-white antialiased;
@@ -126,5 +137,8 @@
     transition: none !important;
     transform: none !important;
     opacity: 1 !important;
+  }
+  .hero-breathe {
+    animation: none !important;
   }
 }

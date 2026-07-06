@@ -12,13 +12,13 @@ import { HERO, SERVICES } from "@/content/home";
 export default function HomeHero() {
   const slides = SERVICES.map((s) => (
     <div key={s.title} className="hero-slide flex h-full flex-col justify-center px-8 py-3 sm:px-12">
-      <h3 className="font-display text-[1.35rem] leading-none text-ink-100">{s.title}</h3>
+      <h3 className="font-display text-[2.025rem] leading-none text-ink-100">{s.title}</h3>
       <p className="hero-slide-body mt-3 max-w-xl font-body text-lg leading-snug text-white/80">{s.description}</p>
     </div>
   ));
 
   return (
-    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-4 pt-0">
+    <section className="hero-breathe hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-4 pt-0">
       <Container className="flex flex-1 flex-col">
         {/* Storefront image + headline — 2x the height of the carousel/CTA row on desktop.
             container-type lets the headline scale with the image width (cqi), not the viewport. */}
