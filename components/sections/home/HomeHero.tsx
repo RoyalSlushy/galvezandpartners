@@ -12,7 +12,7 @@ import { HERO, SERVICES } from "@/content/home";
 export default function HomeHero() {
   const slides = SERVICES.map((s) => (
     <div key={s.title} className="flex flex-col justify-center px-8 pb-6 pt-3 sm:px-12">
-      <h3 className="font-heading text-f6 leading-none text-white">{s.title}</h3>
+      <h3 className="font-heading text-[1.35rem] leading-none text-white">{s.title}</h3>
       <p className="mt-3 max-w-xl font-body text-lg leading-snug text-white/80">{s.description}</p>
     </div>
   ));
