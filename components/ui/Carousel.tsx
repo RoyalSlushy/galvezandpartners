@@ -125,7 +125,7 @@ export default function Carousel({
         type="button"
         aria-label="Previous"
         onClick={prev}
-        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-3xl text-white/70 transition hover:text-gold"
+        className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition hover:text-gold"
       >
         &#8249;
       </button>
@@ -133,13 +133,13 @@ export default function Carousel({
         type="button"
         aria-label="Next"
         onClick={next}
-        className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-3xl text-white/70 transition hover:text-gold"
+        className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition hover:text-gold"
       >
         &#8250;
       </button>
 
       {/* Dots */}
-      <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-2">
+      <div className="absolute bottom-3 left-6 z-10 flex gap-2">
         {slides.map((_, i) => (
           <button
             key={i}

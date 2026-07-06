@@ -71,6 +71,33 @@
   }
 }
 
+/* The carousel card is a query container so its slides can switch to a
+   side-by-side layout once it is wide enough (see the @container rule below). */
+.hero-card {
+  container-type: inline-size;
+}
+
+/* When the carousel card is wide enough, lay each slide's heading and body
+   side by side instead of stacked. */
+@container (min-width: 620px) {
+  .hero-slide {
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
+     leaving the body the rest of the row for maximum breathing room. */
+  .hero-slide > h3 {
+    flex: 0 0 auto;
+    width: min-content;
+  }
+  .hero-slide-body {
+    margin-top: 0;
+    max-width: none;
+    flex: 1;
+  }
+}
+
 @layer base {
   body {
     @apply bg-navy font-body text-white antialiased;
