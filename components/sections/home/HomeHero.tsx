@@ -39,7 +39,7 @@ export default function HomeHero() {
 
         {/* Carousel (left) + CTA (right) on desktop; carousel above CTA on mobile */}
         <div className="mt-8 grid shrink-0 grid-cols-1 gap-6 sm:max-h-[340px] sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.5fr)]">
-          <div className="hero-card flex overflow-hidden rounded-2xl bg-navy-soft py-6">
+          <div className="hero-card flex overflow-hidden rounded-2xl bg-navy-soft py-10">
             <Carousel slides={slides} ariaLabel="Our services" className="flex w-full flex-col justify-center" />
           </div>
           <div className="flex items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center">
