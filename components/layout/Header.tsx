@@ -13,14 +13,14 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" aria-label="Galvez & Partners — home" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-14 w-auto sm:h-16" />
+          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
         </Link>
 
         {/* Desktop nav + right cluster, with the CTA pushed to the far right */}
         <div className="hidden flex-1 items-center justify-end gap-8 sm:flex">
-          <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-col items-end gap-4">
             <NavLinks />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <span className="font-din text-sm tracking-wide text-white/80">{TAGLINE}</span>
               <SocialIcons socials={SOCIALS} iconClassName="h-5 w-5" />
             </div>
