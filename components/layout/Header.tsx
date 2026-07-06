@@ -9,11 +9,11 @@ import Button from "@/components/ui/Button";
 export default function Header() {
   return (
     <header className="w-full bg-navy">
-      <div className="mx-auto my-4 flex max-w-site items-center justify-between gap-6 px-5 py-0.5 sm:px-8">
+      <div className="mx-auto flex h-[var(--header-h)] max-w-site items-center justify-between gap-6 px-5 sm:px-8">
         {/* Logo */}
         <Link href="/" aria-label="Galvez & Partners — home" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-[88px]" />
+          <img src="/logo.svg" alt="Galvez & Partners" className="h-14 w-auto sm:h-16" />
         </Link>
 
         {/* Desktop nav + right cluster, with the CTA pushed to the far right */}
