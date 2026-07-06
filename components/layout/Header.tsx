@@ -18,7 +18,7 @@ export default function Header() {
 
         {/* Desktop nav + right cluster, with the CTA pushed to the far right */}
         <div className="hidden flex-1 items-center justify-end gap-8 sm:flex">
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-3">
             <NavLinks />
             <div className="flex items-center gap-4">
               <span className="font-din text-sm tracking-wide text-white/80">{TAGLINE}</span>
