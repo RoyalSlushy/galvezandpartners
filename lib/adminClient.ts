@@ -11,7 +11,10 @@ const FN_URL = `${SUPABASE_URL}/functions/v1/admin-content`;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const ADMIN_PW_KEY = "gp_admin_pw";
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
+// Kept as the overall ceiling (largest allowed upload) for any callers.
+export const MAX_UPLOAD_BYTES = MAX_VIDEO_BYTES;
 
 export async function callAdmin(password: string, body: Record<string, unknown>) {
   const res = await fetch(FN_URL, {
@@ -34,8 +37,17 @@ export const saveSection = (password: string, key: ContentKey, value: unknown) =
   callAdmin(password, { action: "save", key, value });
 
 export async function uploadImage(password: string, file: File): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Only image files can be uploaded");
-  if (file.size > MAX_UPLOAD_BYTES) throw new Error("Image is too large (max 5 MB)");
+  const isImage = file.type.startsWith("image/");
+  const isVideo = file.type.startsWith("video/");
+  if (!isImage && !isVideo) {
+    throw new Error("Only image or video files can be uploaded");
+  }
+  if (isImage && file.size > MAX_IMAGE_BYTES) {
+    throw new Error("Image is too large (max 5 MB)");
+  }
+  if (isVideo && file.size > MAX_VIDEO_BYTES) {
+    throw new Error("Video is too large (max 40 MB)");
+  }
   const data = await fileToBase64(file);
   const res = await callAdmin(password, {
     action: "upload",
@@ -130,9 +142,20 @@ export const PLACEHOLDER_IMG =
     `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#232a3d'/><g fill='none' stroke='#e6b367' stroke-width='6' opacity='0.8'><rect x='140' y='96' width='120' height='90' rx='10'/><circle cx='178' cy='128' r='11'/><path d='M150 178l32-30 24 22 20-16 34 24'/></g></svg>`,
   );
 
-/** Resolve a stored image value (full URL or bare Wix media id) to a URL. */
+/** Video file extensions we treat as playable media rather than images. */
+const VIDEO_EXT = /\.(mp4|webm|ogv|ogg|mov|m4v|avi|mkv)(?:[?#]|$)/i;
+
+/** True when a stored media value points at a video (by file extension). */
+export function isVideoUrl(raw: string): boolean {
+  return !!raw && VIDEO_EXT.test(raw);
+}
+
+/** Resolve a stored media value (full URL or bare Wix media id) to a URL.
+ * Videos and any http(s) URL are returned untouched; bare Wix media ids get a
+ * server-side crop at the requested size. */
 export function resolveImage(raw: string, w = 400, h = 300): string {
   if (!raw) return PLACEHOLDER_IMG;
+  if (isVideoUrl(raw)) return raw;
   return raw.startsWith("http") ? raw : wixImage(raw, w, h);
 }
 

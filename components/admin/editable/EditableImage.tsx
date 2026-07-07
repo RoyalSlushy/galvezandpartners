@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdmin, useEditMode } from "@/components/admin/AdminProvider";
+import { isVideoUrl } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
 
 type EditableImageProps = {
@@ -16,8 +17,10 @@ type EditableImageProps = {
 };
 
 /**
- * A CMS-managed <img>. Renders exactly as today for visitors; in edit mode it
- * highlights and clicking it opens the visual image picker for this field.
+ * A CMS-managed <img> (or <video>, when the field holds an uploaded video).
+ * Renders exactly as today for visitors; in edit mode it highlights and
+ * clicking it opens the visual media picker for this field. Videos play as a
+ * muted, looping background so they drop into any image slot seamlessly.
  */
 export default function EditableImage({
   path,
@@ -43,6 +46,23 @@ export default function EditableImage({
         },
       }
     : null;
+
+  if (isVideoUrl(raw)) {
+    return (
+      <video
+        src={src}
+        className={className}
+        autoPlay
+        muted
+        loop
+        playsInline
+        // Pause playback in edit mode so clicks target the picker, not controls.
+        controls={false}
+        aria-label={alt}
+        {...editProps}
+      />
+    );
+  }
 
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt={alt} className={className} {...editProps} />;
