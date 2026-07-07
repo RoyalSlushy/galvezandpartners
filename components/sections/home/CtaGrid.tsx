@@ -13,9 +13,9 @@ import { useEffect, useRef } from "react";
  * `.cta-grid` CSS; this component only animates `background-position`.
  */
 const TILE = 24; // px — must match `.cta-grid` background-size
-const BASE_SPEED = TILE / 6000; // px per ms → one tile every 6s
+const BASE_SPEED = TILE / 4500; // px per ms → one tile every 4.5s
 const HOVER_SPEED = BASE_SPEED * 2; // 100% faster while hovered
-const RAMP_MS = 700; // time to ramp fully between base and hover speed
+const RAMP_MS = 350; // time to ramp fully between base and hover speed
 
 const easeInQuad = (u: number) => u * u;
 const easeOutQuad = (u: number) => u * (2 - u);
