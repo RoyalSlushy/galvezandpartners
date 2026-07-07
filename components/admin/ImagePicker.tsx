@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useAdmin } from "./AdminProvider";
 import {
   collectImages,
+  isVideoUrl,
   listUploadedImages,
   resolveImage,
   uploadImage,
@@ -81,7 +82,7 @@ export default function ImagePicker() {
       setUploaded((prev) => [url, ...prev]);
       setSelected(url);
       setPreviewError(false);
-      admin.notify("Image uploaded");
+      admin.notify(file.type.startsWith("video/") ? "Video uploaded" : "Image uploaded");
     } catch (err) {
       admin.notify(err instanceof Error ? err.message : "Upload failed", "err");
     } finally {
@@ -120,7 +121,7 @@ export default function ImagePicker() {
               Change <span className="text-gold">{labelFor(picker.path)}</span>
             </h2>
             <p className="mt-1 text-xs text-white/50">
-              Upload a new image, pick one already on the site, or paste a URL.
+              Upload a new image or video, pick one already on the site, or paste a URL.
             </p>
           </div>
           <button
@@ -137,21 +138,33 @@ export default function ImagePicker() {
         <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-navy">
           <div className="relative flex max-h-64 min-h-40 items-center justify-center">
             {selected ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={selected}
-                src={resolveImage(selected, 800, 500)}
-                alt="Selected"
-                onError={() => setPreviewError(true)}
-                onLoad={() => setPreviewError(false)}
-                className="max-h-64 w-full object-contain"
-              />
+              isVideoUrl(selected) ? (
+                <video
+                  key={selected}
+                  src={resolveImage(selected, 800, 500)}
+                  controls
+                  playsInline
+                  onError={() => setPreviewError(true)}
+                  onLoadedData={() => setPreviewError(false)}
+                  className="max-h-64 w-full object-contain"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={selected}
+                  src={resolveImage(selected, 800, 500)}
+                  alt="Selected"
+                  onError={() => setPreviewError(true)}
+                  onLoad={() => setPreviewError(false)}
+                  className="max-h-64 w-full object-contain"
+                />
+              )
             ) : (
-              <span className="py-14 text-sm text-white/40">No image selected</span>
+              <span className="py-14 text-sm text-white/40">No media selected</span>
             )}
             {previewError && (
               <span className="absolute inset-x-0 bottom-0 bg-red-950/90 px-3 py-1.5 text-center text-xs text-red-200">
-                This image could not be loaded — check the URL.
+                This file could not be loaded — check the URL.
               </span>
             )}
           </div>
@@ -189,13 +202,15 @@ export default function ImagePicker() {
             <UploadIcon className="h-6 w-6 text-gold" />
           )}
           <p className="text-sm text-white/80">
-            {uploading ? "Uploading…" : "Drop an image here or click to browse"}
+            {uploading ? "Uploading…" : "Drop an image or video here or click to browse"}
           </p>
-          <p className="text-[11px] text-white/40">JPG, PNG, WebP, SVG… up to 5 MB</p>
+          <p className="text-[11px] text-white/40">
+            Images (JPG, PNG, WebP, SVG…) up to 5 MB · Videos (MP4, WebM…) up to 40 MB
+          </p>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             className="hidden"
             onChange={(e) => {
               void handleFiles(e.target.files);
@@ -225,13 +240,28 @@ export default function ImagePicker() {
                       : "border-white/10 hover:border-white/40"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={resolveImage(img.raw, 240, 180)}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition group-hover:scale-105"
-                  />
+                  {isVideoUrl(img.raw) ? (
+                    <>
+                      <video
+                        src={resolveImage(img.raw, 240, 180)}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover transition group-hover:scale-105"
+                      />
+                      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-navy/80 px-1 text-[9px] font-heading uppercase tracking-wide text-gold">
+                        Video
+                      </span>
+                    </>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={resolveImage(img.raw, 240, 180)}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                    />
+                  )}
                 </button>
               ))}
             </div>

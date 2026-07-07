@@ -18,7 +18,8 @@ const ALLOWED_KEYS = new Set([
   "contact",
 ]);
 const BUCKET = "site-images";
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -79,11 +80,18 @@ Deno.serve(async (req: Request) => {
     if (typeof body.data !== "string" || !body.data) {
       return json({ error: "Missing file data" }, 400);
     }
-    if (typeof body.contentType !== "string" || !body.contentType.startsWith("image/")) {
-      return json({ error: "Only image uploads are allowed" }, 400);
+    const contentType = typeof body.contentType === "string" ? body.contentType : "";
+    const isImage = contentType.startsWith("image/");
+    const isVideo = contentType.startsWith("video/");
+    if (!isImage && !isVideo) {
+      return json({ error: "Only image or video uploads are allowed" }, 400);
     }
-    if ((body.data.length * 3) / 4 > MAX_UPLOAD_BYTES) {
+    const approxBytes = (body.data.length * 3) / 4;
+    if (isImage && approxBytes > MAX_IMAGE_BYTES) {
       return json({ error: "Image is too large (max 5 MB)" }, 400);
+    }
+    if (isVideo && approxBytes > MAX_VIDEO_BYTES) {
+      return json({ error: "Video is too large (max 40 MB)" }, 400);
     }
     let bytes: Uint8Array;
     try {
@@ -99,7 +107,7 @@ Deno.serve(async (req: Request) => {
     const path = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeName}`;
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(path, bytes, { contentType: body.contentType });
+      .upload(path, bytes, { contentType });
     if (error) return json({ error: error.message }, 500);
     const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
     return json({ ok: true, url: pub.publicUrl });
