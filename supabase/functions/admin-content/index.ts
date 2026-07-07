@@ -1,0 +1,68 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+const DEFAULT_PASSWORD = "atrainrulez";
+const ALLOWED_KEYS = new Set(["site", "home", "team", "work", "case_studies"]);
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
+
+  const expected = Deno.env.get("ADMIN_PASSWORD") ?? DEFAULT_PASSWORD;
+  let body: { password?: string; action?: string; key?: string; value?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+
+  if (!body.password || body.password !== expected) {
+    return json({ error: "Invalid password" }, 401);
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } },
+  );
+
+  if (body.action === "verify") {
+    return json({ ok: true });
+  }
+
+  if (body.action === "save") {
+    if (!body.key || !ALLOWED_KEYS.has(body.key)) {
+      return json({ error: "Unknown key" }, 400);
+    }
+    if (body.value === undefined || body.value === null) {
+      return json({ error: "Missing value" }, 400);
+    }
+    const { error } = await supabase.from("site_content").upsert({
+      key: body.key,
+      value: body.value,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  return json({ error: "Unknown action" }, 400);
+});
+
+function json(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Container from "@/components/ui/Container";
 import ContactForm from "@/components/sections/contact/ContactForm";
-import { CONTACT } from "@/content/site";
+import { getSite } from "@/lib/cms";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Contact Us",
   description: "Get in touch with Galvez & Partners.",
 };
 
-export default function ContactUs() {
+export default async function ContactUs() {
+  const site = await getSite();
   return (
     <section className="w-full bg-navy py-20 sm:py-28">
       <Container>
@@ -17,11 +20,11 @@ export default function ContactUs() {
           Tell us about your brand and what you want to achieve. We&apos;ll take it from there.
         </p>
         <div className="mt-6 font-din text-white/70">
-          <a href={`mailto:${CONTACT.email}`} className="text-gold hover:underline">
-            {CONTACT.email}
+          <a href={`mailto:${site.contact.email}`} className="text-gold hover:underline">
+            {site.contact.email}
           </a>
           <span className="mx-2">·</span>
-          {CONTACT.addressLines.join(", ")}
+          {site.contact.addressLines.join(", ")}
         </div>
         <ContactForm />
       </Container>
