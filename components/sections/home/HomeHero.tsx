@@ -1,6 +1,7 @@
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Carousel from "@/components/ui/Carousel";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { HERO, SERVICES } from "@/content/home";
 
 /**
@@ -45,8 +46,9 @@ export default function HomeHero() {
 
           {/* CTA */}
           <div className="hero-cta relative flex min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center">
-            {/* Slowly drifting grid of spaced squares (10% opacity), behind the CTA content. */}
-            <div aria-hidden className="cta-grid pointer-events-none absolute inset-0" />
+            {/* Drifting grid of spaced squares behind the CTA content; the drift
+                speed eases up on hover (see CtaGrid). */}
+            <CtaGrid />
             <div className="relative z-10">
               <p className="font-display text-f6 leading-none text-navy">Ready?</p>
               <Button href={HERO.ctaHref} variant="gold" className="mt-4 border-2 border-navy hover:bg-navy hover:text-gold">
