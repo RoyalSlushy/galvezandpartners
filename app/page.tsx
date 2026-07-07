@@ -10,12 +10,12 @@ export default async function Home() {
   return (
     <>
       <HomeHero hero={home.hero} services={home.services} />
+      <MulticulturalReveal multicultural={home.multicultural} />
       <ServicesGrid
         services={home.services}
         heading={home.servicesHeading}
         eyebrow={home.worksEyebrow}
       />
-      <MulticulturalReveal multicultural={home.multicultural} />
     </>
   );
 }
