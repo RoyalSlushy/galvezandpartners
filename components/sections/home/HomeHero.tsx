@@ -4,44 +4,47 @@ import Carousel from "@/components/ui/Carousel";
 import { HERO, SERVICES } from "@/content/home";
 
 /**
- * Homepage hero: fills the viewport below the header. On desktop the storefront
- * image and the carousel/CTA row split that height in a 2:1 ratio (see the
- * .hero-image / .hero-row calc rules in globals.css); on mobile the image sits
- * above the carousel-then-CTA stack and the section grows with its content.
+ * Homepage hero: fills the viewport below the header. The image ("main"), the
+ * carousel card and the CTA are laid out on a responsive grid (.hero-grid):
+ * stacked on mobile; image-on-top with the carousel/CTA row beneath on desktop;
+ * and — when the hero container turns wide (over 2:1) — the image moves to a
+ * full-height 2/3 column with the carousel (top) and CTA (bottom) in the 1/3.
  */
 export default function HomeHero() {
   const slides = SERVICES.map((s) => (
     <div key={s.title} className="hero-slide flex h-full flex-col justify-center px-8 py-3 sm:px-12">
-      <h3 className="font-display text-[1.35rem] leading-none text-ink-100">{s.title}</h3>
+      <h3 className="font-display text-[2.025rem] leading-none text-sky-200">{s.title}</h3>
       <p className="hero-slide-body mt-3 max-w-xl font-body text-lg leading-snug text-white/80">{s.description}</p>
     </div>
   ));
 
   return (
-    <section className="hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-4 pt-0">
-      <Container className="flex flex-1 flex-col">
-        {/* Storefront image + headline — 2x the height of the carousel/CTA row on desktop.
-            container-type lets the headline scale with the image width (cqi), not the viewport. */}
-        <div className="hero-image relative min-h-[280px] flex-1 overflow-hidden rounded-2xl [container-type:inline-size] sm:flex-none">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={HERO.image}
-            alt="Galvez & Partners storytelling"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
-            <h1 className="font-heading text-[clamp(2rem,4.5cqi,3rem)] leading-none text-white">{HERO.headline}</h1>
-            <p className="mt-3 max-w-2xl font-body text-f9 text-white/85">{HERO.sub}</p>
+    <section className="hero-breathe hero-fill flex w-full flex-col bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-4 pt-0">
+      <Container className="hero-shell flex flex-1 flex-col">
+        <div className="hero-grid flex-1">
+          {/* Main hero: storefront image + headline. container-type lets the overlay
+              text scale with the image width (cqi), not the viewport. */}
+          <div className="hero-main relative min-h-[280px] overflow-hidden rounded-2xl [container-type:inline-size]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={HERO.image}
+              alt="Galvez & Partners storytelling"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
+              <h1 className="font-heading text-[clamp(2rem,4.5cqi,3rem)] leading-none text-white">{HERO.headline}</h1>
+              <p className="mt-3 font-body text-[clamp(0.95rem,2.6cqi,1.4rem)] text-white/85 sm:whitespace-nowrap">{HERO.sub}</p>
+            </div>
           </div>
-        </div>
 
-        {/* Carousel (left) + CTA (right) on desktop; carousel above CTA on mobile */}
-        <div className="hero-row mt-8 grid grid-cols-1 gap-6 sm:shrink-0 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,0.5fr)]">
-          <div className="hero-card flex overflow-hidden rounded-2xl bg-navy-soft py-2">
+          {/* Carousel card (the card is the positioning context for its dots) */}
+          <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden rounded-2xl bg-navy-soft py-10">
             <Carousel slides={slides} ariaLabel="Our services" className="flex w-full flex-col justify-center" />
           </div>
-          <div className="flex items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center">
+
+          {/* CTA */}
+          <div className="hero-cta flex min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center">
             <div>
               <p className="font-display text-f6 leading-none text-navy">Ready?</p>
               <Button href={HERO.ctaHref} variant="outline" className="mt-4 border-navy text-navy hover:bg-navy hover:text-gold">

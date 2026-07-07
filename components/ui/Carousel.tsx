@@ -86,7 +86,7 @@ export default function Carousel({
 
   return (
     <div
-      className={`relative select-none ${className}`}
+      className={`select-none ${className}`}
       role="group"
       aria-roledescription="carousel"
       aria-label={ariaLabel}
