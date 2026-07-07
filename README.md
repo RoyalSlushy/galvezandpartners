@@ -20,7 +20,18 @@ npm run dev      # http://localhost:3000
 
 - **Routing** — one route per page under `app/` (`/`, `/our-works`, `/our-team`,
   `/our-partners`, `/contact-us`, `/case-study`, `/o`, and
-  `/case-study/[slug]` for the four case studies). All statically generated.
+  `/case-study/[slug]` for the four case studies). All server-rendered on
+  demand (`force-dynamic`) so CMS edits show up immediately.
+- **In-page CMS** — there is no separate admin page. The gear icon in the
+  footer opens a password unlock; once unlocked, a small icon drawer sits in
+  the bottom-right corner. Toggling edit mode highlights every managed element
+  on the live page: click text to edit it in place (Enter applies,
+  Shift+Enter adds a line in multiline fields, Esc cancels), click an image to
+  open a visual picker (drag-drop upload to Supabase Storage, gallery of images
+  already on the site, or paste a URL), and use the hover chips on list items
+  (team, services, nav, galleries…) to add/remove/reorder. All edits preview
+  live and batch locally until the drawer's save icon writes them to Supabase
+  (`site_content` via the `admin-content` edge function).
 - **Styling** — Tailwind CSS. Design tokens (navy/gold/cream palette, the
   Garet/Sebastien font scale as fluid `clamp()` sizes, 980px site width,
   750/1000px breakpoints) live in `tailwind.config.ts`; `@font-face` and base
@@ -28,8 +39,8 @@ npm run dev      # http://localhost:3000
 - **Interactivity** — plain React: `components/ui/Carousel.tsx` (swipe/arrows/
   dots/keyboard), `components/ui/RevealOnScroll.tsx` (+ `useInView`) for on-scroll
   enter animations, and `components/layout/MobileMenu.tsx` for the mobile nav.
-- **Content** — copy, portfolio, team, and case-study data are typed modules in
-  `content/`.
+- **Content** — typed defaults live in `content/`; Supabase `site_content`
+  rows (one JSON blob per section) override them via `lib/cms.ts`.
 - **Assets** — images and fonts are still served from the Wix CDN
   (`static.wixstatic.com`) by URL; `lib/wix.ts` builds image URLs. These can be
   self-hosted later without touching the components.
@@ -52,7 +63,6 @@ npm run dev      # http://localhost:3000
 - The Spanish (`/es`) site and the old captured `*.html` files have been removed;
   legacy `*.html` and `/es/*` URLs 301-redirect to their English routes
   (`next.config.mjs`).
-- The contact form composes a `mailto:` to `media@galvezandpartners.com` (the
-  original Wix form backend no longer exists). Swap it for a real endpoint
-  (route handler / Formspree) when available.
+- The contact form writes submissions to the Supabase `contact_submissions`
+  table.
 - Images and fonts require network access to the Wix CDN to render.

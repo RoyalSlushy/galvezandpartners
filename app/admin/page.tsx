@@ -1,14 +1,8 @@
-import AdminApp from "./AdminApp";
-import { getAllContent } from "@/lib/cms";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Admin",
-  robots: { index: false, follow: false },
-};
-
-export default async function AdminPage() {
-  const content = await getAllContent();
-  return <AdminApp initial={content} />;
+/** The CMS now lives in the site itself (footer gear → bottom-right drawer). */
+export default function AdminPage() {
+  redirect("/");
 }

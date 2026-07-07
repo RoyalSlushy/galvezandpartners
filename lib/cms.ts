@@ -20,6 +20,8 @@ import {
 import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
 import { WORK, WORK_HEADING, type Work } from "@/content/work";
 import { CASE_STUDIES, type CaseStudy } from "@/content/caseStudies";
+import { PARTNERS, type PartnersContent } from "@/content/partners";
+import { CONTACT_PAGE, type ContactPageContent } from "@/content/contact";
 
 export type SiteContent = {
   nav: NavItem[];
@@ -51,6 +53,7 @@ export type HomeContent = {
 export type TeamContent = { heading: string; members: Member[] };
 export type WorkContent = { heading: string; items: Work[] };
 export type CaseStudiesContent = { studies: CaseStudy[] };
+export type { PartnersContent, ContactPageContent };
 
 export const DEFAULT_SITE: SiteContent = {
   nav: NAV,
@@ -87,7 +90,19 @@ export const DEFAULT_CASE_STUDIES: CaseStudiesContent = {
   studies: CASE_STUDIES.map((c) => ({ ...c, gallery: [...c.gallery] })),
 };
 
-export const CONTENT_KEYS = ["site", "home", "team", "work", "case_studies"] as const;
+export const DEFAULT_PARTNERS: PartnersContent = { ...PARTNERS };
+
+export const DEFAULT_CONTACT: ContactPageContent = { ...CONTACT_PAGE };
+
+export const CONTENT_KEYS = [
+  "site",
+  "home",
+  "team",
+  "work",
+  "case_studies",
+  "partners",
+  "contact",
+] as const;
 export type ContentKey = (typeof CONTENT_KEYS)[number];
 
 export const DEFAULTS: Record<ContentKey, unknown> = {
@@ -96,9 +111,11 @@ export const DEFAULTS: Record<ContentKey, unknown> = {
   team: DEFAULT_TEAM,
   work: DEFAULT_WORK,
   case_studies: DEFAULT_CASE_STUDIES,
+  partners: DEFAULT_PARTNERS,
+  contact: DEFAULT_CONTACT,
 };
 
-function mergeDeep<T>(fallback: T, override: unknown): T {
+export function mergeDeep<T>(fallback: T, override: unknown): T {
   if (override === null || override === undefined) return fallback;
   if (Array.isArray(fallback)) {
     return (Array.isArray(override) ? override : fallback) as T;
@@ -136,14 +153,18 @@ export const getTeam = () => fetchOne<TeamContent>("team", DEFAULT_TEAM);
 export const getWork = () => fetchOne<WorkContent>("work", DEFAULT_WORK);
 export const getCaseStudies = () =>
   fetchOne<CaseStudiesContent>("case_studies", DEFAULT_CASE_STUDIES);
+export const getPartners = () => fetchOne<PartnersContent>("partners", DEFAULT_PARTNERS);
+export const getContact = () => fetchOne<ContactPageContent>("contact", DEFAULT_CONTACT);
 
 export async function getAllContent(): Promise<Record<ContentKey, unknown>> {
-  const [site, home, team, work, caseStudies] = await Promise.all([
+  const [site, home, team, work, caseStudies, partners, contact] = await Promise.all([
     getSite(),
     getHome(),
     getTeam(),
     getWork(),
     getCaseStudies(),
+    getPartners(),
+    getContact(),
   ]);
-  return { site, home, team, work, case_studies: caseStudies };
+  return { site, home, team, work, case_studies: caseStudies, partners, contact };
 }

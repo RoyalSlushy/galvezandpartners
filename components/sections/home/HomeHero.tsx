@@ -1,8 +1,15 @@
+"use client";
+
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { Service } from "@/content/home";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import EditableText from "@/components/admin/editable/EditableText";
+import EditableImage from "@/components/admin/editable/EditableImage";
+import ListControls from "@/components/admin/editable/ListControls";
+import { wixImage } from "@/lib/wix";
 
 type Hero = {
   headline: string;
@@ -17,16 +24,45 @@ type Hero = {
  * carousel card and the CTA are laid out on a responsive grid (.hero-grid).
  */
 export default function HomeHero({
-  hero,
-  services,
+  hero: serverHero,
+  services: serverServices,
 }: {
   hero: Hero;
   services: Service[];
 }) {
-  const slides = services.map((s) => (
-    <div key={s.title} className="hero-slide flex h-full flex-col justify-center px-8 py-3 sm:px-12">
-      <h3 className="font-display text-[2.025rem] leading-none text-sky-200">{s.title}</h3>
-      <p className="hero-slide-body mt-3 max-w-xl font-body text-lg leading-snug text-white/80">{s.description}</p>
+  const hero = useCmsValue("home.hero", serverHero);
+  const services = useCmsValue("home.services", serverServices);
+  const editMode = useEditMode();
+
+  const slides = services.map((s, i) => (
+    <div
+      key={i}
+      className={`hero-slide flex h-full flex-col justify-center px-8 py-3 sm:px-12${
+        editMode ? " relative" : ""
+      }`}
+    >
+      {editMode && (
+        <ListControls
+          listPath="home.services"
+          index={i}
+          count={services.length}
+          label="service"
+          className="right-8 top-2 sm:right-12"
+        />
+      )}
+      <EditableText
+        path={`home.services.${i}.title`}
+        value={s.title}
+        as="h3"
+        className="font-display text-[2.025rem] leading-none text-sky-200"
+      />
+      <EditableText
+        path={`home.services.${i}.description`}
+        value={s.description}
+        as="p"
+        multiline
+        className="hero-slide-body mt-3 max-w-xl whitespace-pre-line font-body text-lg leading-snug text-white/80"
+      />
     </div>
   ));
 
@@ -35,16 +71,31 @@ export default function HomeHero({
       <Container className="hero-shell flex flex-1 flex-col">
         <div className="hero-grid flex-1">
           <div className="hero-main relative min-h-[280px] overflow-hidden rounded-2xl [container-type:inline-size]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={hero.image}
+            <EditableImage
+              path="home.hero.image"
+              raw={hero.image}
+              src={hero.image.startsWith("http") ? hero.image : wixImage(hero.image, 1280, 800)}
               alt="Galvez & Partners storytelling"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent" />
+            <div
+              className={`absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent${
+                editMode ? " pointer-events-none" : ""
+              }`}
+            />
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
-              <h1 className="font-heading text-[clamp(2rem,4.5cqi,3rem)] leading-none text-white">{hero.headline}</h1>
-              <p className="mt-3 font-body text-[clamp(0.95rem,2.6cqi,1.4rem)] text-white/85 sm:whitespace-nowrap">{hero.sub}</p>
+              <EditableText
+                path="home.hero.headline"
+                value={hero.headline}
+                as="h1"
+                className="font-heading text-[clamp(2rem,4.5cqi,3rem)] leading-none text-white"
+              />
+              <EditableText
+                path="home.hero.sub"
+                value={hero.sub}
+                as="p"
+                className="mt-3 font-body text-[clamp(0.95rem,2.6cqi,1.4rem)] text-white/85 sm:whitespace-nowrap"
+              />
             </div>
           </div>
 
@@ -57,7 +108,15 @@ export default function HomeHero({
             <div className="relative z-10">
               <p className="font-display text-f6 leading-none text-navy">Ready?</p>
               <Button href={hero.ctaHref} variant="gold" className="mt-4 border-2 border-navy hover:bg-navy hover:text-gold">
-                {hero.ctaLabel}
+                {editMode ? (
+                  <EditableText
+                    path="home.hero.ctaLabel"
+                    value={hero.ctaLabel}
+                    link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
+                  />
+                ) : (
+                  hero.ctaLabel
+                )}
               </Button>
             </div>
           </div>

@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { type Social } from "@/content/site";
+import { useEditMode } from "@/components/admin/AdminProvider";
+import SocialEditPopover from "@/components/admin/editable/SocialEditPopover";
 
 const PATHS: Record<Social["icon"], string> = {
   facebook:
@@ -11,26 +16,55 @@ const PATHS: Record<Social["icon"], string> = {
     "M16.6 5.82a4.28 4.28 0 01-1.06-2.82h-3.3v13.2a2.59 2.59 0 01-2.59 2.5 2.59 2.59 0 01-2.59-2.59 2.59 2.59 0 013.4-2.46V10.3a5.9 5.9 0 00-.81-.06 5.9 5.9 0 105.9 5.9V9.09a7.55 7.55 0 004.4 1.41V7.2a4.28 4.28 0 01-3.35-1.38z",
 };
 
-/** Inline social icons (white), used in header and footer. */
+/** Inline social icons (white), used in header and footer. When
+ * `editPathBase` is set, edit mode turns each icon into a popover editor. */
 export default function SocialIcons({
   socials,
   className = "",
   iconClassName = "",
+  editPathBase,
 }: {
   socials: Social[];
   className?: string;
   iconClassName?: string;
+  editPathBase?: string;
 }) {
+  const editMode = useEditMode();
+  const [editing, setEditing] = useState<{
+    index: number;
+    pos: { top: number; left: number };
+  } | null>(null);
+
+  const editable = Boolean(editPathBase) && editMode;
+
   return (
     <ul className={`flex items-center gap-4 ${className}`}>
-      {socials.map((s) => (
-        <li key={s.icon}>
+      {socials.map((s, i) => (
+        <li key={i}>
           <a
             href={s.href}
             target="_blank"
             rel="noreferrer noopener"
             aria-label={s.label}
             className="block text-white transition hover:text-gold"
+            {...(editable
+              ? {
+                  "data-gp-editable": "",
+                  title: `Edit ${s.label || "social link"}`,
+                  onClickCapture: (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setEditing({
+                      index: i,
+                      pos: {
+                        top: Math.min(rect.bottom + 8, window.innerHeight - 320),
+                        left: Math.max(8, Math.min(rect.left - 120, window.innerWidth - 300)),
+                      },
+                    });
+                  },
+                }
+              : null)}
           >
             <svg
               viewBox="0 0 24 24"
@@ -42,6 +76,14 @@ export default function SocialIcons({
           </a>
         </li>
       ))}
+      {editing && editPathBase && (
+        <SocialEditPopover
+          basePath={editPathBase}
+          index={editing.index}
+          pos={editing.pos}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </ul>
   );
 }
