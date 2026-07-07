@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
  */
 const TILE = 24; // px — must match `.cta-grid` background-size
 const BASE_SPEED = TILE / 6000; // px per ms → one tile every 6s
-const HOVER_SPEED = BASE_SPEED * 1.5; // 50% faster while hovered
+const HOVER_SPEED = BASE_SPEED * 2; // 100% faster while hovered
 const RAMP_MS = 700; // time to ramp fully between base and hover speed
 
 const easeInQuad = (u: number) => u * u;

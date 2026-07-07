@@ -16,9 +16,11 @@ export default function Header() {
           <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
         </Link>
 
-        {/* Desktop nav + right cluster, with the CTA pushed to the far right */}
+        {/* Desktop nav + right cluster, with the CTA pushed to the far right.
+            The cluster matches the logo's height so the nav sits flush with the
+            logo's top and the social/tagline row flush with its bottom. */}
         <div className="hidden flex-1 items-center justify-end gap-8 sm:flex">
-          <div className="flex flex-col items-end gap-4">
+          <div className="flex h-16 flex-col items-end justify-between sm:h-20">
             <NavLinks />
             <div className="flex items-center gap-5">
               <span className="font-din text-sm tracking-wide text-white/80">{TAGLINE}</span>
