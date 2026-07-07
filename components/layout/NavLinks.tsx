@@ -29,7 +29,7 @@ export default function NavLinks({
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative inline-block font-heading text-lg transition duration-300 hover:text-sky-200 after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
+                className={`relative inline-block font-heading text-lg transition duration-300 hover:text-sky-200 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
                   active
                     ? "scale-100 text-white after:scale-x-100"
                     : "scale-90 text-white/90 after:scale-x-0"
