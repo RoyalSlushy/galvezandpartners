@@ -162,12 +162,19 @@
 .cta-grid {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='7' y='7' width='10' height='10' rx='2' fill='%23141924'/%3E%3C/svg%3E");
   background-size: 24px 24px;
-  /* Alpha ramp down the panel: 0% at the top, 5% at 40% height, 10% at the
-     bottom (base opacity 0.1 scaled by the mask's 0 → 0.5 → 1 alpha). */
+  /* Alpha ramp measured from the bottom of the panel: 10% at the bottom (0%
+     height), 5% at 50% height, fading to 0% by 60% height and up. In CSS
+     `to bottom` terms that's transparent through the top 40%, then 0.5 alpha at
+     50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 40%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 40%, #000 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   animation: cta-grid-drift 6s linear infinite;
+}
+/* Speed the drift up by 50% (6s → 4s) while the CTA is hovered, leaving the
+   opacity/alpha ramp unchanged. */
+.hero-cta:hover .cta-grid {
+  animation-duration: 4s;
 }
 @keyframes cta-grid-drift {
   from { background-position: 0 0; }

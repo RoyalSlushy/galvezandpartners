@@ -218,7 +218,7 @@ export default function Carousel({
         style={{
           opacity: hovering ? 1 : 0,
           background:
-            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(186,230,253,0.5) 0%, rgba(186,230,253,0.22) 42%, transparent 82%)",
+            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(186,230,253,0.1) 0%, rgba(186,230,253,0.045) 42%, transparent 82%)",
         }}
       />
 
