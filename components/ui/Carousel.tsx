@@ -185,7 +185,7 @@ export default function Carousel({
         style={{
           opacity: hovering ? 1 : 0,
           background:
-            "radial-gradient(circle 260px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(224,169,79,0.18), transparent 72%)",
+            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(224,169,79,0.16) 0%, rgba(224,169,79,0.08) 42%, transparent 82%)",
         }}
       />
 
@@ -217,7 +217,7 @@ export default function Carousel({
         aria-label="Previous"
         onClick={prev}
         style={{ opacity: handlesVisible ? 1 : 0, pointerEvents: handlesVisible ? "auto" : "none" }}
-        className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-gold"
+        className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
       >
         &#8249;
       </button>
@@ -226,7 +226,7 @@ export default function Carousel({
         aria-label="Next"
         onClick={next}
         style={{ opacity: handlesVisible ? 1 : 0, pointerEvents: handlesVisible ? "auto" : "none" }}
-        className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-gold"
+        className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
       >
         &#8250;
       </button>
