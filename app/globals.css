@@ -39,6 +39,121 @@
   --font-display: wf_d964e73c45034caa91135f22d;
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
+  --header-h: 124px; /* mobile header height */
+}
+
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height */
+@media (min-width: 751px) {
+  :root {
+    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+  }
+}
+
+/* Homepage hero fills the viewport below the header */
+.hero-fill {
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100svh - var(--header-h));
+}
+
+/* On desktop the hero is exactly the viewport minus the header. */
+@media (min-width: 751px) {
+  .hero-fill {
+    height: calc(100svh - var(--header-h));
+  }
+}
+
+/* Hero layout grid holding the storefront image ("main"), the carousel card and
+   the CTA. Mobile stacks them. */
+.hero-grid {
+  display: grid;
+  gap: 2rem 1.5rem;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(280px, 1fr) auto auto;
+  grid-template-areas:
+    "main"
+    "carousel"
+    "cta";
+}
+.hero-main {
+  grid-area: main;
+}
+.hero-carousel {
+  grid-area: carousel;
+}
+.hero-cta {
+  grid-area: cta;
+}
+
+@media (min-width: 751px) {
+  /* The shell is a size container so the grid can respond to its aspect ratio. */
+  .hero-shell {
+    container-type: size;
+    container-name: heroshell;
+  }
+  /* Default desktop: image on top (full width), carousel + CTA in the row below. */
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.5fr);
+    grid-template-rows: minmax(0, 1fr) fit-content(340px);
+    grid-template-areas:
+      "main main"
+      "carousel cta";
+  }
+}
+
+/* When the main-hero container is over twice as wide as it is long, put the image
+   in a full-height 2/3 column and stack the carousel (top) + CTA (bottom) in the
+   1/3 column. */
+@container heroshell (min-aspect-ratio: 2/1) {
+  .hero-grid {
+    /* Let the grid shrink to the (fixed-height) shell instead of overflowing it. */
+    min-height: 0;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    /* Carousel row flexes to fill the leftover height (and may shrink on very
+       short viewports); the CTA keeps its content height so its button is never
+       clipped. */
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main carousel"
+      "main cta";
+  }
+}
+
+/* The carousel card is a query container so its slides can switch to a
+   side-by-side layout once it is wide enough (see the @container rule below). */
+.hero-card {
+  container-type: inline-size;
+}
+
+/* When the carousel card is wide enough, lay each slide's heading and body
+   side by side instead of stacked. */
+@container (min-width: 620px) {
+  .hero-slide {
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
+     leaving the body the rest of the row for maximum breathing room. */
+  .hero-slide > h3 {
+    flex: 0 0 auto;
+    width: min-content;
+  }
+  .hero-slide-body {
+    margin-top: 0;
+    max-width: none;
+    flex: 1;
+  }
+}
+
+/* Slowly "breathe" the hero background gradient in and out by drifting an
+   oversized gradient up and down. */
+@keyframes hero-breathe {
+  0%, 100% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+}
+.hero-breathe {
+  background-size: 100% 140%;
+  animation: hero-breathe 8s ease-in-out infinite;
 }
 
 @layer base {
@@ -69,5 +184,8 @@
     transition: none !important;
     transform: none !important;
     opacity: 1 !important;
+  }
+  .hero-breathe {
+    animation: none !important;
   }
 }

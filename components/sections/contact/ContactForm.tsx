@@ -1,36 +1,62 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CONTACT } from "@/content/site";
+import { supabase } from "@/lib/supabase";
 
-/**
- * Contact form. The original Wix form backend no longer exists, so this composes
- * a mailto: to the agency inbox (works with no server). Swap `handleSubmit` for a
- * real endpoint (route handler / Formspree) when one is available.
- */
 export default function ContactForm() {
   const [values, setValues] = useState({ first: "", last: "", email: "", message: "" });
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: keyof typeof values) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!values.email.trim() || !values.message.trim()) {
       setError("Please add your email and a message.");
       return;
     }
     setError(null);
-    const subject = encodeURIComponent(`Website inquiry from ${values.first} ${values.last}`.trim());
-    const body = encodeURIComponent(
-      `Name: ${values.first} ${values.last}\nEmail: ${values.email}\n\n${values.message}`
-    );
-    window.location.href = `mailto:${CONTACT.email}?subject=${subject}&body=${body}`;
+    setSubmitting(true);
+
+    const { error: dbError } = await supabase.from("contact_submissions").insert({
+      first_name: values.first.trim(),
+      last_name: values.last.trim(),
+      email: values.email.trim(),
+      message: values.message.trim(),
+    });
+
+    setSubmitting(false);
+
+    if (dbError) {
+      setError("Something went wrong. Please try again.");
+      return;
+    }
+
+    setSuccess(true);
+    setValues({ first: "", last: "", email: "", message: "" });
   };
 
   const field =
     "w-full rounded-lg border border-white/15 bg-navy-soft px-4 py-3 text-white placeholder-white/40 outline-none focus:border-gold";
+
+  if (success) {
+    return (
+      <div className="mt-10 max-w-2xl rounded-lg border border-gold/30 bg-navy-soft p-8 text-center">
+        <p className="text-f7 font-heading text-gold">Thank you!</p>
+        <p className="mt-2 text-ink-100">We received your message and will be in touch soon.</p>
+        <button
+          type="button"
+          className="btn-outline mt-6"
+          onClick={() => setSuccess(false)}
+        >
+          Send another message
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="mt-10 grid max-w-2xl gap-5" noValidate>
@@ -57,8 +83,8 @@ export default function ContactForm() {
         onChange={set("message")}
       />
       {error && <p className="text-sm text-gold-bright">{error}</p>}
-      <button type="submit" className="btn-gold self-start">
-        Submit
+      <button type="submit" className="btn-gold self-start" disabled={submitting}>
+        {submitting ? "Sending..." : "Submit"}
       </button>
     </form>
   );
