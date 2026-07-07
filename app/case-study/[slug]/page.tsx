@@ -3,30 +3,27 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
-import { CASE_STUDIES, getCaseStudy } from "@/content/caseStudies";
+import { getCaseStudies } from "@/lib/cms";
 import { wixImage } from "@/lib/wix";
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  return CASE_STUDIES.map((c) => ({ slug: c.slug }));
-}
-
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const cs = getCaseStudy(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const { studies } = await getCaseStudies();
+  const cs = studies.find((c) => c.slug === params.slug);
   return {
     title: cs ? cs.title : "Case Study",
     description: cs?.background,
   };
 }
 
-export default function CaseStudyPage({ params }: { params: { slug: string } }) {
-  const cs = getCaseStudy(params.slug);
+export default async function CaseStudyPage({ params }: { params: { slug: string } }) {
+  const { studies } = await getCaseStudies();
+  const cs = studies.find((c) => c.slug === params.slug);
   if (!cs) notFound();
 
   return (
     <article className="w-full bg-navy">
-      {/* Title hero */}
       <header className="border-b border-white/10 py-20 sm:py-28">
         <Container>
           <Link href="/our-works" className="font-din text-sm uppercase tracking-widest text-gold hover:underline">
@@ -36,7 +33,6 @@ export default function CaseStudyPage({ params }: { params: { slug: string } }) 
         </Container>
       </header>
 
-      {/* Background */}
       <section className="py-16 sm:py-20">
         <Container>
           <h2 className="font-display text-f6 uppercase tracking-wide text-gold">Background</h2>
@@ -44,15 +40,14 @@ export default function CaseStudyPage({ params }: { params: { slug: string } }) 
         </Container>
       </section>
 
-      {/* Media gallery */}
       <section className="pb-24">
         <Container>
           <div className="grid gap-6 sm:grid-cols-2">
             {cs.gallery.map((id, i) => (
-              <RevealOnScroll key={id} delay={0.05 * (i % 2)}>
+              <RevealOnScroll key={`${id}-${i}`} delay={0.05 * (i % 2)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={wixImage(id, 900, 620)}
+                  src={id.startsWith("http") ? id : wixImage(id, 900, 620)}
                   alt={`${cs.title} — image ${i + 1}`}
                   className="w-full rounded-2xl object-cover"
                 />

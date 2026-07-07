@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { NAV, SOCIALS } from "@/content/site";
+import type { NavItem, Social } from "@/content/site";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 
 /** Hamburger + full-screen navy overlay menu for mobile (< sm). */
-export default function MobileMenu() {
+export default function MobileMenu({
+  nav,
+  socials,
+}: {
+  nav: NavItem[];
+  socials: Social[];
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -58,7 +64,7 @@ export default function MobileMenu() {
           </button>
         </div>
         <nav aria-label="Site" className="flex flex-col items-center gap-7 pt-8">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -71,7 +77,7 @@ export default function MobileMenu() {
           <Button href="/contact-us" className="mt-4" onClick={() => setOpen(false)}>
             Connect
           </Button>
-          <SocialIcons socials={SOCIALS} className="mt-8" />
+          <SocialIcons socials={socials} className="mt-8" />
         </nav>
       </div>
     </div>

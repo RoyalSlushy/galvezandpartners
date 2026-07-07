@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV } from "@/content/site";
+import type { NavItem } from "@/content/site";
 
 /** Desktop nav with an active-page gold underline. */
-export default function NavLinks({ className = "" }: { className?: string }) {
+export default function NavLinks({
+  nav,
+  className = "",
+}: {
+  nav: NavItem[];
+  className?: string;
+}) {
   const pathname = usePathname();
   return (
     <nav aria-label="Site" className={className}>
       <ul className="flex items-center gap-10">
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
