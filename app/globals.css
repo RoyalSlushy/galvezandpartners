@@ -206,3 +206,61 @@
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   In-page CMS (admin edit mode). Every rule is gated behind the
+   body[data-gp-edit-mode] attribute or a .gp-* class, so none of this affects
+   normal visitors. */
+
+/* Editable elements: faint dashed outline for discoverability, stronger on
+   hover. The outline sits outside the box, so layout never shifts. */
+body[data-gp-edit-mode] [data-gp-editable] {
+  cursor: pointer;
+  outline: 1px dashed rgba(230, 179, 103, 0.35);
+  outline-offset: 3px;
+  border-radius: 2px;
+  transition: outline-color 150ms ease, background-color 150ms ease;
+}
+body[data-gp-edit-mode] [data-gp-editable]:hover {
+  outline: 1px dashed rgba(230, 179, 103, 0.95);
+  background-color: rgba(230, 179, 103, 0.08);
+}
+
+/* The element currently being edited. */
+body[data-gp-edit-mode] [data-gp-editing],
+body[data-gp-edit-mode] [data-gp-editing]:hover {
+  cursor: text;
+  outline: 2px solid #e6b367;
+  outline-offset: 3px;
+  background-color: rgba(20, 25, 36, 0.35);
+  user-select: text;
+  -webkit-user-select: text;
+}
+body[data-gp-edit-mode] [data-gp-editing]:focus {
+  outline: 2px solid #e6b367;
+}
+
+/* Icon-button tooltips in the admin drawer. */
+.gp-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #232a3d;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.gp-tip:hover::after,
+.gp-tip:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}

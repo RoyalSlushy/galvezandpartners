@@ -1,20 +1,28 @@
+"use client";
+
 import Link from "next/link";
 import type { NavItem, Social } from "@/content/site";
 import NavLinks from "./NavLinks";
 import MobileMenu from "./MobileMenu";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
+import { useCmsValue } from "@/components/admin/AdminProvider";
+import EditableText from "@/components/admin/editable/EditableText";
 
 /** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. */
 export default function Header({
-  nav,
-  socials,
-  tagline,
+  nav: serverNav,
+  socials: serverSocials,
+  tagline: serverTagline,
 }: {
   nav: NavItem[];
   socials: Social[];
   tagline: string;
 }) {
+  const nav = useCmsValue("site.nav", serverNav);
+  const socials = useCmsValue("site.socials", serverSocials);
+  const tagline = useCmsValue("site.tagline", serverTagline);
+
   return (
     <header className="w-full bg-navy">
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-center justify-between gap-6 px-5 sm:px-8">
@@ -27,8 +35,13 @@ export default function Header({
           <div className="flex h-16 flex-col items-end justify-between sm:h-20">
             <NavLinks nav={nav} />
             <div className="flex items-center gap-5">
-              <span className="font-din text-sm tracking-wide text-white/80">{tagline}</span>
-              <SocialIcons socials={socials} iconClassName="h-5 w-5" />
+              <EditableText
+                path="site.tagline"
+                value={tagline}
+                as="span"
+                className="font-din text-sm tracking-wide text-white/80"
+              />
+              <SocialIcons socials={socials} iconClassName="h-5 w-5" editPathBase="site.socials" />
             </div>
           </div>
           <Button href="/contact-us">Connect</Button>

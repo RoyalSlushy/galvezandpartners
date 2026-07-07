@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import PartnersHero from "@/components/sections/partners/PartnersHero";
+import { getPartners } from "@/lib/cms";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Our Partners",
@@ -7,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 /** The original site exposed this placeholder at /o as well. */
-export default function OPage() {
-  return <PartnersHero />;
+export default async function OPage() {
+  const partners = await getPartners();
+  return <PartnersHero partners={partners} />;
 }

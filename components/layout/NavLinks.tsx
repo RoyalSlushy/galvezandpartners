@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/content/site";
+import { useEditMode } from "@/components/admin/AdminProvider";
+import EditableText from "@/components/admin/editable/EditableText";
+import ListControls from "@/components/admin/editable/ListControls";
 
 /**
  * Desktop nav with an active-page gold underline. The underline is a pseudo-
@@ -18,14 +21,24 @@ export default function NavLinks({
   className?: string;
 }) {
   const pathname = usePathname();
+  const editMode = useEditMode();
   return (
     <nav aria-label="Site" className={className}>
       <ul className="flex items-center gap-10">
-        {nav.map((item) => {
+        {nav.map((item, i) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
-            <li key={item.href}>
+            <li key={i} className={editMode ? "relative" : undefined}>
+              {editMode && (
+                <ListControls
+                  listPath="site.nav"
+                  index={i}
+                  count={nav.length}
+                  label="menu link"
+                  className="-top-8 left-1/2 -translate-x-1/2"
+                />
+              )}
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
@@ -35,7 +48,15 @@ export default function NavLinks({
                     : "scale-90 text-white/90 after:scale-x-0"
                 }`}
               >
-                {item.label}
+                {editMode ? (
+                  <EditableText
+                    path={`site.nav.${i}.label`}
+                    value={item.label}
+                    link={{ path: `site.nav.${i}.href`, value: item.href }}
+                  />
+                ) : (
+                  item.label
+                )}
               </Link>
             </li>
           );

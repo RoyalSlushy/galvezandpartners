@@ -1,22 +1,49 @@
+"use client";
+
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import type { PartnersContent } from "@/lib/cms";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import EditableText from "@/components/admin/editable/EditableText";
 
-/** "Our partners" placeholder band (also used by /o). */
-export default function PartnersHero() {
+/** "Our partners" band (also used by /o). */
+export default function PartnersHero({ partners: serverPartners }: { partners: PartnersContent }) {
+  const partners = useCmsValue("partners", serverPartners);
+  const editMode = useEditMode();
   return (
     <section className="flex min-h-[70vh] w-full items-center bg-gradient-to-b from-navy to-blue-muted/40 py-24">
       <Container>
         <RevealOnScroll>
-          <p className="font-display text-f5 lowercase text-gold">our partners</p>
-          <h1 className="mt-4 max-w-3xl font-heading text-f3 leading-tight text-white">
-            Where exceptional results are made.
-          </h1>
-          <p className="mt-6 max-w-2xl font-body text-f8 text-white/80">
-            We partner with ambitious brands to tell stories that move people and drive results.
-          </p>
-          <Button href="/contact-us" className="mt-8">
-            Connect With Us
+          <EditableText
+            path="partners.eyebrow"
+            value={partners.eyebrow}
+            as="p"
+            className="font-display text-f5 lowercase text-gold"
+          />
+          <EditableText
+            path="partners.heading"
+            value={partners.heading}
+            as="h1"
+            className="mt-4 max-w-3xl font-heading text-f3 leading-tight text-white"
+          />
+          <EditableText
+            path="partners.body"
+            value={partners.body}
+            as="p"
+            multiline
+            className="mt-6 max-w-2xl whitespace-pre-line font-body text-f8 text-white/80"
+          />
+          <Button href={partners.ctaHref} className="mt-8">
+            {editMode ? (
+              <EditableText
+                path="partners.ctaLabel"
+                value={partners.ctaLabel}
+                link={{ path: "partners.ctaHref", value: partners.ctaHref }}
+              />
+            ) : (
+              partners.ctaLabel
+            )}
           </Button>
         </RevealOnScroll>
       </Container>
