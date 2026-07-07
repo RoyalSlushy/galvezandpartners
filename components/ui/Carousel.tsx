@@ -53,6 +53,12 @@ export default function Carousel({
   const handleTimer = useRef<ReturnType<typeof setTimeout>>();
   const resumeTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  // Spotlight follows the cursor loosely: the pointer sets a target and a rAF
+  // loop eases the rendered position toward it.
+  const spotTarget = useRef<{ x: number; y: number } | null>(null);
+  const spotCurrent = useRef<{ x: number; y: number } | null>(null);
+  const rafId = useRef<number>();
+
   const go = useCallback(
     (target: number, d?: number) => {
       const t = ((target % n) + n) % n;
@@ -95,6 +101,27 @@ export default function Carousel({
     []
   );
 
+  // Ease the spotlight toward the cursor while hovered (loose follow).
+  useEffect(() => {
+    if (!hovering) return;
+    const tick = () => {
+      const root = rootRef.current;
+      const t = spotTarget.current;
+      const c = spotCurrent.current;
+      if (root && t && c) {
+        c.x += (t.x - c.x) * 0.12;
+        c.y += (t.y - c.y) * 0.12;
+        root.style.setProperty("--spot-x", `${c.x}px`);
+        root.style.setProperty("--spot-y", `${c.y}px`);
+      }
+      rafId.current = requestAnimationFrame(tick);
+    };
+    rafId.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
+  }, [hovering]);
+
   const onEnter = () => {
     clearTimeout(handleTimer.current);
     clearTimeout(resumeTimer.current);
@@ -121,14 +148,20 @@ export default function Carousel({
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: PointerEvent) => {
-    // Position the ambient spotlight relative to the carousel container (the
-    // positioned parent the gradient layer fills).
+    // Aim the ambient spotlight at the cursor (relative to the carousel
+    // container the gradient layer fills); the rAF loop eases toward it.
     const root = rootRef.current;
     const card = root?.parentElement;
     if (root && card) {
       const rect = card.getBoundingClientRect();
-      root.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
-      root.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      spotTarget.current = { x, y };
+      if (!spotCurrent.current) {
+        spotCurrent.current = { x, y };
+        root.style.setProperty("--spot-x", `${x}px`);
+        root.style.setProperty("--spot-y", `${y}px`);
+      }
     }
 
     if (!start.current) return;
@@ -185,7 +218,7 @@ export default function Carousel({
         style={{
           opacity: hovering ? 1 : 0,
           background:
-            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(224,169,79,0.16) 0%, rgba(224,169,79,0.08) 42%, transparent 82%)",
+            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(186,230,253,0.5) 0%, rgba(186,230,253,0.22) 42%, transparent 82%)",
         }}
       />
 
@@ -231,8 +264,9 @@ export default function Carousel({
         &#8250;
       </button>
 
-      {/* Dots */}
-      <div className="absolute bottom-3 left-6 z-10 flex gap-2">
+      {/* Dots — first dot's left edge flush with the slide heading (matching the
+          slide's px-8 / sm:px-12 padding). */}
+      <div className="absolute bottom-3 left-8 z-10 flex gap-2 sm:left-12">
         {slides.map((_, i) => (
           <button
             key={i}

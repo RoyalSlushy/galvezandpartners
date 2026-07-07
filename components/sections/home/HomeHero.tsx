@@ -49,7 +49,7 @@ export default function HomeHero() {
             <div aria-hidden className="cta-grid pointer-events-none absolute inset-0" />
             <div className="relative z-10">
               <p className="font-display text-f6 leading-none text-navy">Ready?</p>
-              <Button href={HERO.ctaHref} variant="outline" className="mt-4 border-navy text-navy hover:bg-navy hover:text-gold">
+              <Button href={HERO.ctaHref} variant="gold" className="mt-4 border-2 border-navy hover:bg-navy hover:text-gold">
                 {HERO.ctaLabel}
               </Button>
             </div>
