@@ -69,29 +69,41 @@ renders through a custom UI — a drifting film-strip of tilted cards, not an
 (`home.instagram.posts` — image, link, caption, editable in the drawer), so it
 works with zero setup.
 
-To show the account's **real** latest posts, set an Instagram access token as an
-environment variable and the same UI switches to the live feed automatically
-(`lib/instagram.ts` fetches server-side and caches for an hour; the curated list
-stays as the edit-mode source and the fallback):
+To show the account's **real** latest posts, set **one** environment variable and
+the same UI switches to the live feed automatically (`lib/instagram.ts` fetches
+server-side and caches for an hour; the curated list stays as the edit-mode
+source and the fallback). Instagram's Basic Display API was retired on
+4 Dec 2024, so the `@galvezandpartners` account must be a **Business or Creator**
+account either way.
+
+**Option 1 — Behold.so (recommended, no token upkeep):** a managed service that
+handles the Instagram auth + token refresh and serves a plain JSON feed.
 
 ```sh
-INSTAGRAM_ACCESS_TOKEN=<long-lived-token>   # required to go live
-INSTAGRAM_USER_ID=me                         # optional (defaults to the token's account)
-INSTAGRAM_API_BASE=https://graph.instagram.com  # optional
+BEHOLD_FEED_URL=https://feeds.behold.so/xxxxxxxxxxxx
 ```
 
-Getting a token (Instagram's Basic Display API was retired on 4 Dec 2024, so a
-**Business or Creator** account is required):
+1. Sign up at <https://behold.so> (free tier ≈ 1,200 views/mo) and connect the
+   `@galvezandpartners` Instagram account.
+2. Create a **JSON feed** and copy its unique URL.
+3. Set `BEHOLD_FEED_URL` in the host env (Netlify → Site configuration →
+   Environment variables) and redeploy.
 
-1. Create an app at <https://developers.facebook.com> and add the
-   *Instagram* product (Instagram API with Instagram Login / Instagram Graph API).
-2. Connect the `@galvezandpartners` Instagram Business/Creator account and
-   authorize the `instagram_business_basic` scope.
-3. Exchange the short-lived token for a long-lived one (valid ~60 days; refresh
-   it before expiry via `graph.instagram.com/refresh_access_token`).
+**Option 2 — Instagram Graph API directly (free, DIY token):**
 
-The token is server-only (no `NEXT_PUBLIC_` prefix), so it is never exposed to
-the browser. Without it, the curated posts show and nothing breaks.
+```sh
+INSTAGRAM_ACCESS_TOKEN=<long-lived-token>        # long-lived token, ~60 days
+INSTAGRAM_USER_ID=me                             # optional (defaults to the token's account)
+INSTAGRAM_API_BASE=https://graph.instagram.com   # optional
+```
+
+Create a Meta app at <https://developers.facebook.com>, add the *Instagram*
+product (Instagram API with Instagram Login), connect the account, authorize the
+`instagram_business_basic` scope, and exchange for a long-lived token (refresh it
+before expiry via `graph.instagram.com/refresh_access_token`).
+
+Both variables are server-only (no `NEXT_PUBLIC_` prefix), so nothing sensitive
+reaches the browser. With neither set, the curated posts show and nothing breaks.
 
 ## Notes
 
