@@ -233,7 +233,7 @@ export default function Carousel({
         }}
       />
 
-      <div className="relative z-[1] grid">
+      <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
         {slides.map((slide, i) => {
           const isActive = i === current;
           const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;

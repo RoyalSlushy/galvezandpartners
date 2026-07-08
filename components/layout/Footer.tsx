@@ -6,6 +6,7 @@ import Container from "@/components/ui/Container";
 import SocialIcons from "@/components/ui/SocialIcons";
 import AdminGearButton from "@/components/admin/AdminGearButton";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 
@@ -30,6 +31,7 @@ export default function Footer({
   const footer = useCmsValue("site.footer", serverFooter);
   const tagline = useCmsValue("site.tagline", serverTagline);
   const editMode = useEditMode();
+  const t = useT();
 
   const menu: NavItem[] = [...nav, { label: "Connect With Us", href: "/contact-us" }];
   return (
@@ -40,7 +42,7 @@ export default function Footer({
           <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
           <EditableText
             path="site.tagline"
-            value={tagline}
+            value={editMode ? tagline : t(tagline)}
             as="p"
             className="mt-5 font-heading text-2xl text-cream"
           />
@@ -79,7 +81,7 @@ export default function Footer({
                       link={{ path: `site.nav.${i}.href`, value: item.href }}
                     />
                   ) : (
-                    item.label
+                    t(item.label)
                   )}
                 </Link>
               </li>

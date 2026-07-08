@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { NavItem, Social } from "@/content/site";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /** Hamburger + full-screen navy overlay menu for mobile (< sm). */
 export default function MobileMenu({
@@ -15,6 +16,7 @@ export default function MobileMenu({
   socials: Social[];
 }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -71,11 +73,11 @@ export default function MobileMenu({
               onClick={() => setOpen(false)}
               className="font-heading text-3xl uppercase tracking-wide text-white hover:text-gold"
             >
-              {item.label}
+              {t(item.label)}
             </Link>
           ))}
           <Button href="/contact-us" className="mt-4" onClick={() => setOpen(false)}>
-            Connect
+            {t("Connect")}
           </Button>
           <SocialIcons socials={socials} className="mt-8" />
         </nav>

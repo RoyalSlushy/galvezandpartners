@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
+import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { getSite } from "@/lib/cms";
 
 export const dynamic = "force-dynamic";
@@ -32,21 +33,23 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
-        <AdminProvider>
-          <Header
-            nav={site.nav}
-            socials={site.socials}
-            tagline={site.tagline}
-          />
-          <main className="flex-1">{children}</main>
-          <Footer
-            nav={site.nav}
-            socials={site.socials}
-            contact={site.contact}
-            footer={site.footer}
-            tagline={site.tagline}
-          />
-        </AdminProvider>
+        <LocaleProvider>
+          <AdminProvider>
+            <Header
+              nav={site.nav}
+              socials={site.socials}
+              tagline={site.tagline}
+            />
+            <main className="flex-1">{children}</main>
+            <Footer
+              nav={site.nav}
+              socials={site.socials}
+              contact={site.contact}
+              footer={site.footer}
+              tagline={site.tagline}
+            />
+          </AdminProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem } from "@/content/site";
 import { useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls from "@/components/admin/editable/ListControls";
 
@@ -22,6 +23,7 @@ export default function NavLinks({
 }) {
   const pathname = usePathname();
   const editMode = useEditMode();
+  const t = useT();
   return (
     <nav aria-label="Site" className={className}>
       <ul className="flex items-center gap-10">
@@ -55,7 +57,7 @@ export default function NavLinks({
                     link={{ path: `site.nav.${i}.href`, value: item.href }}
                   />
                 ) : (
-                  item.label
+                  t(item.label)
                 )}
               </Link>
             </li>
