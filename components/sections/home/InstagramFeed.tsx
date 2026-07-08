@@ -32,20 +32,33 @@ const DRIFT_SPEED = 32; // px/s idle leftward drift
 /**
  * Instagram preview strip: a film-strip of tilted post cards drifts slowly
  * sideways forever, eases to a stop while hovered (or keyboard-focused), and
- * each card straightens + lifts on hover with an Instagram overlay. Posts are
- * CMS-managed (image / link / caption). Edit mode renders a static grid with
- * the full edit affordances; reduced motion gets a hand-scrollable strip.
+ * each card straightens + lifts on hover with an Instagram overlay.
+ *
+ * `livePosts` (when a token is configured — see lib/instagram.ts) are the
+ * account's real recent posts, shown to visitors through this same custom UI.
+ * The CMS-managed list (`home.instagram.posts`) stays the source in edit mode
+ * so it remains curatable, and is the fallback whenever there is no live feed.
+ * Edit mode renders a static editable grid; reduced motion gets a
+ * hand-scrollable strip.
  */
-export default function InstagramFeed({ instagram: serverIg }: { instagram: Instagram }) {
+export default function InstagramFeed({
+  instagram: serverIg,
+  livePosts,
+}: {
+  instagram: Instagram;
+  livePosts?: InstagramPost[];
+}) {
   const ig = useCmsValue("home.instagram", serverIg);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+
+  const posts = !editMode && livePosts && livePosts.length > 0 ? livePosts : ig.posts;
 
   const stripRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [copies, setCopies] = useState(2);
 
-  const drifting = !editMode && !reduced && ig.posts.length > 0;
+  const drifting = !editMode && !reduced && posts.length > 0;
 
   // Duplicate the post run until it more than covers the widest viewport.
   useEffect(() => {
@@ -60,7 +73,7 @@ export default function InstagramFeed({ instagram: serverIg }: { instagram: Inst
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [drifting, ig.posts]);
+  }, [drifting, posts]);
 
   // Constant drift that eases to a halt on hover or keyboard focus and back
   // up on leave, never resetting position (same trick as the hero CTA grid).
@@ -142,7 +155,7 @@ export default function InstagramFeed({ instagram: serverIg }: { instagram: Inst
       strip.removeEventListener("focusin", onFocusIn);
       strip.removeEventListener("focusout", onFocusOut);
     };
-  }, [drifting, copies, ig.posts]);
+  }, [drifting, copies, posts]);
 
   const postSrc = (p: InstagramPost) =>
     p.img ? (p.img.startsWith("http") ? p.img : wixImage(p.img, 600, 600)) : PLACEHOLDER_IMG;
@@ -193,7 +206,7 @@ export default function InstagramFeed({ instagram: serverIg }: { instagram: Inst
       aria-hidden={ariaHidden || undefined}
       className="flex w-max shrink-0 items-center gap-6 pr-6 sm:gap-8 sm:pr-8"
     >
-      {ig.posts.map((p, i) => (
+      {posts.map((p, i) => (
         <span key={i} className="block py-8">
           {postCard(p, i, true, ariaHidden)}
         </span>
@@ -291,7 +304,7 @@ export default function InstagramFeed({ instagram: serverIg }: { instagram: Inst
       ) : reduced ? (
         <div key="ig-static" className="gallery-scroll mt-6 overflow-x-auto">
           <div className="gallery-pad flex w-max items-center gap-6 sm:gap-8">
-            {ig.posts.map((p, i) => (
+            {posts.map((p, i) => (
               <span key={i} className="block py-8">
                 {postCard(p, i, true)}
               </span>

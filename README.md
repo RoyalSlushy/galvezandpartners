@@ -31,7 +31,10 @@ npm run dev      # http://localhost:3000
   already on the site, or paste a URL), and use the hover chips on list items
   (team, services, nav, galleries…) to add/remove/reorder. All edits preview
   live and batch locally until the drawer's save icon writes them to Supabase
-  (`site_content` via the `admin-content` edge function).
+  (`site_content` via the `admin-content` edge function). Every image slot —
+  including the homepage hero — also accepts **video** (MP4/WebM up to 40 MB):
+  drop a clip into the picker and it renders as a muted, looping, autoplaying
+  background (a still first frame for `prefers-reduced-motion` visitors).
 - **Styling** — Tailwind CSS. Design tokens (navy/gold/cream palette, the
   Garet/Sebastien font scale as fluid `clamp()` sizes, 980px site width,
   750/1000px breakpoints) live in `tailwind.config.ts`; `@font-face` and base
@@ -57,6 +60,38 @@ npm run dev      # http://localhost:3000
 | `lib/wix.ts` | Wix CDN image URL helper |
 | `tailwind.config.ts` | Brand design tokens |
 | `public/logo.svg` | Wordmark logo |
+
+## Instagram feed (optional live posts)
+
+The homepage Instagram strip (`components/sections/home/InstagramFeed.tsx`)
+renders through a custom UI — a drifting film-strip of tilted cards, not an
+`<iframe>` embed. By default it shows a **CMS-curated** list of posts
+(`home.instagram.posts` — image, link, caption, editable in the drawer), so it
+works with zero setup.
+
+To show the account's **real** latest posts, set an Instagram access token as an
+environment variable and the same UI switches to the live feed automatically
+(`lib/instagram.ts` fetches server-side and caches for an hour; the curated list
+stays as the edit-mode source and the fallback):
+
+```sh
+INSTAGRAM_ACCESS_TOKEN=<long-lived-token>   # required to go live
+INSTAGRAM_USER_ID=me                         # optional (defaults to the token's account)
+INSTAGRAM_API_BASE=https://graph.instagram.com  # optional
+```
+
+Getting a token (Instagram's Basic Display API was retired on 4 Dec 2024, so a
+**Business or Creator** account is required):
+
+1. Create an app at <https://developers.facebook.com> and add the
+   *Instagram* product (Instagram API with Instagram Login / Instagram Graph API).
+2. Connect the `@galvezandpartners` Instagram Business/Creator account and
+   authorize the `instagram_business_basic` scope.
+3. Exchange the short-lived token for a long-lived one (valid ~60 days; refresh
+   it before expiry via `graph.instagram.com/refresh_access_token`).
+
+The token is server-only (no `NEXT_PUBLIC_` prefix), so it is never exposed to
+the browser. Without it, the curated posts show and nothing breaks.
 
 ## Notes
 
