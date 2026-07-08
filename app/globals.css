@@ -63,7 +63,8 @@
 }
 
 /* Hero layout grid holding the storefront image ("main"), the carousel card and
-   the CTA. Mobile stacks them. */
+   the CTA. Mobile stacks them with the CTA button between the image and the
+   carousel card. */
 .hero-grid {
   display: grid;
   gap: 2rem 1.5rem;
@@ -71,8 +72,8 @@
   grid-template-rows: minmax(280px, 1fr) auto auto;
   grid-template-areas:
     "main"
-    "carousel"
-    "cta";
+    "cta"
+    "carousel";
 }
 .hero-main {
   grid-area: main;
