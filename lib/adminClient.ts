@@ -162,8 +162,11 @@ export function resolveImage(raw: string, w = 400, h = 300): string {
 /** Every distinct image currently referenced across the site content. */
 export function collectImages(sections: Partial<Record<ContentKey, unknown>>): ImageRef[] {
   const raws: string[] = [];
-  const home = sections.home as { hero?: { image?: string } } | undefined;
+  const home = sections.home as
+    | { hero?: { image?: string }; instagram?: { posts?: { img?: string }[] } }
+    | undefined;
   if (home?.hero?.image) raws.push(home.hero.image);
+  for (const p of home?.instagram?.posts ?? []) if (p?.img) raws.push(p.img);
   const team = sections.team as { members?: { photo?: string }[] } | undefined;
   for (const m of team?.members ?? []) if (m?.photo) raws.push(m.photo);
   const work = sections.work as { items?: { img?: string }[] } | undefined;

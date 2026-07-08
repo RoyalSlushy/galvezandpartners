@@ -195,6 +195,55 @@
   }
 }
 
+/* Outlined display type (marquee words, ghost index numerals). Layer opacity
+   utilities on top to tune the stroke's strength per use. */
+.text-stroke-gold {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(230, 179, 103, 0.85);
+}
+.text-stroke-white {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Scroll-linked word ink-fill (manifesto section). MulticulturalReveal adds
+   .wordfill-armed once its effect is live and toggles [data-lit] per word as
+   the block travels up the viewport — without JS the text stays fully lit. */
+.wordfill-armed [data-word] {
+  opacity: 0.15;
+  transition: opacity 0.45s ease;
+}
+.wordfill-armed [data-word][data-lit] {
+  opacity: 1;
+}
+
+/* Full-viewport height with a vh fallback for browsers without svh
+   (same convention as .hero-fill). */
+.h-viewport {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
+   the 1200px site width kicks in, then center. .gallery-scroll mirrors the
+   same inset as scroll-padding so snap points don't swallow the gutter. */
+.gallery-pad {
+  padding-left: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+  padding-right: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+}
+.gallery-scroll {
+  scroll-padding-left: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+}
+@media (min-width: 751px) {
+  .gallery-pad {
+    padding-left: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+    padding-right: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+  }
+  .gallery-scroll {
+    scroll-padding-left: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+  }
+}
+
 /* Respect reduced-motion globally for our scroll-reveal utility */
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-in {
@@ -204,6 +253,10 @@
   }
   .hero-breathe {
     animation: none !important;
+  }
+  .wordfill-armed [data-word] {
+    opacity: 1 !important;
+    transition: none;
   }
 }
 

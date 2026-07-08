@@ -48,6 +48,80 @@ export const SERVICES: Service[] = [
 export const WORKS_EYEBROW = "the works";
 export const SERVICES_HEADING = "What We Can Do For YOU.";
 
+/** Words on the velocity-reactive marquee band under the hero. */
+export const MARQUEE_WORDS = [
+  "storytellers",
+  "estrategas",
+  "creatives",
+  "conectores",
+  "producers",
+  "soñadores",
+];
+
+/** Copy for the pinned horizontal "featured work" gallery (items come from the
+ * shared work.items list, so edits propagate to /our-works too). */
+export const FEATURED_WORK = {
+  eyebrow: "featured work",
+  heading: "Stories We've Told.",
+  blurb: "Campaigns, brands and films we poured ourselves into. Scroll through a few of our favorites.",
+  ctaLabel: "See All Works",
+  ctaHref: "/our-works",
+};
+
+export type InstagramPost = { img: string; href: string; caption: string };
+
+/** Instagram preview strip. Posts are CMS-managed (image + link + caption);
+ * defaults reuse campaign imagery already on the Wix CDN. */
+export const INSTAGRAM = {
+  eyebrow: "on the gram",
+  heading: "Follow the Story.",
+  handle: "@galvezandpartners",
+  href: "https://www.instagram.com/galvezandpartners/",
+  ctaLabel: "Follow Us",
+  posts: [
+    {
+      img: "18e608_ab6f541c403a4902bfaa3424f986f0d2~mv2.jpg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "ELG Accident Attorneys — campaign day",
+    },
+    {
+      img: "18e608_1a7448a728304163b7049335d76fdc62~mv2.jpg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "La Bombita, muy caliente",
+    },
+    {
+      img: "18e608_7a5b9c6e0ac449bfaf467c8090dbebce~mv2.jpeg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "Adelante Scholars with Helios",
+    },
+    {
+      img: "18e608_be5a4102ea5645289d4e37cec9917560~mv2.jpg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "Precision Aging Network",
+    },
+    {
+      img: "18e608_40cdf2a8704b46beb47dc1742242db1a~mv2.jpg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "Ken Garff Dealerships",
+    },
+    {
+      img: "18e608_8ce2ab9a4a67425f92ce903860b6ac35~mv2.jpg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "AZ Alzheimer's Consortium",
+    },
+    {
+      img: "18e608_16c28fd37f014651a58e0a2c15903496~mv2.jpeg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "Behind the scenes",
+    },
+    {
+      img: "18e608_cad6745459944f008f2e59e8d756d355~mv2.jpeg",
+      href: "https://www.instagram.com/galvezandpartners/",
+      caption: "On set with the crew",
+    },
+  ] as InstagramPost[],
+};
+
 export const MULTICULTURAL = {
   titleLines: ["the multi-cultural", "Agency doing", "big things"],
   intro:

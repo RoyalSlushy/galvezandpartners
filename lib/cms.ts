@@ -13,9 +13,13 @@ import {
   HERO,
   SERVICES,
   MULTICULTURAL,
+  MARQUEE_WORDS,
+  FEATURED_WORK,
+  INSTAGRAM,
   WORKS_EYEBROW,
   SERVICES_HEADING,
   type Service,
+  type InstagramPost,
 } from "@/content/home";
 import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
 import { WORK, WORK_HEADING, type Work } from "@/content/work";
@@ -48,6 +52,22 @@ export type HomeContent = {
     intro: string;
     cards: { title: string; body: string }[];
   };
+  marqueeWords: string[];
+  featuredWork: {
+    eyebrow: string;
+    heading: string;
+    blurb: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
+  instagram: {
+    eyebrow: string;
+    heading: string;
+    handle: string;
+    href: string;
+    ctaLabel: string;
+    posts: InstagramPost[];
+  };
 };
 
 export type TeamContent = { heading: string; members: Member[] };
@@ -73,6 +93,12 @@ export const DEFAULT_HOME: HomeContent = {
     titleLines: [...MULTICULTURAL.titleLines],
     intro: MULTICULTURAL.intro,
     cards: MULTICULTURAL.cards.map((c) => ({ ...c })),
+  },
+  marqueeWords: [...MARQUEE_WORDS],
+  featuredWork: { ...FEATURED_WORK },
+  instagram: {
+    ...INSTAGRAM,
+    posts: INSTAGRAM.posts.map((p) => ({ ...p })),
   },
 };
 

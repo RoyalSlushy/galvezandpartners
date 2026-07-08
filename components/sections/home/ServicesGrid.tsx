@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
@@ -7,8 +8,21 @@ import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
-/** "the works" eyebrow + "What We Can Do For YOU." services grid with View More. */
+/**
+ * "What We Can Do For YOU." — the services list as a sticky stacking deck:
+ * each numbered card pins near the top of the viewport and the next one
+ * slides over it while the covered card eases back (scale + dim), so the
+ * services pile up like a hand of cards. Cards taller than the viewport pin
+ * bottom-aligned instead so no copy is ever stuck off-screen, and keyboard
+ * focus into a covered card scrolls it back into view. Edit mode and reduced
+ * motion render the same cards as a plain vertical list (all CMS affordances
+ * intact).
+ */
+const TOP_BASE = 76; // px sticky offset of the first card
+const TOP_STEP = 14; // px extra offset per card, so stacked edges peek out
+
 export default function ServicesGrid({
   services: serverServices,
   heading: serverHeading,
@@ -22,6 +36,88 @@ export default function ServicesGrid({
   const heading = useCmsValue("home.servicesHeading", serverHeading);
   const eyebrow = useCmsValue("home.worksEyebrow", serverEyebrow);
   const editMode = useEditMode();
+  const reduced = usePrefersReducedMotion();
+  const deckRef = useRef<HTMLDivElement>(null);
+
+  const stacked = !editMode && !reduced;
+
+  // As card i+1 approaches card i's pinned position, ease card i back.
+  useEffect(() => {
+    if (!stacked) return;
+    // The hook's first paint predates its matchMedia effect — bail sync too.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const deck = deckRef.current;
+    if (!deck) return;
+
+    const wrappers = Array.from(deck.children) as HTMLElement[];
+    const tops: number[] = [];
+    let raf = 0;
+    let ticking = false;
+
+    // Cards taller than the viewport pin with their bottom on-screen (top may
+    // go negative) so every line stays reachable while the card is covered.
+    const measure = () => {
+      wrappers.forEach((wrapper, i) => {
+        const card = wrapper.firstElementChild as HTMLElement | null;
+        const h = card?.offsetHeight ?? 0;
+        tops[i] = Math.min(TOP_BASE + i * TOP_STEP, window.innerHeight - h - 24);
+        wrapper.style.top = `${tops[i]}px`;
+      });
+    };
+
+    const update = () => {
+      ticking = false;
+      for (let i = 0; i < wrappers.length - 1; i++) {
+        const card = wrappers[i].firstElementChild as HTMLElement | null;
+        if (!card) continue;
+        const h = card.offsetHeight;
+        const nextTop = wrappers[i + 1].getBoundingClientRect().top;
+        const p = Math.max(0, Math.min(1, (tops[i] + h - nextTop) / h));
+        card.style.transform = `scale(${1 - p * 0.06}) translateY(${-p * 10}px)`;
+        card.style.filter = `brightness(${1 - p * 0.35})`;
+      }
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        raf = requestAnimationFrame(update);
+      }
+    };
+    const onResize = () => {
+      measure();
+      onScroll();
+    };
+    // Tabbing into a card that later cards have covered: scroll back until it
+    // is uncovered so the focused control is visible (WCAG 2.4.11).
+    const onFocusIn = (e: Event) => {
+      const i = wrappers.findIndex((w) => w.contains(e.target as Node));
+      if (i < 0 || i >= wrappers.length - 1) return;
+      const card = wrappers[i].firstElementChild as HTMLElement | null;
+      if (!card) return;
+      const overlap = tops[i] + card.offsetHeight - wrappers[i + 1].getBoundingClientRect().top;
+      if (overlap > 0) window.scrollBy(0, -overlap);
+    };
+
+    measure();
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    deck.addEventListener("focusin", onFocusIn);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      deck.removeEventListener("focusin", onFocusIn);
+      // The static/edit-mode list reuses these nodes — clear styles React doesn't own.
+      for (const wrapper of wrappers) {
+        const card = wrapper.firstElementChild as HTMLElement | null;
+        if (card) {
+          card.style.transform = "";
+          card.style.filter = "";
+        }
+      }
+    };
+  }, [stacked, services.length]);
 
   return (
     <section className="w-full bg-navy py-20 sm:py-28">
@@ -41,40 +137,59 @@ export default function ServicesGrid({
           />
         </RevealOnScroll>
 
-        <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div ref={deckRef} className="mt-14 flex flex-col gap-8">
           {services.map((s, i) => (
-            <RevealOnScroll key={i} delay={0.08 * (i % 3)}>
+            <div
+              key={i}
+              className={stacked ? "sticky" : undefined}
+              style={stacked ? { top: `${TOP_BASE + i * TOP_STEP}px` } : undefined}
+            >
               <article
-                className={`flex h-full flex-col rounded-2xl border border-white/10 bg-navy-soft p-8${
-                  editMode ? " relative" : ""
-                }`}
+                style={stacked ? { transformOrigin: "top center" } : undefined}
+                className="relative overflow-hidden rounded-3xl border border-white/10 bg-navy-soft p-8 sm:p-12"
               >
+                {/* Faint sheen so stacked cards read as separate layers */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent"
+                />
                 {editMode && (
                   <ListControls
                     listPath="home.services"
                     index={i}
                     count={services.length}
                     label="service"
+                    className="right-2 top-2"
                   />
                 )}
-                <EditableText
-                  path={`home.services.${i}.title`}
-                  value={s.title}
-                  as="h3"
-                  className="font-heading text-f7 leading-tight text-gold"
-                />
-                <EditableText
-                  path={`home.services.${i}.description`}
-                  value={s.description}
-                  as="p"
-                  multiline
-                  className="mt-4 flex-1 whitespace-pre-line font-body text-f9 text-white/75"
-                />
-                <Button href="/contact-us" variant="outline" className="mt-6 self-start text-sm">
-                  View More
-                </Button>
+                <div className="relative grid gap-6 sm:grid-cols-[minmax(7rem,auto)_1fr] sm:gap-12">
+                  <span
+                    aria-hidden
+                    className="font-display text-[4.5rem] leading-none text-stroke-gold opacity-70 sm:text-[7rem]"
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex flex-col items-start">
+                    <EditableText
+                      path={`home.services.${i}.title`}
+                      value={s.title}
+                      as="h3"
+                      className="font-heading text-f7 leading-tight text-gold"
+                    />
+                    <EditableText
+                      path={`home.services.${i}.description`}
+                      value={s.description}
+                      as="p"
+                      multiline
+                      className="mt-4 max-w-3xl whitespace-pre-line font-body text-f9 text-white/75"
+                    />
+                    <Button href="/contact-us" variant="outline" className="mt-8 text-sm">
+                      View More
+                    </Button>
+                  </div>
+                </div>
               </article>
-            </RevealOnScroll>
+            </div>
           ))}
         </div>
         {editMode && (
