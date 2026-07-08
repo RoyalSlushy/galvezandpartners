@@ -1,0 +1,176 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import EditableLines from "@/components/admin/editable/EditableLines";
+import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+
+/**
+ * Velocity-reactive marquee band under the hero: a run of giant display-type
+ * words (alternating gold fill / gold outline) drifts left forever. Scrolling
+ * pushes it — scroll down and it accelerates (with a slight italic skew),
+ * scroll up and it flows backwards — then it eases back to its idle drift.
+ * Hovering (or focusing into) the band eases it to a stop (WCAG 2.2.2).
+ *
+ * The run is duplicated just enough times to cover any viewport, and the
+ * offset wraps modulo one run width, so the loop is seamless in both
+ * directions. Edit mode swaps in a static, line-editable block; reduced
+ * motion renders the words as a static wrapped row.
+ */
+const IDLE_SPEED = 70; // px/s leftward drift
+const VELOCITY_GAIN = 5; // marquee px per page-scroll px (before smoothing)
+const MAX_BOOST = 2600; // px/s cap on the scroll-driven boost
+const SKEW_PER_SPEED = 0.004; // deg of skew per px/s of boost
+const MAX_SKEW = 9; // deg
+
+export default function WordMarquee({ words: serverWords }: { words: string[] }) {
+  const words = useCmsValue("home.marqueeWords", serverWords);
+  const editMode = useEditMode();
+  const reduced = usePrefersReducedMotion();
+
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [copies, setCopies] = useState(2);
+
+  const animate = !editMode && !reduced;
+
+  // Duplicate the run until it more than covers the widest viewport.
+  useEffect(() => {
+    if (!animate) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => {
+      const run = track.querySelector<HTMLElement>("[data-run]");
+      const runW = run?.offsetWidth ?? 0;
+      if (runW > 0) {
+        setCopies(Math.max(2, Math.ceil(window.innerWidth / runW) + 1));
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [animate, words]);
+
+  useEffect(() => {
+    if (!animate) return;
+    // The hook's first paint predates its matchMedia effect — bail sync too.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const band = track.parentElement;
+
+    let offset = 0;
+    let boost = 0; // eased scroll-velocity contribution, px/s (signed)
+    let pause = 0; // eased 0 = running, 1 = paused (hover/focus)
+    let pauseTarget = 0;
+    let lastY = window.scrollY;
+    let last: number | null = null;
+    let raf = 0;
+
+    const hold = () => (pauseTarget = 1);
+    const release = () => (pauseTarget = 0);
+    band?.addEventListener("mouseenter", hold);
+    band?.addEventListener("mouseleave", release);
+    band?.addEventListener("focusin", hold);
+    band?.addEventListener("focusout", release);
+
+    const tick = (t: number) => {
+      if (last == null) last = t;
+      const dt = Math.min(0.05, (t - last) / 1000); // clamp tab-switch jumps
+      last = t;
+
+      const y = window.scrollY;
+      const dy = y - lastY;
+      lastY = y;
+
+      // Feed scroll movement in, then decay toward idle.
+      if (dt > 0) {
+        boost += dy * VELOCITY_GAIN;
+        boost = Math.max(-MAX_BOOST, Math.min(MAX_BOOST, boost));
+        boost *= Math.exp(-dt * 4);
+        pause += (pauseTarget - pause) * Math.min(1, dt * 5);
+      }
+
+      const run = track.querySelector<HTMLElement>("[data-run]");
+      const runW = run?.offsetWidth ?? 0;
+      if (runW > 0) {
+        const speedFactor = 1 - pause;
+        offset -= (IDLE_SPEED + boost) * speedFactor * dt;
+        offset = ((offset % runW) - runW) % runW; // keep in (-runW, 0]
+        const skew =
+          Math.max(-MAX_SKEW, Math.min(MAX_SKEW, -boost * SKEW_PER_SPEED)) * speedFactor;
+        track.style.transform = `translate3d(${offset}px,0,0) skewX(${skew}deg)`;
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      // The edit-mode/reduced-motion branches reuse this DOM node — leave it clean.
+      track.style.transform = "";
+      band?.removeEventListener("mouseenter", hold);
+      band?.removeEventListener("mouseleave", release);
+      band?.removeEventListener("focusin", hold);
+      band?.removeEventListener("focusout", release);
+    };
+  }, [animate, copies, words]);
+
+  const run = (ariaHidden: boolean, key: number, wrap = false) => (
+    <div
+      key={key}
+      data-run={key === 0 ? "" : undefined}
+      aria-hidden={ariaHidden || undefined}
+      className={
+        wrap
+          ? "flex flex-wrap items-center justify-center gap-y-2"
+          : "flex w-max shrink-0 items-center"
+      }
+    >
+      {words.map((w, i) => (
+        <span key={i} className="flex items-center">
+          <span
+            className={`px-6 font-display text-f4 lowercase leading-none sm:px-10 ${
+              i % 2 === 0 ? "text-gold" : "text-stroke-gold"
+            }`}
+          >
+            {w}
+          </span>
+          <span aria-hidden className="text-2xl text-white/20 sm:text-3xl">
+            ✦
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+
+  return (
+    <section
+      aria-label="What we are"
+      className="w-full overflow-hidden border-y border-white/5 bg-gradient-to-b from-blue-muted/50 to-blue-muted/60 py-6 sm:py-8"
+    >
+      {editMode ? (
+        <div key="edit" className="mx-auto max-w-site px-5 sm:px-8">
+          <EditableLines
+            path="home.marqueeWords"
+            values={words}
+            as="p"
+            className="flex flex-wrap items-center gap-x-8 gap-y-2"
+            lineClassName={(_, i) =>
+              `font-display text-f6 lowercase leading-none ${
+                i % 2 === 0 ? "text-gold" : "text-stroke-gold"
+              }`
+            }
+            editingClassName="text-f6 text-white"
+            label="marquee words"
+          />
+        </div>
+      ) : reduced ? (
+        <div key="static">{run(false, 0, true)}</div>
+      ) : (
+        <div key="track" ref={trackRef} className="flex w-max will-change-transform">
+          {Array.from({ length: copies }, (_, c) => run(c > 0, c))}
+        </div>
+      )}
+    </section>
+  );
+}

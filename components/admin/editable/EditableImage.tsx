@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useAdmin, useEditMode } from "@/components/admin/AdminProvider";
 import { isVideoUrl } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
+import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 type EditableImageProps = {
   /** Content path of the stored image string, e.g. "team.members.0.photo". */
@@ -32,7 +34,25 @@ export default function EditableImage({
 }: EditableImageProps) {
   const editMode = useEditMode();
   const admin = useAdmin();
+  const reduced = usePrefersReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const fieldLabel = label ?? labelFor(path);
+
+  // Reduced-motion visitors get a still first frame rather than a looping clip
+  // (the hook corrects after first paint, so pause any playback that slipped
+  // through). Videos are used as backgrounds — the hero especially — so this
+  // keeps an autoplaying loop from becoming un-pausable motion (WCAG 2.2.2).
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && reduced) {
+      v.pause();
+      try {
+        v.currentTime = 0;
+      } catch {
+        /* not seekable yet — first frame shows anyway */
+      }
+    }
+  }, [reduced, src]);
 
   const editProps = editMode
     ? {
@@ -50,12 +70,14 @@ export default function EditableImage({
   if (isVideoUrl(raw)) {
     return (
       <video
+        ref={videoRef}
         src={src}
         className={className}
-        autoPlay
+        autoPlay={!reduced}
         muted
-        loop
+        loop={!reduced}
         playsInline
+        preload={reduced ? "metadata" : "auto"}
         // Pause playback in edit mode so clicks target the picker, not controls.
         controls={false}
         aria-label={alt}
