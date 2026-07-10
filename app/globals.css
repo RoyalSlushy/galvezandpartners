@@ -53,6 +53,10 @@
   --c-gold-dark: 173 134 77; /* #ad864d */
   --c-cream: 243 216 176; /* #f3d8b0 */
   --c-brown-deep: 115 90 51; /* #735a33 */
+
+  /* Optional full-page background gradient (a themed "sky"). Themes that want a
+     sunset glow set this; the rest leave it `none` for a flat base color. */
+  --c-backdrop: none;
 }
 
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
@@ -188,6 +192,17 @@
 @layer base {
   body {
     @apply bg-navy font-body text-white antialiased;
+  }
+  /* Themed "sky": a fixed gradient painted behind all content. Themes without a
+     backdrop leave --c-backdrop: none, so nothing is drawn and the flat bg-navy
+     shows through (Midnight Gold and Denim Blue stay exactly as before). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--c-backdrop, none);
   }
   h1, h2, h3, h4 {
     @apply font-heading;

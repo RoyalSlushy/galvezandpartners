@@ -30,17 +30,20 @@ export default function ThemeApplier() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (draftTheme === undefined) {
+    const clear = () => {
       for (const name of VAR_NAMES) root.style.removeProperty(`--c-${name}`);
+      root.style.removeProperty("--c-backdrop");
+    };
+    if (draftTheme === undefined) {
+      clear();
       return;
     }
-    const vars = getTheme(draftTheme).vars;
+    const theme = getTheme(draftTheme);
     for (const name of VAR_NAMES) {
-      root.style.setProperty(`--c-${name}`, vars[name as keyof ThemeVars]);
+      root.style.setProperty(`--c-${name}`, theme.vars[name as keyof ThemeVars]);
     }
-    return () => {
-      for (const name of VAR_NAMES) root.style.removeProperty(`--c-${name}`);
-    };
+    root.style.setProperty("--c-backdrop", theme.backdrop ?? "none");
+    return clear;
   }, [draftTheme]);
 
   return null;

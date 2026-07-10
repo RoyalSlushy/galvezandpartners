@@ -7,8 +7,9 @@
  * the tokens are variables, switching a theme recolors the whole site without
  * touching component markup.
  *
- * The palettes are built from the Galvez & Partners brand board — Denim Blue,
- * Dark Blue Grey, Harvest Gold and Metallic Bronze.
+ * Palettes draw on the Galvez & Partners brand board (Denim Blue, Dark Blue
+ * Grey, Gold) plus two dusk-sky themes that add a `backdrop` — a fixed
+ * background gradient (see `body::before` in globals.css) for a sunset glow.
  *
  * Keep this module free of any `@/lib/supabase` import: it is bundled into every
  * page (the layout renders the active theme server-side) and must stay tiny.
@@ -17,8 +18,8 @@
 export type ThemeId =
   | "midnight-gold"
   | "denim-blue"
-  | "desert-sunset"
-  | "metallic-bronze";
+  | "golden-hour"
+  | "twilight-coral";
 
 /** The CSS custom properties a theme controls, as space-separated RGB triplets. */
 export type ThemeVars = {
@@ -38,6 +39,11 @@ export type Theme = {
   vars: ThemeVars;
   /** Representative colors (background, accent, panel, highlight) for previews. */
   swatches: [string, string, string, string];
+  /**
+   * Optional fixed background gradient (any CSS `background` value) painted
+   * behind the whole page for a sunset feel. Omit for a flat base color.
+   */
+  backdrop?: string;
 };
 
 export const DEFAULT_THEME_ID: ThemeId = "midnight-gold";
@@ -74,34 +80,44 @@ export const THEMES: Theme[] = [
     swatches: ["18 32 52", "109 176 222", "30 58 92", "201 226 244"],
   },
   {
-    id: "desert-sunset",
-    label: "Desert Sunset",
-    description: "Dusk-plum base with warm sunset-orange and coral accents.",
+    id: "golden-hour",
+    label: "Golden Hour",
+    description: "Clean deep-blue base under a coral-and-gold sunset sky.",
     vars: {
-      navy: "36 24 42", // #24182a dusk plum
-      "navy-soft": "58 38 62", // #3a263e muted plum panel
-      gold: "238 138 77", // #ee8a4d sunset orange (analogous to gold)
-      "gold-bright": "246 170 116", // #f6aa74 peach
-      "gold-dark": "194 104 58", // #c2683a burnt orange
-      cream: "247 216 190", // #f7d8be warm peach
-      "brown-deep": "122 74 53", // #7a4a35 clay
+      navy: "18 27 45", // #121b2d clean deep blue (no muddiness)
+      "navy-soft": "31 44 68", // #1f2c44 slate-blue panel
+      gold: "245 178 68", // #f5b244 warm amber accent
+      "gold-bright": "255 202 112", // #ffca70
+      "gold-dark": "216 132 66", // #d88442
+      cream: "255 231 200", // #ffe7c8
+      "brown-deep": "224 122 74", // #e07a4a terracotta (secondary warm, not brown)
     },
-    swatches: ["36 24 42", "238 138 77", "58 38 62", "247 216 190"],
+    swatches: ["18 27 45", "245 178 68", "31 44 68", "255 231 200"],
+    // Coral + amber glow rising off the horizon into clean deep blue.
+    backdrop:
+      "radial-gradient(150% 95% at 50% -12%, rgb(255 138 76 / 0.30), transparent 52%)," +
+      "radial-gradient(120% 75% at 82% 4%, rgb(var(--c-gold) / 0.24), transparent 58%)," +
+      "linear-gradient(180deg, rgb(var(--c-navy-soft)) 0%, rgb(var(--c-navy)) 62%)",
   },
   {
-    id: "metallic-bronze",
-    label: "Metallic Bronze",
-    description: "Rich bronze-brown base with gold and cream highlights.",
+    id: "twilight-coral",
+    label: "Twilight Coral",
+    description: "Teal-lagoon base with a coral dusk glow over the water.",
     vars: {
-      navy: "32 26 14",
-      "navy-soft": "74 58 26",
-      gold: "232 185 104",
-      "gold-bright": "244 208 140",
-      "gold-dark": "176 132 62",
-      cream: "243 224 189",
-      "brown-deep": "74 58 26",
+      navy: "13 35 45", // #0d232d deep teal
+      "navy-soft": "22 52 63", // #16343f teal panel
+      gold: "255 125 95", // #ff7d5f sunset coral accent
+      "gold-bright": "255 159 122", // #ff9f7a
+      "gold-dark": "214 92 74", // #d65c4a
+      cream: "255 223 205", // #ffdfcd
+      "brown-deep": "240 170 92", // #f0aa5c warm gold-sand (secondary)
     },
-    swatches: ["32 26 14", "232 185 104", "74 58 26", "243 224 189"],
+    swatches: ["13 35 45", "255 125 95", "22 52 63", "255 223 205"],
+    // Coral + sand glow over a deep-teal lagoon at dusk.
+    backdrop:
+      "radial-gradient(150% 95% at 50% -12%, rgb(255 125 95 / 0.32), transparent 54%)," +
+      "radial-gradient(120% 80% at 18% 6%, rgb(255 190 120 / 0.20), transparent 60%)," +
+      "linear-gradient(180deg, rgb(var(--c-navy-soft)) 0%, rgb(var(--c-navy)) 66%)",
   },
 ];
 
@@ -112,9 +128,11 @@ export function getTheme(id: string | null | undefined): Theme {
   return (id && THEME_BY_ID.get(id as ThemeId)) || THEME_BY_ID.get(DEFAULT_THEME_ID)!;
 }
 
-/** Serialize a theme's variables into a CSS declaration block body. */
+/** Serialize a theme's variables (and its backdrop) into a CSS declaration block. */
 export function themeCssVars(theme: Theme): string {
-  return (Object.keys(theme.vars) as (keyof ThemeVars)[])
-    .map((name) => `--c-${name}:${theme.vars[name]}`)
-    .join(";");
+  const decls = (Object.keys(theme.vars) as (keyof ThemeVars)[]).map(
+    (name) => `--c-${name}:${theme.vars[name]}`,
+  );
+  decls.push(`--c-backdrop:${theme.backdrop ?? "none"}`);
+  return decls.join(";");
 }
