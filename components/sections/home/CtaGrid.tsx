@@ -20,7 +20,9 @@ import { useGlyphMap } from "@/components/ui/Glyph";
  * The panel-wide opacity + bottom fade live in the `.cta-grid` CSS; this
  * component renders the letter cells and animates the layer's `transform`.
  */
-const TILE = 24; // px — one letter per tile
+const TILE = 28; // px — one letter per tile (letter box 20px + 8px gutter)
+const GLYPH_H = 20; // px — masked-glyph / font letter height (25% up from 16)
+const GLYPH_W = 17.5; // px — masked-glyph box width (25% up from 14)
 const LETTERS = ["G", "A", "L", "V", "E", "Z"];
 const PERIOD = TILE * LETTERS.length; // 144px — the letter pattern repeats here
 const OVERSCAN = LETTERS.length; // extra tiles per side so the drift never gaps
@@ -141,12 +143,12 @@ export default function CtaGrid() {
             {svg ? (
               <span
                 className="bg-navy"
-                style={{ width: 14, height: 16, ...maskStyle(svg) }}
+                style={{ width: GLYPH_W, height: GLYPH_H, ...maskStyle(svg) }}
               />
             ) : (
               <span
                 className="font-display font-bold leading-none text-navy"
-                style={{ fontSize: 16 }}
+                style={{ fontSize: GLYPH_H }}
               >
                 {ch}
               </span>

@@ -14,15 +14,15 @@ import { useT } from "@/components/i18n/LocaleProvider";
  * everything on one line, shedding width in stages as the header narrows:
  *
  *   stage 1 — hide the "Home" link
- *   stage 2 — stack the Connect button and language selector vertically
- *   stage 3 — fold "Our Team" + "Our Partners" into a "More" dropdown
+ *   stage 2 — fold "Our Team" + "Our Partners" into a "More" dropdown
  *
- * The stage is chosen by measuring the cluster's natural width against the
- * available space and stepping up while it overflows / back down (with a little
- * hysteresis) as room returns. Collapsing is disabled in edit mode so admins see
- * and can edit every link.
+ * The Connect button and language selector are always stacked vertically. The
+ * stage is chosen by measuring the cluster's natural width against the available
+ * space and stepping up while it overflows / back down (with a little hysteresis)
+ * as room returns. Collapsing is disabled in edit mode so admins see and can edit
+ * every link.
  */
-const MAX_STAGE = 3;
+const MAX_STAGE = 2;
 const EXPAND_BUFFER = 16; // px of extra room required before re-expanding a stage
 
 export default function DesktopNav({
@@ -76,10 +76,7 @@ export default function DesktopNav({
 
   const stage = active ? rawStage : 0;
   const hideHome = stage >= 1;
-  const stackConnect = stage >= 2;
-  const condenseMore = stage >= 3;
-
-  const connect = <Button href="/contact-us">{t("Connect")}</Button>;
+  const condenseMore = stage >= 2;
 
   return (
     <div
@@ -100,17 +97,11 @@ export default function DesktopNav({
           </div>
         </div>
 
-        {stackConnect ? (
-          <div className="flex flex-col items-end gap-2">
-            {connect}
-            <LanguageSwitcher />
-          </div>
-        ) : (
-          <div className="flex items-center gap-8">
-            <LanguageSwitcher />
-            {connect}
-          </div>
-        )}
+        {/* Connect + language selector always stacked vertically. */}
+        <div className="flex flex-col items-end gap-2">
+          <Button href="/contact-us">{t("Connect")}</Button>
+          <LanguageSwitcher />
+        </div>
       </div>
     </div>
   );

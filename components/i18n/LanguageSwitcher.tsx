@@ -39,9 +39,9 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-white/90 transition hover:text-white ring-1 ring-white/25"
+        className="flex items-center gap-1.5 py-1 text-white/90 transition hover:text-white"
       >
-        <span className="font-heading text-base leading-none tracking-wide">
+        <span className="border-b border-current pb-1 font-heading text-base leading-none tracking-wide opacity-80">
           {active.short}
         </span>
         <svg
