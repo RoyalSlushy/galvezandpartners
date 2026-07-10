@@ -2,6 +2,7 @@
 
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import { GlyphMark } from "@/components/ui/Glyph";
 import type { Member } from "@/content/team";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -9,6 +10,20 @@ import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+
+/** Trailing name suffixes that shouldn't count as the last name. */
+const NAME_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+
+/** First letter of a member's last name, upper-cased. Skips a trailing suffix
+ * (e.g. "Cesar Salas Jr" -> "S", "Hector Galvez" -> "G"). */
+function lastNameInitial(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  while (parts.length > 1 && NAME_SUFFIX.test(parts[parts.length - 1])) {
+    parts.pop();
+  }
+  const last = parts[parts.length - 1] ?? "";
+  return last.charAt(0).toUpperCase();
+}
 
 /** "Meet Our Storytellers" team grid. */
 export default function TeamGrid({
@@ -23,7 +38,7 @@ export default function TeamGrid({
   const editMode = useEditMode();
 
   return (
-    <section className="w-full bg-navy py-20 sm:py-28">
+    <section className="w-full overflow-hidden bg-navy py-20 sm:py-28">
       <Container>
         <RevealOnScroll>
           <EditableText
@@ -37,7 +52,15 @@ export default function TeamGrid({
         <div className="mt-14 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-4">
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
-              <figure className={`text-center${editMode ? " relative" : ""}`}>
+              <figure className="relative text-center">
+                {/* Decorative last-name initial in the member's custom glyph,
+                    sitting behind the photo and peeking out the top-right. Only
+                    shows once that letter's SVG is uploaded in the Letters panel. */}
+                <GlyphMark
+                  char={lastNameInitial(m.name)}
+                  tintClassName="bg-gold"
+                  className="pointer-events-none absolute -right-10 -top-10 z-0 h-20 w-20 opacity-20 sm:-right-12 sm:-top-12 sm:h-24 sm:w-24"
+                />
                 {editMode && (
                   <ListControls
                     listPath="team.members"
@@ -46,7 +69,7 @@ export default function TeamGrid({
                     label="team member"
                   />
                 )}
-                <div className="overflow-hidden rounded-2xl bg-navy-soft">
+                <div className="relative z-10 overflow-hidden rounded-2xl bg-navy-soft">
                   <EditableImage
                     path={`team.members.${i}.photo`}
                     raw={m.photo}

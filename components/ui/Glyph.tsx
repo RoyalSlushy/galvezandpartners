@@ -44,6 +44,21 @@ export function useGlyphMap(): Map<string, string> {
   }, [live]);
 }
 
+/** Mask CSS that turns a box into the shape of `svg` (whatever fills the box —
+ * its own color — is clipped to the glyph). `contain` letterboxes any aspect. */
+function maskStyle(svg: string): React.CSSProperties {
+  return {
+    WebkitMaskImage: `url("${svg}")`,
+    maskImage: `url("${svg}")`,
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+  };
+}
+
 /** A single masked glyph, tinted by `className` (a Tailwind bg color that is
  * itself theme-variable-backed, e.g. `bg-gold`). Sized in `em` so it scales
  * with the surrounding font size. */
@@ -52,19 +67,35 @@ function Glyph({ svg, className }: { svg: string; className?: string }) {
     <span
       aria-hidden
       className={`inline-block ${className ?? "bg-current"}`}
-      style={{
-        width: "0.62em",
-        height: "1em",
-        verticalAlign: "-0.12em",
-        WebkitMaskImage: `url("${svg}")`,
-        maskImage: `url("${svg}")`,
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-      }}
+      style={{ width: "0.62em", height: "1em", verticalAlign: "-0.12em", ...maskStyle(svg) }}
+    />
+  );
+}
+
+/**
+ * A standalone decorative glyph for a single character (e.g. a member's initial
+ * behind their photo). Looks up the uploaded SVG for `char` and renders nothing
+ * when there is none — purely decorative, so no font fallback. Size and position
+ * come entirely from `className` (e.g. `absolute h-36 w-36 …`); `tintClassName`
+ * sets the fill (a theme-variable-backed bg color like `bg-gold`).
+ */
+export function GlyphMark({
+  char,
+  tintClassName,
+  className,
+}: {
+  char: string;
+  tintClassName?: string;
+  className?: string;
+}) {
+  const glyphs = useGlyphMap();
+  const svg = char ? glyphs.get(char.toUpperCase()) : undefined;
+  if (!svg) return null;
+  return (
+    <span
+      aria-hidden
+      className={`${className ?? ""} ${tintClassName ?? "bg-current"}`}
+      style={maskStyle(svg)}
     />
   );
 }
