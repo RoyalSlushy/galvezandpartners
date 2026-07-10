@@ -172,19 +172,22 @@
   animation: hero-breathe 8s ease-in-out infinite;
 }
 
-/* CTA backdrop: a tiled grid of navy squares with gutters between them, held at
-   10% opacity. The square is inset within each 24px tile so the tiles read as
-   spaced squares rather than a solid grid. The diagonal drift (and its
-   hover speed-up) is driven in JS by the CtaGrid component so the position
-   carries through the speed change without resetting. */
+/* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between
+   them, held at 10% opacity. Each 24px tile carries one letter and every row
+   shifts the sequence one across, so the letters read on the diagonal. The tiles
+   themselves (letters, size, spacing) are rendered as DOM cells by the CtaGrid
+   component so uploaded glyphs — or the Sebastian Slab font fallback — can be
+   used; this rule only holds the panel-wide opacity + fade and clips the
+   oversized, drifting layer. The diagonal drift (and its hover speed-up) is
+   driven in JS by CtaGrid so the position carries through the speed change
+   without resetting. */
 .cta-grid {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='7' y='7' width='10' height='10' rx='2' fill='%23141924'/%3E%3C/svg%3E");
-  background-size: 24px 24px;
   /* Alpha ramp measured from the bottom of the panel: 10% at the bottom (0%
      height), 5% at 50% height, fading to 0% by 60% height and up. In CSS
      `to bottom` terms that's transparent through the top 40%, then 0.5 alpha at
      50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
+  overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
 }

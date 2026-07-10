@@ -8,8 +8,8 @@
 export type Locale = "en" | "es";
 
 export const LOCALES: { code: Locale; label: string; short: string; flag: string }[] = [
-  { code: "en", label: "English", short: "EN", flag: "🇺🇸" },
-  { code: "es", label: "Español", short: "ES", flag: "🇲🇽" },
+  { code: "en", label: "English", short: "ENG", flag: "🇺🇸" },
+  { code: "es", label: "Español", short: "ESP", flag: "🇲🇽" },
 ];
 
 /** English source string → Spanish translation. */
@@ -19,6 +19,7 @@ const ES: Record<string, string> = {
   "Our Work": "Nuestro Trabajo",
   "Our Team": "Nuestro Equipo",
   "Our Partners": "Nuestros Socios",
+  More: "Más",
   "Connect With Us": "Conéctate Con Nosotros",
   Connect: "Conéctate",
   "Let's Connect": "Conectemos",

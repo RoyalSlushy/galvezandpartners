@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useGlyphMap } from "@/components/ui/Glyph";
 
 /**
- * The drifting grid backdrop for the home CTA. The drift is driven in JS (rather
- * than a CSS keyframe animation) so hovering can ramp the speed up without ever
- * resetting the pattern's position: the accumulated offset carries straight
- * through the speed change. The speed eases *in* while the CTA is hovered and
- * eases *out* when the cursor leaves.
+ * The drifting grid backdrop for the home CTA. Each 24px tile carries one letter
+ * of "GALVEZ", and every successive row shifts the sequence one letter across so
+ * the same letters line up on the diagonal. Letters render as uploaded glyphs
+ * (masked navy boxes, like the rest of the letterform system) where a glyph has
+ * been assigned, and fall back to the Sebastian Slab display font otherwise.
  *
- * The tile visuals (image, size, 24px tiling, opacity, alpha mask) live in the
- * `.cta-grid` CSS; this component only animates `background-position`.
+ * The drift is driven in JS (rather than a CSS keyframe animation) so hovering
+ * can ramp the speed up without ever resetting the pattern's position: the
+ * accumulated offset carries straight through the speed change. The speed eases
+ * *in* while the CTA is hovered and eases *out* when the cursor leaves. Because
+ * the letter pattern only repeats every 6 tiles, the drift wraps over a full
+ * PERIOD (not a single tile) so the wrap stays seamless.
+ *
+ * The panel-wide opacity + bottom fade live in the `.cta-grid` CSS; this
+ * component renders the letter cells and animates the layer's `transform`.
  */
-const TILE = 24; // px — must match `.cta-grid` background-size
+const TILE = 24; // px — one letter per tile
+const LETTERS = ["G", "A", "L", "V", "E", "Z"];
+const PERIOD = TILE * LETTERS.length; // 144px — the letter pattern repeats here
+const OVERSCAN = LETTERS.length; // extra tiles per side so the drift never gaps
 const BASE_SPEED = TILE / 4500; // px per ms → one tile every 4.5s
 const HOVER_SPEED = BASE_SPEED * 3; // 200% faster while hovered
 const RAMP_MS = 150; // time to ramp fully between base and hover speed
@@ -20,16 +31,53 @@ const RAMP_MS = 150; // time to ramp fully between base and hover speed
 const easeInQuad = (u: number) => u * u;
 const easeOutQuad = (u: number) => u * (2 - u);
 
-export default function CtaGrid() {
-  const ref = useRef<HTMLDivElement>(null);
+/** Mask CSS that clips a colored box to the shape of `svg` (its own color fills
+ * the box). `contain` letterboxes any aspect ratio. */
+function maskStyle(svg: string): React.CSSProperties {
+  return {
+    WebkitMaskImage: `url("${svg}")`,
+    maskImage: `url("${svg}")`,
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+  };
+}
 
+export default function CtaGrid() {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const glyphs = useGlyphMap();
+  const [dims, setDims] = useState({ cols: 0, rows: 0 });
+
+  // Size the letter grid to cover the panel plus one period of overscan on
+  // every side, so the up-right drift never exposes an uncovered edge.
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const card = el.parentElement;
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const measure = () => {
+      const { width, height } = wrap.getBoundingClientRect();
+      const cols = Math.ceil(width / TILE) + OVERSCAN * 2;
+      const rows = Math.ceil(height / TILE) + OVERSCAN * 2;
+      setDims((d) => (d.cols === cols && d.rows === rows ? d : { cols, rows }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
+
+  // Drift the whole letter layer diagonally, easing the speed up on hover.
+  useEffect(() => {
+    const layer = layerRef.current;
+    const wrap = wrapRef.current;
+    if (!layer || !wrap) return;
+    const card = wrap.parentElement;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    let pos = 0; // accumulated drift within one tile [0, TILE)
+    let pos = 0; // accumulated drift within one PERIOD [0, PERIOD)
     let factor = 0; // eased blend 0 (base) → 1 (hover)
     let from = 0; // tween start value
     let to = 0; // tween target (0 or 1)
@@ -62,9 +110,9 @@ export default function CtaGrid() {
       factor = from + (to - from) * ease(u);
 
       const speed = BASE_SPEED + (HOVER_SPEED - BASE_SPEED) * factor;
-      pos = (pos + speed * dt) % TILE;
-      // Up-right drift: shift the tile right (+x) and up (-y).
-      el.style.backgroundPosition = `${pos}px ${-pos}px`;
+      pos = (pos + speed * dt) % PERIOD;
+      // Up-right drift: shift the layer right (+x) and up (-y).
+      layer.style.transform = `translate(${pos}px, ${-pos}px)`;
 
       raf = requestAnimationFrame(tick);
     };
@@ -77,5 +125,54 @@ export default function CtaGrid() {
     };
   }, []);
 
-  return <div ref={ref} aria-hidden className="cta-grid pointer-events-none absolute inset-0" />;
+  const cells = useMemo(() => {
+    const out: React.ReactNode[] = [];
+    for (let r = 0; r < dims.rows; r++) {
+      for (let c = 0; c < dims.cols; c++) {
+        // Each row shifts the sequence one letter across (diagonal alignment).
+        const ch = LETTERS[(r + c) % LETTERS.length];
+        const svg = glyphs.get(ch);
+        out.push(
+          <span
+            key={`${r}-${c}`}
+            className="flex items-center justify-center"
+            style={{ width: TILE, height: TILE }}
+          >
+            {svg ? (
+              <span
+                className="bg-navy"
+                style={{ width: 14, height: 16, ...maskStyle(svg) }}
+              />
+            ) : (
+              <span
+                className="font-display font-bold leading-none text-navy"
+                style={{ fontSize: 16 }}
+              >
+                {ch}
+              </span>
+            )}
+          </span>,
+        );
+      }
+    }
+    return out;
+  }, [dims, glyphs]);
+
+  return (
+    <div ref={wrapRef} aria-hidden className="cta-grid pointer-events-none absolute inset-0">
+      <div
+        ref={layerRef}
+        className="absolute grid"
+        style={{
+          top: -PERIOD,
+          left: -PERIOD,
+          gridTemplateColumns: `repeat(${dims.cols}, ${TILE}px)`,
+          gridAutoRows: `${TILE}px`,
+          willChange: "transform",
+        }}
+      >
+        {cells}
+      </div>
+    </div>
+  );
 }
