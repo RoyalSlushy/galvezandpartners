@@ -53,6 +53,7 @@ const FIELD_LABELS: Record<string, string> = {
   "site.site.name": "site name",
   "site.site.brand": "brand",
   "site.site.description": "meta description",
+  "site.glyphs.*.svg": "letter SVG",
   "home.hero.headline": "hero headline",
   "home.hero.sub": "hero subtitle",
   "home.hero.image": "hero image",

@@ -171,6 +171,17 @@ export function PaletteIcon({ className }: IconProps) {
   );
 }
 
+export function GlyphsIcon({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <path d="M3 18 8 6l5 12" />
+      <path d="M4.5 14h7" />
+      <path d="M16 18c3 0 5-1.5 5-4s-2-3.5-4-3.5c-1.6 0-2.6.7-3 1.4" />
+      <path d="M21 10.5V18" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg {...base(`${className ?? "h-5 w-5"} animate-spin`)}>

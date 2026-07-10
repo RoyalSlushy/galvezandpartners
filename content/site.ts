@@ -46,3 +46,13 @@ export const SITE = {
 
 // Active color theme id (see lib/themes.ts). Editable from the admin drawer.
 export const THEME = "midnight-gold";
+
+// Custom letterform system: one uploadable SVG per character (A–Z, 0–9). Empty
+// `svg` means "use the normal font". Managed from the admin drawer's Letters
+// panel; consumed by decorative design elements (e.g. the big index numerals).
+export type Glyph = { char: string; svg: string };
+
+const GLYPH_CHARS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+
+export const GLYPHS: Glyph[] = GLYPH_CHARS.map((char) => ({ char, svg: "" }));

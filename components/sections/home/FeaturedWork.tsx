@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -172,7 +173,7 @@ export default function FeaturedWork({
           aria-hidden
           className="pointer-events-none absolute -top-9 left-2 z-10 font-display text-[5.5rem] leading-none text-stroke-white opacity-60 sm:-top-12 sm:text-[7rem]"
         >
-          {String(i + 1).padStart(2, "0")}
+          <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-white" />
         </span>
         {editMode && (
           <ListControls

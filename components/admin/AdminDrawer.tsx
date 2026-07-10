@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useAdmin } from "./AdminProvider";
 import SiteMetaPopover from "./SiteMetaPopover";
 import ThemePopover from "./ThemePopover";
+import GlyphsPopover from "./GlyphsPopover";
 import {
   ChevronDownIcon,
   EyeIcon,
+  GlyphsIcon,
   PaletteIcon,
   PencilIcon,
   PowerIcon,
@@ -26,6 +28,7 @@ export default function AdminDrawer() {
   const [open, setOpen] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [glyphsOpen, setGlyphsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // The footer gear (or anything else) can ask the drawer to open itself.
@@ -46,6 +49,7 @@ export default function AdminDrawer() {
       if (e.key === "Escape") {
         setMetaOpen(false);
         setThemeOpen(false);
+        setGlyphsOpen(false);
         setOpen(false);
       }
     };
@@ -76,6 +80,7 @@ export default function AdminDrawer() {
     <div ref={rootRef} className="fixed bottom-4 right-4 z-[70]">
       {metaOpen && <SiteMetaPopover onClose={() => setMetaOpen(false)} />}
       {themeOpen && <ThemePopover onClose={() => setThemeOpen(false)} />}
+      {glyphsOpen && <GlyphsPopover onClose={() => setGlyphsOpen(false)} />}
       <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-navy-soft p-1.5 shadow-xl">
         <DrawerButton
           label={admin.editMode ? "Preview site (edit mode off)" : "Edit site content"}
@@ -96,6 +101,7 @@ export default function AdminDrawer() {
           active={metaOpen}
           onClick={() => {
             setThemeOpen(false);
+            setGlyphsOpen(false);
             setMetaOpen((v) => !v);
           }}
         >
@@ -107,10 +113,23 @@ export default function AdminDrawer() {
           active={themeOpen}
           onClick={() => {
             setMetaOpen(false);
+            setGlyphsOpen(false);
             setThemeOpen((v) => !v);
           }}
         >
           <PaletteIcon className="h-5 w-5" />
+        </DrawerButton>
+
+        <DrawerButton
+          label="Letters (custom SVG glyphs)"
+          active={glyphsOpen}
+          onClick={() => {
+            setMetaOpen(false);
+            setThemeOpen(false);
+            setGlyphsOpen((v) => !v);
+          }}
+        >
+          <GlyphsIcon className="h-5 w-5" />
         </DrawerButton>
 
         <span className="mx-0.5 h-6 w-px bg-white/10" aria-hidden />
@@ -145,6 +164,7 @@ export default function AdminDrawer() {
           onClick={() => {
             setMetaOpen(false);
             setThemeOpen(false);
+            setGlyphsOpen(false);
             setOpen(false);
           }}
         >

@@ -7,8 +7,10 @@ import {
   TAGLINE,
   SITE,
   THEME,
+  GLYPHS,
   type NavItem,
   type Social,
+  type Glyph,
 } from "@/content/site";
 import {
   HERO,
@@ -36,6 +38,7 @@ export type SiteContent = {
   footer: { credit: string; copyright: string };
   site: { name: string; brand: string; description: string };
   theme: string;
+  glyphs: Glyph[];
 };
 
 export type HomeContent = {
@@ -85,6 +88,7 @@ export const DEFAULT_SITE: SiteContent = {
   footer: { credit: FOOTER.credit, copyright: FOOTER.copyright },
   site: { name: SITE.name, brand: SITE.brand, description: SITE.description },
   theme: THEME,
+  glyphs: GLYPHS.map((g) => ({ ...g })),
 };
 
 export const DEFAULT_HOME: HomeContent = {

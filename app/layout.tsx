@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
+import { GlyphProvider } from "@/components/ui/Glyph";
 import { getSite } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
 
@@ -46,19 +47,21 @@ export default async function RootLayout({
         />
         <LocaleProvider>
           <AdminProvider>
-            <Header
-              nav={site.nav}
-              socials={site.socials}
-              tagline={site.tagline}
-            />
-            <main className="flex-1">{children}</main>
-            <Footer
-              nav={site.nav}
-              socials={site.socials}
-              contact={site.contact}
-              footer={site.footer}
-              tagline={site.tagline}
-            />
+            <GlyphProvider glyphs={site.glyphs}>
+              <Header
+                nav={site.nav}
+                socials={site.socials}
+                tagline={site.tagline}
+              />
+              <main className="flex-1">{children}</main>
+              <Footer
+                nav={site.nav}
+                socials={site.socials}
+                contact={site.contact}
+                footer={site.footer}
+                tagline={site.tagline}
+              />
+            </GlyphProvider>
           </AdminProvider>
         </LocaleProvider>
       </body>

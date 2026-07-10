@@ -106,6 +106,7 @@ export default function ImagePicker() {
 
   return createPortal(
     <div
+      data-gp-image-picker
       className="fixed inset-0 z-[80] overflow-y-auto bg-navy/80 backdrop-blur-sm"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) admin.closeImagePicker();
