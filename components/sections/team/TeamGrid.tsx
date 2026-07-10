@@ -38,7 +38,7 @@ export default function TeamGrid({
   const editMode = useEditMode();
 
   return (
-    <section className="w-full overflow-hidden bg-navy py-20 sm:py-28">
+    <section className="w-full bg-navy py-20 sm:py-28">
       <Container>
         <RevealOnScroll>
           <EditableText
@@ -53,14 +53,6 @@ export default function TeamGrid({
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
               <figure className="relative text-center">
-                {/* Decorative last-name initial in the member's custom glyph,
-                    sitting behind the photo and peeking out the top-right. Only
-                    shows once that letter's SVG is uploaded in the Letters panel. */}
-                <GlyphMark
-                  char={lastNameInitial(m.name)}
-                  tintClassName="bg-gold"
-                  className="pointer-events-none absolute -right-10 -top-10 z-0 h-20 w-20 opacity-20 sm:-right-12 sm:-top-12 sm:h-24 sm:w-24"
-                />
                 {editMode && (
                   <ListControls
                     listPath="team.members"
@@ -69,7 +61,15 @@ export default function TeamGrid({
                     label="team member"
                   />
                 )}
-                <div className="relative z-10 overflow-hidden rounded-2xl bg-navy-soft">
+                <div className="relative overflow-hidden rounded-t-2xl border-b-4 border-gold bg-white">
+                  {/* Decorative last-name initial in the member's custom glyph:
+                      a low-opacity watermark inside the card, behind the photo.
+                      Only shows once that letter's SVG is uploaded. */}
+                  <GlyphMark
+                    char={lastNameInitial(m.name)}
+                    tintClassName="bg-gold"
+                    className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-20 sm:h-28 sm:w-28"
+                  />
                   <EditableImage
                     path={`team.members.${i}.photo`}
                     raw={m.photo}
@@ -81,7 +81,7 @@ export default function TeamGrid({
                         : PLACEHOLDER_IMG
                     }
                     alt={m.name}
-                    className="aspect-[5/6] w-full object-cover"
+                    className="relative z-10 aspect-[5/6] w-full object-cover"
                   />
                 </div>
                 <figcaption className="mt-4">
