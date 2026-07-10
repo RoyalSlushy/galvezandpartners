@@ -40,6 +40,19 @@
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
   --header-h: 124px; /* mobile header height */
+
+  /* Brand color tokens (space-separated RGB, consumed by the Tailwind `navy`,
+     `gold`, … utilities). These defaults are the "Midnight Gold" theme; the
+     active theme overrides them via a `:root:root{}` block rendered in the
+     layout, and the admin editor previews themes by setting them inline on
+     <html>. Keep in sync with lib/themes.ts. */
+  --c-navy: 20 25 36; /* #141924 */
+  --c-navy-soft: 35 42 61; /* #232a3d */
+  --c-gold: 230 179 103; /* #e6b367 */
+  --c-gold-bright: 224 169 79; /* #e0a94f */
+  --c-gold-dark: 173 134 77; /* #ad864d */
+  --c-cream: 243 216 176; /* #f3d8b0 */
+  --c-brown-deep: 115 90 51; /* #735a33 */
 }
 
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
@@ -198,7 +211,7 @@
    utilities on top to tune the stroke's strength per use. */
 .text-stroke-gold {
   color: transparent;
-  -webkit-text-stroke: 2px rgba(230, 179, 103, 0.85);
+  -webkit-text-stroke: 2px rgb(var(--c-gold) / 0.85);
 }
 .text-stroke-white {
   color: transparent;

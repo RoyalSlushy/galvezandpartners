@@ -6,6 +6,7 @@ import {
   FOOTER,
   TAGLINE,
   SITE,
+  THEME,
   type NavItem,
   type Social,
 } from "@/content/site";
@@ -34,6 +35,7 @@ export type SiteContent = {
   contact: { email: string; addressLines: string[] };
   footer: { credit: string; copyright: string };
   site: { name: string; brand: string; description: string };
+  theme: string;
 };
 
 export type HomeContent = {
@@ -82,6 +84,7 @@ export const DEFAULT_SITE: SiteContent = {
   contact: { email: CONTACT.email, addressLines: [...CONTACT.addressLines] },
   footer: { credit: FOOTER.credit, copyright: FOOTER.copyright },
   site: { name: SITE.name, brand: SITE.brand, description: SITE.description },
+  theme: THEME,
 };
 
 export const DEFAULT_HOME: HomeContent = {

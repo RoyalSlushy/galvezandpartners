@@ -4,6 +4,7 @@ import { useAdmin } from "./AdminProvider";
 import AdminDrawer from "./AdminDrawer";
 import LoginPopover from "./LoginPopover";
 import ImagePicker from "./ImagePicker";
+import ThemeApplier from "./ThemeApplier";
 
 /** Everything the admin sees on top of the site. Loaded lazily (never for
  * anonymous visitors) via the dynamic import in AdminProvider. */
@@ -11,6 +12,7 @@ export default function AdminUI() {
   const admin = useAdmin();
   return (
     <>
+      <ThemeApplier />
       {admin.loginOpen && admin.auth !== "authed" && <LoginPopover />}
       {admin.auth === "authed" && <AdminDrawer />}
       {admin.picker && <ImagePicker key={admin.picker.path} />}

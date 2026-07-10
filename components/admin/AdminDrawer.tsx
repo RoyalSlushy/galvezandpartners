@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdmin } from "./AdminProvider";
 import SiteMetaPopover from "./SiteMetaPopover";
+import ThemePopover from "./ThemePopover";
 import {
   ChevronDownIcon,
   EyeIcon,
+  PaletteIcon,
   PencilIcon,
   PowerIcon,
   SaveIcon,
@@ -23,6 +25,7 @@ export default function AdminDrawer() {
   const admin = useAdmin();
   const [open, setOpen] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // The footer gear (or anything else) can ask the drawer to open itself.
@@ -42,6 +45,7 @@ export default function AdminDrawer() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setMetaOpen(false);
+        setThemeOpen(false);
         setOpen(false);
       }
     };
@@ -71,6 +75,7 @@ export default function AdminDrawer() {
   return (
     <div ref={rootRef} className="fixed bottom-4 right-4 z-[70]">
       {metaOpen && <SiteMetaPopover onClose={() => setMetaOpen(false)} />}
+      {themeOpen && <ThemePopover onClose={() => setThemeOpen(false)} />}
       <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-navy-soft p-1.5 shadow-xl">
         <DrawerButton
           label={admin.editMode ? "Preview site (edit mode off)" : "Edit site content"}
@@ -89,9 +94,23 @@ export default function AdminDrawer() {
         <DrawerButton
           label="Site name & description"
           active={metaOpen}
-          onClick={() => setMetaOpen((v) => !v)}
+          onClick={() => {
+            setThemeOpen(false);
+            setMetaOpen((v) => !v);
+          }}
         >
           <SlidersIcon className="h-5 w-5" />
+        </DrawerButton>
+
+        <DrawerButton
+          label="Site theme & colors"
+          active={themeOpen}
+          onClick={() => {
+            setMetaOpen(false);
+            setThemeOpen((v) => !v);
+          }}
+        >
+          <PaletteIcon className="h-5 w-5" />
         </DrawerButton>
 
         <span className="mx-0.5 h-6 w-px bg-white/10" aria-hidden />
@@ -125,6 +144,7 @@ export default function AdminDrawer() {
           label="Minimize"
           onClick={() => {
             setMetaOpen(false);
+            setThemeOpen(false);
             setOpen(false);
           }}
         >

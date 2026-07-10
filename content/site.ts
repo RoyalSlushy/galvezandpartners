@@ -43,3 +43,6 @@ export const SITE = {
   description:
     "Galvez & Partners (G&P Advertising) — a multicultural advertising & marketing firm in Phoenix, AZ.",
 };
+
+// Active color theme id (see lib/themes.ts). Editable from the admin drawer.
+export const THEME = "midnight-gold";

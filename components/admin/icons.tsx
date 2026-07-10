@@ -160,6 +160,17 @@ export function ImageIcon({ className }: IconProps) {
   );
 }
 
+export function PaletteIcon({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <path d="M12 22a10 10 0 1 1 0-20c5 0 9 3.6 9 8 0 3-2.5 4-4.5 4H14a2 2 0 0 0-1.4 3.4A2 2 0 0 1 12 22Z" />
+      <circle cx="7.5" cy="11.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg {...base(`${className ?? "h-5 w-5"} animate-spin`)}>
