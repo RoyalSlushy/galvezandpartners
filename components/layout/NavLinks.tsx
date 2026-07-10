@@ -16,7 +16,7 @@ const MORE_HREFS = ["/our-team", "/our-partners"];
  * center (transform-only, so the 2px stroke weight stays constant); the active
  * link sits at full size while inactive links shrink slightly. */
 function linkClass(active: boolean) {
-  return `relative inline-block font-heading text-lg transition duration-300 hover:text-sky-200 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
+  return `relative inline-block font-heading text-[1.35rem] transition duration-300 hover:text-sky-200 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
     active
       ? "scale-100 text-white after:scale-x-100"
       : "scale-90 text-white/90 after:scale-x-0"

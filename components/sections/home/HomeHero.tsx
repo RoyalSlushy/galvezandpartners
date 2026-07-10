@@ -229,7 +229,7 @@ function HeroServiceSlide({
           path={`home.services.${index}.title`}
           value={tv(service.title)}
           as="h3"
-          className="font-display text-[2em] leading-none text-sky-200 sm:text-[2.025rem]"
+          className="line-clamp-2 font-display text-[2em] leading-none text-sky-200 sm:text-[2.025rem]"
         />
         <EditableText
           path={`home.services.${index}.description`}
