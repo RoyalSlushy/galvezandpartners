@@ -81,10 +81,10 @@ export default function DesktopNav({
   return (
     <div
       ref={containerRef}
-      className="hidden min-w-0 flex-1 items-stretch justify-end self-stretch sm:flex"
+      className="hidden min-w-0 flex-1 items-center justify-end sm:flex"
     >
-      <div ref={contentRef} className="flex flex-none items-stretch gap-8">
-        <div className="flex h-16 flex-col items-end justify-between self-center sm:h-20">
+      <div ref={contentRef} className="flex flex-none items-center gap-8">
+        <div className="flex h-16 flex-col items-end justify-between sm:h-20">
           <NavLinks nav={nav} hideHome={hideHome} condenseMore={condenseMore} />
           <div className="flex items-center gap-5">
             <EditableText
@@ -97,13 +97,9 @@ export default function DesktopNav({
           </div>
         </div>
 
-        {/* Connect + language selector stacked full-height: Connect stays on the
-            nav-links line (30px in, matching the centered nav column) and the
-            language selector sits flush with the bottom of the header. */}
-        <div className="flex flex-col items-end justify-between pt-[30px]">
-          <Button href="/contact-us" className="text-[1.2rem]">
-            {t("Connect")}
-          </Button>
+        {/* Connect + language selector always stacked, spread to the column height. */}
+        <div className="flex h-16 flex-col items-end justify-between sm:h-20">
+          <Button href="/contact-us">{t("Connect")}</Button>
           <LanguageSwitcher />
         </div>
       </div>
