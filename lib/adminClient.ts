@@ -173,6 +173,8 @@ export function collectImages(sections: Partial<Record<ContentKey, unknown>>): I
   for (const w of work?.items ?? []) if (w?.img) raws.push(w.img);
   const cs = sections.case_studies as { studies?: { gallery?: string[] }[] } | undefined;
   for (const s of cs?.studies ?? []) for (const g of s?.gallery ?? []) if (g) raws.push(g);
+  const site = sections.site as { glyphs?: { svg?: string }[] } | undefined;
+  for (const g of site?.glyphs ?? []) if (g?.svg) raws.push(g.svg);
 
   const seen = new Set<string>();
   const out: ImageRef[] = [];

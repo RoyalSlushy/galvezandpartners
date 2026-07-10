@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -167,7 +168,7 @@ export default function ServicesGrid({
                     aria-hidden
                     className="font-display text-[4.5rem] leading-none text-stroke-gold opacity-70 sm:text-[7rem]"
                   >
-                    {String(i + 1).padStart(2, "0")}
+                    <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-gold" />
                   </span>
                   <div className="flex flex-col items-start">
                     <EditableText

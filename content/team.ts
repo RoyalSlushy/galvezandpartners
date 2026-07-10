@@ -1,9 +1,12 @@
-/** Team members ("Meet Our Storytellers"). Photo = Wix media id (kept on CDN). */
-export type Member = { name: string; role: string; photo: string };
+import type { Social } from "@/content/site";
+
+/** Team members ("Meet Our Storytellers"). Photo = Wix media id (kept on CDN).
+ * `socials` are per-person links, empty by default — added from the editor. */
+export type Member = { name: string; role: string; photo: string; socials: Social[] };
 
 export const TEAM_HEADING = "Meet Our Storytellers";
 
-export const TEAM: Member[] = [
+const TEAM_RAW: Omit<Member, "socials">[] = [
   { name: "Hector Galvez", role: "Principal", photo: "18e608_6ba8e6ee583a4830add9de630471b75a~mv2.png" },
   { name: "Alex Lopez", role: "Marketing Manager", photo: "18e608_eb08e960397f40c0aebceea12afe64ed~mv2.png" },
   { name: "Grecia Gastelum", role: "Social Media Manager", photo: "18e608_ce4f5a00ba0b4cd1b817108fbc5f2ce8~mv2.png" },
@@ -15,3 +18,5 @@ export const TEAM: Member[] = [
   { name: "Cesar Salas Jr", role: "Video Content Creator", photo: "18e608_254a63ef6a34473b951f8c1047768e0b~mv2.png" },
   { name: "Antonio Casian", role: "Digital Marketing", photo: "18e608_ff11150317054441944744a8e1e115bf~mv2.png" },
 ];
+
+export const TEAM: Member[] = TEAM_RAW.map((m) => ({ ...m, socials: [] }));

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
@@ -207,7 +208,10 @@ function SpotlightCard({
         aria-hidden
         className="pointer-events-none absolute -right-2 -top-6 font-display text-[7rem] leading-none text-white/[0.045] transition-colors duration-300 group-hover:text-gold/10"
       >
-        0{index + 1}
+        <GlyphNumber
+          value={`0${index + 1}`}
+          tintClassName="bg-white/[0.045] transition-colors duration-300 group-hover:bg-gold/10"
+        />
       </span>
       {editMode && (
         <ListControls

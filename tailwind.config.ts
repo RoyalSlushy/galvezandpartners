@@ -14,13 +14,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: "#141924", // --color_15, primary dark / text
-        "navy-soft": "#232a3d",
-        gold: "#e6b367", // --color_17, accent
-        "gold-bright": "#E0A94F", // enhance.css accent (carousel dots, current lang)
-        "gold-dark": "#ad864d", // --color_18
-        cream: "#f3d8b0", // --color_16
-        "brown-deep": "#735a33", // --color_19
+        // Brand tokens resolve against CSS variables (space-separated RGB
+        // triplets) so the admin can switch the whole site's theme at runtime.
+        // Defaults live in `:root` (app/globals.css); presets in lib/themes.ts.
+        navy: "rgb(var(--c-navy) / <alpha-value>)", // --color_15, primary dark / text
+        "navy-soft": "rgb(var(--c-navy-soft) / <alpha-value>)",
+        gold: "rgb(var(--c-gold) / <alpha-value>)", // --color_17, accent
+        "gold-bright": "rgb(var(--c-gold-bright) / <alpha-value>)", // enhance.css accent (carousel dots, current lang)
+        "gold-dark": "rgb(var(--c-gold-dark) / <alpha-value>)", // --color_18
+        cream: "rgb(var(--c-cream) / <alpha-value>)", // --color_16
+        "brown-deep": "rgb(var(--c-brown-deep) / <alpha-value>)", // --color_19
         ink: {
           100: "#c0c6d3", // --color_11
           200: "#959ba7", // --color_12
