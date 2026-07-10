@@ -23,7 +23,6 @@ import { useT } from "@/components/i18n/LocaleProvider";
  * every link.
  */
 const MAX_STAGE = 2;
-const EXPAND_BUFFER = 16; // px of extra room required before re-expanding a stage
 
 export default function DesktopNav({
   nav,
@@ -41,9 +40,10 @@ export default function DesktopNav({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [rawStage, setStage] = useState(0);
-  // Width the container had at the moment each stage overflowed, so we know when
-  // there is enough room to undo it.
-  const thresholds = useRef<number[]>([]);
+  // The cluster's natural width the last time we rendered each stage. Recorded so
+  // re-expansion is decided against the previous stage's *actual* width (which is
+  // stable), rather than against the width at which it happened to overflow.
+  const neededAt = useRef<number[]>([]);
 
   useLayoutEffect(() => {
     if (!active) return;
@@ -55,13 +55,13 @@ export default function DesktopNav({
       const avail = container.clientWidth;
       const needed = content.offsetWidth;
       setStage((s) => {
-        if (needed > avail + 1 && s < MAX_STAGE) {
-          thresholds.current[s] = avail;
-          return s + 1;
-        }
+        neededAt.current[s] = needed;
+        // Not enough room: shed the next stage of width.
+        if (needed > avail + 1 && s < MAX_STAGE) return s + 1;
+        // Room has returned: undo a stage once the previous (wider) layout fits.
         if (s > 0) {
-          const th = thresholds.current[s - 1];
-          if (th != null && avail > th + EXPAND_BUFFER) return s - 1;
+          const prev = neededAt.current[s - 1];
+          if (prev != null && avail >= prev) return s - 1;
         }
         return s;
       });
@@ -97,8 +97,8 @@ export default function DesktopNav({
           </div>
         </div>
 
-        {/* Connect + language selector always stacked vertically. */}
-        <div className="flex flex-col items-end gap-2">
+        {/* Connect + language selector always stacked, spread to the column height. */}
+        <div className="flex h-16 flex-col items-end justify-between sm:h-20">
           <Button href="/contact-us">{t("Connect")}</Button>
           <LanguageSwitcher />
         </div>

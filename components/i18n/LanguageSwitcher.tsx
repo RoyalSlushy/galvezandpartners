@@ -41,7 +41,7 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 py-1 text-white/90 transition hover:text-white"
       >
-        <span className="border-b border-current pb-1 font-heading text-base leading-none tracking-wide opacity-80">
+        <span className="font-heading text-base leading-none tracking-wide opacity-80">
           {active.short}
         </span>
         <svg
