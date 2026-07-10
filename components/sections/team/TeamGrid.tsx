@@ -93,18 +93,11 @@ export default function TeamGrid({
                     as="span"
                     className="block whitespace-nowrap font-heading text-f9 tracking-tight text-white"
                   />
-                  {/* Role is centered on its own; on card hover (or always in
-                      edit mode) the row opens to space-between and the member's
-                      social links slide in on the right. */}
-                  <div
-                    className={`mt-1 flex items-center gap-2 ${
-                      editMode
-                        ? "justify-between"
-                        : m.socials?.length
-                          ? "justify-center group-hover:justify-between"
-                          : "justify-center"
-                    }`}
-                  >
+                  {/* The role sits centered; the social wrapper collapses to
+                      zero width. On card hover (or always in edit mode) it
+                      expands, so the centered group glides — role slides left and
+                      the links slide in from the right, in one smooth motion. */}
+                  <div className="mt-1 flex items-center justify-center">
                     <EditableText
                       path={`team.members.${i}.role`}
                       value={m.role}
@@ -112,11 +105,11 @@ export default function TeamGrid({
                       className="min-w-0 truncate font-din text-sm uppercase text-gold"
                     />
                     <div
-                      className={`shrink-0 items-center gap-2 ${
+                      className={`flex shrink-0 items-center overflow-hidden transition-all duration-300 ease-out ${
                         editMode
-                          ? "flex"
+                          ? "max-w-none pl-2 opacity-100"
                           : m.socials?.length
-                            ? "hidden group-hover:flex"
+                            ? "max-w-0 pl-2 opacity-0 group-hover:max-w-[8rem] group-hover:opacity-100"
                             : "hidden"
                       }`}
                     >
