@@ -53,7 +53,7 @@ export default function TeamGrid({
         <div className="mt-14 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-4">
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
-              <figure className="relative text-center">
+              <figure className="group relative text-center">
                 {editMode && (
                   <ListControls
                     listPath="team.members"
@@ -70,7 +70,7 @@ export default function TeamGrid({
                   <GlyphMark
                     char={lastNameInitial(m.name)}
                     tintClassName="bg-navy"
-                    className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-15 sm:h-28 sm:w-28"
+                    className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-25 transition-opacity duration-300 group-hover:opacity-50 sm:h-28 sm:w-28"
                   />
                   <EditableImage
                     path={`team.members.${i}.photo`}
@@ -93,14 +93,33 @@ export default function TeamGrid({
                     as="span"
                     className="block whitespace-nowrap font-heading text-f9 tracking-tight text-white"
                   />
-                  <div className="mt-1 flex items-center justify-between gap-2">
+                  {/* Role is centered on its own; on card hover (or always in
+                      edit mode) the row opens to space-between and the member's
+                      social links slide in on the right. */}
+                  <div
+                    className={`mt-1 flex items-center gap-2 ${
+                      editMode
+                        ? "justify-between"
+                        : m.socials?.length
+                          ? "justify-center group-hover:justify-between"
+                          : "justify-center"
+                    }`}
+                  >
                     <EditableText
                       path={`team.members.${i}.role`}
                       value={m.role}
                       as="span"
                       className="min-w-0 truncate font-din text-sm uppercase text-gold"
                     />
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div
+                      className={`shrink-0 items-center gap-2 ${
+                        editMode
+                          ? "flex"
+                          : m.socials?.length
+                            ? "hidden group-hover:flex"
+                            : "hidden"
+                      }`}
+                    >
                       <SocialIcons
                         socials={m.socials ?? []}
                         editPathBase={`team.members.${i}.socials`}
