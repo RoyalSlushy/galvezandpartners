@@ -14,7 +14,8 @@ export function normalizePath(path: string): string {
 /** Templates for "+ add" on each editable list. Placeholder copy is visible on
  * purpose so freshly added items can be clicked and edited in place. */
 const LIST_TEMPLATES: Record<string, () => unknown> = {
-  "team.members": () => ({ name: "New Member", role: "Role", photo: "" }),
+  "team.members": () => ({ name: "New Member", role: "Role", photo: "", socials: [] }),
+  "team.members.*.socials": () => ({ label: "Instagram", href: "", icon: "instagram" }),
   "home.services": () => ({ title: "New Service", description: "Describe this service." }),
   "home.multicultural.cards": () => ({ title: "new card", body: "Card copy goes here." }),
   "site.nav": () => ({ label: "New Link", href: "/" }),

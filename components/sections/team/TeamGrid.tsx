@@ -5,7 +5,6 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphMark } from "@/components/ui/Glyph";
 import SocialIcons from "@/components/ui/SocialIcons";
 import type { Member } from "@/content/team";
-import type { Social } from "@/content/site";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
@@ -31,15 +30,12 @@ function lastNameInitial(name: string): string {
 export default function TeamGrid({
   members: serverMembers,
   heading: serverHeading,
-  socials: serverSocials,
 }: {
   members: Member[];
   heading: string;
-  socials: Social[];
 }) {
   const members = useCmsValue("team.members", serverMembers);
   const heading = useCmsValue("team.heading", serverHeading);
-  const socials = useCmsValue("site.socials", serverSocials);
   const editMode = useEditMode();
 
   return (
@@ -67,6 +63,15 @@ export default function TeamGrid({
                   />
                 )}
                 <div className="relative overflow-hidden rounded-t-2xl border-b-4 border-gold bg-white">
+                  {/* Decorative last-name initial in the member's custom glyph —
+                      a low-opacity mark in the site's background color, sitting on
+                      the white card but behind the (cutout) photo. Only shows once
+                      that letter's SVG is uploaded in the Letters panel. */}
+                  <GlyphMark
+                    char={lastNameInitial(m.name)}
+                    tintClassName="bg-navy"
+                    className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-15 sm:h-28 sm:w-28"
+                  />
                   <EditableImage
                     path={`team.members.${i}.photo`}
                     raw={m.photo}
@@ -79,15 +84,6 @@ export default function TeamGrid({
                     }
                     alt={m.name}
                     className="relative z-10 aspect-[5/6] w-full object-cover"
-                  />
-                  {/* Decorative last-name initial in the member's custom glyph —
-                      a low-opacity gold watermark over the card's upper-right.
-                      Only shows once that letter's SVG is uploaded in the Letters
-                      panel; sits above the photo so it's visible on any image. */}
-                  <GlyphMark
-                    char={lastNameInitial(m.name)}
-                    tintClassName="bg-gold"
-                    className="pointer-events-none absolute right-2 top-2 z-20 h-24 w-24 opacity-25 sm:h-28 sm:w-28"
                   />
                 </div>
                 <figcaption className="mt-4">
@@ -104,11 +100,21 @@ export default function TeamGrid({
                       as="span"
                       className="min-w-0 truncate font-din text-sm uppercase text-gold"
                     />
-                    <SocialIcons
-                      socials={socials}
-                      className="shrink-0 !gap-2.5"
-                      iconClassName="h-4 w-4"
-                    />
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SocialIcons
+                        socials={m.socials ?? []}
+                        editPathBase={`team.members.${i}.socials`}
+                        className="!gap-2.5"
+                        iconClassName="h-4 w-4"
+                      />
+                      {editMode && (m.socials?.length ?? 0) === 0 && (
+                        <AddChip
+                          listPath={`team.members.${i}.socials`}
+                          label="social link"
+                          className="!px-2.5 !py-1 !text-xs"
+                        />
+                      )}
+                    </div>
                   </div>
                 </figcaption>
               </figure>

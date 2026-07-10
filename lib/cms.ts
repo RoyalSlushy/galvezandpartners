@@ -111,7 +111,7 @@ export const DEFAULT_HOME: HomeContent = {
 
 export const DEFAULT_TEAM: TeamContent = {
   heading: TEAM_HEADING,
-  members: TEAM.map((m) => ({ ...m })),
+  members: TEAM.map((m) => ({ ...m, socials: m.socials.map((s) => ({ ...s })) })),
 };
 
 export const DEFAULT_WORK: WorkContent = {

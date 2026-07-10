@@ -249,8 +249,10 @@ export default function AdminProvider({ children }: { children: React.ReactNode 
       const prev = draftsRef.current;
       if (!prev) return;
       const arr = getByPath(prev, listPath);
-      if (!Array.isArray(arr)) return;
-      const next = setByPath(prev, listPath, listApply(arr, op));
+      // Tolerate an absent list (e.g. a member saved before `socials` existed):
+      // adding the first item creates the array.
+      const list = Array.isArray(arr) ? arr : [];
+      const next = setByPath(prev, listPath, listApply(list, op));
       draftsRef.current = next;
       setDrafts(next);
       markPath(next, listPath);
