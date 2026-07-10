@@ -17,7 +17,7 @@
 export type ThemeId =
   | "midnight-gold"
   | "denim-blue"
-  | "harvest-gold"
+  | "desert-sunset"
   | "metallic-bronze";
 
 /** The CSS custom properties a theme controls, as space-separated RGB triplets. */
@@ -74,19 +74,19 @@ export const THEMES: Theme[] = [
     swatches: ["18 32 52", "109 176 222", "30 58 92", "201 226 244"],
   },
   {
-    id: "harvest-gold",
-    label: "Harvest Gold",
-    description: "Navy base with a brighter, sunlit harvest-gold accent.",
+    id: "desert-sunset",
+    label: "Desert Sunset",
+    description: "Dusk-plum base with warm sunset-orange and coral accents.",
     vars: {
-      navy: "20 25 36",
-      "navy-soft": "35 42 61",
-      gold: "232 185 104",
-      "gold-bright": "243 205 138",
-      "gold-dark": "176 132 62",
-      cream: "245 226 190",
-      "brown-deep": "120 92 48",
+      navy: "36 24 42", // #24182a dusk plum
+      "navy-soft": "58 38 62", // #3a263e muted plum panel
+      gold: "238 138 77", // #ee8a4d sunset orange (analogous to gold)
+      "gold-bright": "246 170 116", // #f6aa74 peach
+      "gold-dark": "194 104 58", // #c2683a burnt orange
+      cream: "247 216 190", // #f7d8be warm peach
+      "brown-deep": "122 74 53", // #7a4a35 clay
     },
-    swatches: ["20 25 36", "232 185 104", "35 42 61", "245 226 190"],
+    swatches: ["36 24 42", "238 138 77", "58 38 62", "247 216 190"],
   },
   {
     id: "metallic-bronze",
