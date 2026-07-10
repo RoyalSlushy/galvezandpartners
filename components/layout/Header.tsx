@@ -6,7 +6,9 @@ import NavLinks from "./NavLinks";
 import MobileMenu from "./MobileMenu";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
-import { useCmsValue } from "@/components/admin/AdminProvider";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 
 /** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. */
@@ -22,6 +24,8 @@ export default function Header({
   const nav = useCmsValue("site.nav", serverNav);
   const socials = useCmsValue("site.socials", serverSocials);
   const tagline = useCmsValue("site.tagline", serverTagline);
+  const editMode = useEditMode();
+  const t = useT();
 
   return (
     <header className="w-full bg-navy">
@@ -37,17 +41,21 @@ export default function Header({
             <div className="flex items-center gap-5">
               <EditableText
                 path="site.tagline"
-                value={tagline}
+                value={editMode ? tagline : t(tagline)}
                 as="span"
                 className="font-din text-sm tracking-wide text-white/80"
               />
               <SocialIcons socials={socials} iconClassName="h-5 w-5" editPathBase="site.socials" />
             </div>
           </div>
-          <Button href="/contact-us">Connect</Button>
+          <LanguageSwitcher />
+          <Button href="/contact-us">{t("Connect")}</Button>
         </div>
 
-        <MobileMenu nav={nav} socials={socials} />
+        <div className="flex flex-col items-end gap-1.5 sm:hidden">
+          <MobileMenu nav={nav} socials={socials} />
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

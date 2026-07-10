@@ -48,6 +48,7 @@ export default function Carousel({
   const [handlesVisible, setHandlesVisible] = useState(false); // arrow opacity
   const [paused, setPaused] = useState(false); // auto-scroll paused
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [noHover, setNoHover] = useState(false); // touch-only device: arrows always shown
 
   const rootRef = useRef<HTMLDivElement>(null);
   const handleTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -81,6 +82,16 @@ export default function Carousel({
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mq.matches);
     const onChange = () => setReducedMotion(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // On devices without hover (phones/tablets) the fade-in-on-hover arrows would
+  // never appear, so keep them permanently visible there.
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: none)");
+    setNoHover(mq.matches);
+    const onChange = () => setNoHover(mq.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
@@ -222,7 +233,7 @@ export default function Carousel({
         }}
       />
 
-      <div className="relative z-[1] grid">
+      <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
         {slides.map((slide, i) => {
           const isActive = i === current;
           const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;
@@ -244,12 +255,16 @@ export default function Carousel({
         })}
       </div>
 
-      {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves. */}
+      {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves.
+          Always shown on touch-only devices. */}
       <button
         type="button"
         aria-label="Previous"
         onClick={prev}
-        style={{ opacity: handlesVisible ? 1 : 0, pointerEvents: handlesVisible ? "auto" : "none" }}
+        style={{
+          opacity: handlesVisible || noHover ? 1 : 0,
+          pointerEvents: handlesVisible || noHover ? "auto" : "none",
+        }}
         className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
       >
         &#8249;
@@ -258,7 +273,10 @@ export default function Carousel({
         type="button"
         aria-label="Next"
         onClick={next}
-        style={{ opacity: handlesVisible ? 1 : 0, pointerEvents: handlesVisible ? "auto" : "none" }}
+        style={{
+          opacity: handlesVisible || noHover ? 1 : 0,
+          pointerEvents: handlesVisible || noHover ? "auto" : "none",
+        }}
         className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
       >
         &#8250;
