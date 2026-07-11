@@ -173,45 +173,24 @@ export default function MobileMenu({
     closeTracking.current = false;
   };
 
-  return (
-    <div className="sm:hidden">
-      <button
-        type="button"
-        aria-label="Open menu"
-        aria-expanded={open}
-        onClick={() => {
-          setSide("right");
-          setOpen(true);
-        }}
-        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
-      >
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
-      </button>
-
-      {/* Dimmed backdrop — tap to close. */}
+  // Each side has its own drawer element so it only ever slides along its own
+  // edge — a single element that flipped `left-0`/`right-0` would visibly animate
+  // across the screen when the docked side changed. Only the drawer matching the
+  // current `side` is shown; the other stays parked off its edge.
+  const renderDrawer = (drawerSide: Side) => {
+    const shown = open && side === drawerSide;
+    const alignRight = drawerSide === "right";
+    return (
       <div
-        aria-hidden
-        onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-
-      {/* Drawer: 80% width, docked to the side the opening swipe chose, with a
-          subtle gradient lightening toward the bottom, a drifting glyph grid
-          behind the top, the logo pinned to the top, and contents anchored to
-          the bottom. */}
-      <div
+        key={drawerSide}
         className={`fixed inset-y-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
-          side === "left" ? "left-0" : "right-0"
+          alignRight ? "right-0" : "left-0"
         } ${
-          open ? "translate-x-0" : side === "left" ? "-translate-x-full" : "translate-x-full"
+          shown ? "translate-x-0" : alignRight ? "translate-x-full" : "-translate-x-full"
         }`}
         role="dialog"
         aria-modal="true"
-        aria-hidden={!open}
+        aria-hidden={!shown}
         onTouchStart={onDrawerTouchStart}
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
@@ -240,37 +219,40 @@ export default function MobileMenu({
         <nav
           aria-label="Site"
           className={`relative z-10 mt-auto flex flex-col gap-6 px-8 pb-12 ${
-            side === "left" ? "items-start text-left" : "items-end text-right"
+            alignRight ? "items-end text-right" : "items-start text-left"
           }`}
         >
-          {nav.map((item, i) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className="block overflow-hidden pb-1"
-            >
-              {/* The link text rises into view from behind this clipped edge,
-                  giving each item a masked shift-up reveal, staggered by index. */}
-              <span
-                style={{ transitionDelay: open ? `${120 + i * 70}ms` : "0ms" }}
-                className={`block font-heading text-3xl uppercase tracking-wide underline-offset-4 transition-transform duration-500 ease-out hover:text-gold ${
-                  open ? "translate-y-0" : "translate-y-full"
-                } ${
-                  isActive(item.href)
-                    ? "text-white underline decoration-gold decoration-2"
-                    : "text-white/90 no-underline"
-                }`}
+          {nav.map((item, i) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className="block overflow-hidden pb-2"
               >
-                {t(item.label)}
-              </span>
-            </Link>
-          ))}
+                {/* The link text rises into view from behind this clipped edge
+                    (masked shift-up, staggered by index). The active item's gold
+                    underline scales in from its center — the same treatment the
+                    desktop nav uses. */}
+                <span
+                  style={{ transitionDelay: shown ? `${120 + i * 70}ms` : "0ms" }}
+                  className={`relative inline-block font-heading text-3xl uppercase tracking-wide transition-transform duration-500 ease-out hover:text-gold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
+                    shown ? "translate-y-0" : "translate-y-full"
+                  } ${active ? "text-white" : "text-white/90"} ${
+                    shown && active ? "after:scale-x-100" : "after:scale-x-0"
+                  }`}
+                >
+                  {t(item.label)}
+                </span>
+              </Link>
+            );
+          })}
           <div
-            style={{ transitionDelay: open ? `${120 + nav.length * 70}ms` : "0ms" }}
+            style={{ transitionDelay: shown ? `${120 + nav.length * 70}ms` : "0ms" }}
             className={`w-full transition-all duration-500 ease-out ${
-              open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
             <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
@@ -278,9 +260,9 @@ export default function MobileMenu({
             </Button>
           </div>
           <div
-            style={{ transitionDelay: open ? `${190 + nav.length * 70}ms` : "0ms" }}
+            style={{ transitionDelay: shown ? `${190 + nav.length * 70}ms` : "0ms" }}
             className={`mt-6 flex w-full items-center justify-between transition-all duration-500 ease-out ${
-              open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
             <LanguageSwitcher openUp />
@@ -288,6 +270,37 @@ export default function MobileMenu({
           </div>
         </nav>
       </div>
+    );
+  };
+
+  return (
+    <div className="sm:hidden">
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded={open}
+        onClick={() => {
+          setSide("right");
+          setOpen(true);
+        }}
+        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
+      >
+        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-8 bg-cream" />
+      </button>
+
+      {/* Dimmed backdrop — tap to close. */}
+      <div
+        aria-hidden
+        onClick={() => setOpen(false)}
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {renderDrawer("left")}
+      {renderDrawer("right")}
     </div>
   );
 }
