@@ -293,8 +293,8 @@ export default function MobileMenu({
   return (
     <div className="flex w-full self-stretch sm:hidden">
       {/* Mobile header row: the logo (left half) opens the drawer on tap; the
-          picture (right half) fills the header's full height so its bottom sits
-          flush against the hero below. */}
+          picture (remaining 40%) fills the header's full height so its bottom
+          sits flush against the hero below. */}
       <button
         type="button"
         aria-label="Open menu"
@@ -303,7 +303,7 @@ export default function MobileMenu({
           setSide("right");
           setOpen(true);
         }}
-        className="flex w-1/2 items-center"
+        className="flex w-[60%] items-center"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
@@ -312,7 +312,7 @@ export default function MobileMenu({
           its top starts at the logo's top line — the logo is centered in the
           header, so that offset is half the leftover height above a 4rem logo.
           object-contain keeps the whole image in view without distortion. */}
-      <div className="w-1/2 overflow-hidden pt-[calc((var(--header-h)_-_4rem)/2)]">
+      <div className="w-[40%] overflow-hidden pt-[calc((var(--header-h)_-_4rem)/2)]">
         <EditableImage
           path="site.headerImage"
           raw={headerImg}
