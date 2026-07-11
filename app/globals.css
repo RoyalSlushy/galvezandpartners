@@ -192,6 +192,18 @@
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
 }
 
+/* Mobile drawer backdrop: the same drifting "GALVEZ" letter grid as the CTA,
+   tinted in a light (cream) tone so it reads over the navy drawer. The pattern
+   is anchored to the TOP of the drawer (behind the logo) and fades downward so
+   the nav links lower down stay on a clean background: 20% opacity at the top,
+   ~10% by 40% height, gone by 60% height. */
+.drawer-glyph-grid {
+  opacity: 0.2;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
+}
+
 @layer base {
   /* Custom horizontal swipe gestures (card carousel, mobile nav drawer) must not
      be hijacked by the browser's back/forward overscroll navigation. Set on the

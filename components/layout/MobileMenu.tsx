@@ -8,6 +8,9 @@ import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useT } from "@/components/i18n/LocaleProvider";
+import CtaGrid from "@/components/sections/home/CtaGrid";
+
+type Side = "left" | "right";
 
 /** Below this width the swipe-to-open gesture is active (matches the `sm` bp). */
 const MOBILE_MAX = 750;
@@ -35,9 +38,11 @@ function startsInHorizontalScroller(el: EventTarget | null): boolean {
   return false;
 }
 
-/** Hamburger + left-hand drawer menu for mobile (< sm). Opens from the
- * hamburger tap or a right-swipe anywhere on the page; closes from the backdrop,
- * Escape, or a left-swipe on the drawer. */
+/** Hamburger + dual-side drawer menu for mobile (< sm). The swipe direction picks
+ * the side: a right-swipe opens a left-hand drawer, a left-swipe opens a
+ * right-hand one (the hamburger tap defaults to the right). Each drawer aligns
+ * its contents toward its own edge and closes on a swipe back toward that edge
+ * (or the backdrop / Escape). */
 export default function MobileMenu({
   nav,
   socials,
@@ -46,6 +51,8 @@ export default function MobileMenu({
   socials: Social[];
 }) {
   const [open, setOpen] = useState(false);
+  // Which edge the drawer is docked to; set by the opening gesture.
+  const [side, setSide] = useState<Side>("right");
   const t = useT();
   const pathname = usePathname();
 
@@ -83,8 +90,10 @@ export default function MobileMenu({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Right-swipe anywhere on the page opens the drawer (unless the swipe began in
-  // a container that scrolls horizontally on its own, e.g. the card carousel).
+  // A horizontal swipe anywhere on the page opens a drawer, with the direction
+  // choosing the side: swipe right → left-hand drawer, swipe left → right-hand
+  // drawer. Ignored when the swipe began in a container that scrolls
+  // horizontally on its own (e.g. the card carousel).
   useEffect(() => {
     if (open) return;
     const mq = window.matchMedia(`(max-width: ${MOBILE_MAX}px)`);
@@ -114,6 +123,11 @@ export default function MobileMenu({
         return;
       }
       if (dx >= SWIPE_THRESHOLD) {
+        setSide("left");
+        setOpen(true);
+        tracking = false;
+      } else if (dx <= -SWIPE_THRESHOLD) {
+        setSide("right");
         setOpen(true);
         tracking = false;
       }
@@ -132,7 +146,8 @@ export default function MobileMenu({
     };
   }, [open]);
 
-  // Left-swipe on the open drawer closes it.
+  // A swipe on the open drawer back toward its own edge closes it: swipe left
+  // for a left-hand drawer, swipe right for a right-hand one.
   const closeStart = useRef<{ x: number; y: number } | null>(null);
   const closeTracking = useRef(false);
   const onDrawerTouchStart = (e: React.TouchEvent) => {
@@ -148,7 +163,8 @@ export default function MobileMenu({
       closeTracking.current = false;
       return;
     }
-    if (dx <= -SWIPE_THRESHOLD) {
+    const closing = side === "left" ? dx <= -SWIPE_THRESHOLD : dx >= SWIPE_THRESHOLD;
+    if (closing) {
       setOpen(false);
       closeTracking.current = false;
     }
@@ -163,7 +179,10 @@ export default function MobileMenu({
         type="button"
         aria-label="Open menu"
         aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setSide("right");
+          setOpen(true);
+        }}
         className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
       >
         <span className="block h-[3px] w-8 bg-cream" />
@@ -180,11 +199,15 @@ export default function MobileMenu({
         }`}
       />
 
-      {/* Left-hand drawer: 80% width, subtle gradient lightening toward the
-          bottom, logo pinned to the top, contents anchored to the bottom. */}
+      {/* Drawer: 80% width, docked to the side the opening swipe chose, with a
+          subtle gradient lightening toward the bottom, a drifting glyph grid
+          behind the top, the logo pinned to the top, and contents anchored to
+          the bottom. */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
+          side === "left" ? "left-0" : "right-0"
+        } ${
+          open ? "translate-x-0" : side === "left" ? "-translate-x-full" : "translate-x-full"
         }`}
         role="dialog"
         aria-modal="true"
@@ -193,7 +216,15 @@ export default function MobileMenu({
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
       >
-        <div className="px-10 py-10">
+        {/* Drifting "GALVEZ" letterform grid, cream-tinted to read on the navy
+            drawer, fading out below its top third. */}
+        <CtaGrid
+          className="drawer-glyph-grid"
+          glyphClassName="bg-cream"
+          fontClassName="text-cream"
+        />
+
+        <div className="relative z-10 px-10 py-10">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -205,7 +236,12 @@ export default function MobileMenu({
           </Link>
         </div>
 
-        <nav aria-label="Site" className="mt-auto flex flex-col items-start gap-6 px-8 pb-12 text-left">
+        <nav
+          aria-label="Site"
+          className={`relative z-10 mt-auto flex flex-col gap-6 px-8 pb-12 ${
+            side === "left" ? "items-start text-left" : "items-end text-right"
+          }`}
+        >
           {nav.map((item, i) => (
             <Link
               key={item.href}

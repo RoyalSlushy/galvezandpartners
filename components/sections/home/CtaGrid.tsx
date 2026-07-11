@@ -48,7 +48,19 @@ function maskStyle(svg: string): React.CSSProperties {
   };
 }
 
-export default function CtaGrid() {
+export default function CtaGrid({
+  className = "cta-grid",
+  glyphClassName = "bg-navy",
+  fontClassName = "text-navy",
+}: {
+  /** Wrapper class controlling panel-wide opacity + fade (defaults to the home
+   * CTA's gold-panel treatment; the mobile drawer passes `drawer-glyph-grid`). */
+  className?: string;
+  /** Tailwind background class the masked glyph boxes are tinted with. */
+  glyphClassName?: string;
+  /** Tailwind text-color class for the font fallback letters. */
+  fontClassName?: string;
+} = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const glyphs = useGlyphMap();
@@ -142,12 +154,12 @@ export default function CtaGrid() {
           >
             {svg ? (
               <span
-                className="bg-navy"
+                className={glyphClassName}
                 style={{ width: GLYPH_W, height: GLYPH_H, ...maskStyle(svg) }}
               />
             ) : (
               <span
-                className="font-display font-bold leading-none text-navy"
+                className={`font-display font-bold leading-none ${fontClassName}`}
                 style={{ fontSize: GLYPH_H }}
               >
                 {ch}
@@ -158,10 +170,10 @@ export default function CtaGrid() {
       }
     }
     return out;
-  }, [dims, glyphs]);
+  }, [dims, glyphs, glyphClassName, fontClassName]);
 
   return (
-    <div ref={wrapRef} aria-hidden className="cta-grid pointer-events-none absolute inset-0">
+    <div ref={wrapRef} aria-hidden className={`${className} pointer-events-none absolute inset-0`}>
       <div
         ref={layerRef}
         className="absolute grid"
