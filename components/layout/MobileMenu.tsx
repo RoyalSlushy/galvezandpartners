@@ -69,6 +69,28 @@ export default function MobileMenu({
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  // The logo now fills its column's full width (its height follows from the
+  // SVG's own aspect ratio, not a fixed size), so the picture's top-padding —
+  // which keeps its top from passing the logo's top — has to be measured
+  // rather than assumed. Track the logo's rendered offset from the header row.
+  const headerRowRef = useRef<HTMLDivElement>(null);
+  const logoImgRef = useRef<HTMLImageElement>(null);
+  const [logoTop, setLogoTop] = useState(0);
+
+  useEffect(() => {
+    const row = headerRowRef.current;
+    const logo = logoImgRef.current;
+    if (!row || !logo) return;
+    const measure = () => {
+      setLogoTop(logo.getBoundingClientRect().top - row.getBoundingClientRect().top);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(row);
+    ro.observe(logo);
+    return () => ro.disconnect();
+  }, []);
+
   // Lock body scroll while the drawer is open. Using `position: fixed` with a
   // preserved offset (rather than just `overflow: hidden`) keeps iOS Safari from
   // scrolling behind the drawer, and restoring the offset on close avoids the
@@ -291,10 +313,11 @@ export default function MobileMenu({
   };
 
   return (
-    <div className="flex w-full self-stretch sm:hidden">
-      {/* Mobile header row: the logo (left half) opens the drawer on tap; the
-          picture (remaining 40%) fills the header's full height so its bottom
-          sits flush against the hero below. */}
+    <div ref={headerRowRef} className="flex w-full self-stretch sm:hidden">
+      {/* Mobile header row: the logo (left 60%) opens the drawer on tap and fills
+          its column's full width at its own aspect ratio; the picture (remaining
+          40%) fills the header's full height so its bottom sits flush against the
+          hero below. */}
       <button
         type="button"
         aria-label="Open menu"
@@ -306,13 +329,12 @@ export default function MobileMenu({
         className="flex w-[60%] items-center"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
+        <img ref={logoImgRef} src="/logo.svg" alt="Galvez & Partners" className="w-full h-auto" />
       </button>
-      {/* The picture is bottom-anchored (flush with the hero) and padded down so
-          its top starts at the logo's top line — the logo is centered in the
-          header, so that offset is half the leftover height above a 4rem logo.
+      {/* The picture is bottom-anchored (flush with the hero) and padded down to
+          the logo's measured top offset, so its top never passes the logo's top.
           object-contain keeps the whole image in view without distortion. */}
-      <div className="w-[40%] overflow-hidden pt-[calc((var(--header-h)_-_4rem)/2)]">
+      <div className="w-[40%] overflow-hidden" style={{ paddingTop: logoTop }}>
         <EditableImage
           path="site.headerImage"
           raw={headerImg}
