@@ -35,9 +35,9 @@ function startsInHorizontalScroller(el: EventTarget | null): boolean {
   return false;
 }
 
-/** Hamburger + right-hand drawer menu for mobile (< sm). Opens from the
- * hamburger tap or a left-swipe anywhere on the page; closes from the backdrop,
- * the close button, Escape, or a right-swipe on the drawer. */
+/** Hamburger + left-hand drawer menu for mobile (< sm). Opens from the
+ * hamburger tap or a right-swipe anywhere on the page; closes from the backdrop,
+ * Escape, or a left-swipe on the drawer. */
 export default function MobileMenu({
   nav,
   socials,
@@ -83,7 +83,7 @@ export default function MobileMenu({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Left-swipe anywhere on the page opens the drawer (unless the swipe began in
+  // Right-swipe anywhere on the page opens the drawer (unless the swipe began in
   // a container that scrolls horizontally on its own, e.g. the card carousel).
   useEffect(() => {
     if (open) return;
@@ -113,7 +113,7 @@ export default function MobileMenu({
         tracking = false;
         return;
       }
-      if (dx <= -SWIPE_THRESHOLD) {
+      if (dx >= SWIPE_THRESHOLD) {
         setOpen(true);
         tracking = false;
       }
@@ -132,7 +132,7 @@ export default function MobileMenu({
     };
   }, [open]);
 
-  // Right-swipe on the open drawer closes it.
+  // Left-swipe on the open drawer closes it.
   const closeStart = useRef<{ x: number; y: number } | null>(null);
   const closeTracking = useRef(false);
   const onDrawerTouchStart = (e: React.TouchEvent) => {
@@ -148,7 +148,7 @@ export default function MobileMenu({
       closeTracking.current = false;
       return;
     }
-    if (dx >= SWIPE_THRESHOLD) {
+    if (dx <= -SWIPE_THRESHOLD) {
       setOpen(false);
       closeTracking.current = false;
     }
@@ -180,11 +180,11 @@ export default function MobileMenu({
         }`}
       />
 
-      {/* Right-hand drawer: 80% width, subtle gradient lightening toward the
+      {/* Left-hand drawer: 80% width, subtle gradient lightening toward the
           bottom, logo pinned to the top, contents anchored to the bottom. */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "-translate-x-full"
         }`}
         role="dialog"
         aria-modal="true"
@@ -205,29 +205,35 @@ export default function MobileMenu({
           </Link>
         </div>
 
-        <nav aria-label="Site" className="mt-auto flex flex-col items-end gap-6 px-8 pb-12 text-right">
+        <nav aria-label="Site" className="mt-auto flex flex-col items-start gap-6 px-8 pb-12 text-left">
           {nav.map((item, i) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
               aria-current={isActive(item.href) ? "page" : undefined}
-              style={{ transitionDelay: open ? `${100 + i * 60}ms` : "0ms" }}
-              className={`font-heading text-3xl uppercase tracking-wide underline-offset-8 transition-all duration-300 ease-out hover:text-gold ${
-                open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
-              } ${
-                isActive(item.href)
-                  ? "text-white underline decoration-gold decoration-2"
-                  : "text-white/90 no-underline"
-              }`}
+              className="block overflow-hidden pb-1"
             >
-              {t(item.label)}
+              {/* The link text rises into view from behind this clipped edge,
+                  giving each item a masked shift-up reveal, staggered by index. */}
+              <span
+                style={{ transitionDelay: open ? `${120 + i * 70}ms` : "0ms" }}
+                className={`block font-heading text-3xl uppercase tracking-wide underline-offset-4 transition-transform duration-500 ease-out hover:text-gold ${
+                  open ? "translate-y-0" : "translate-y-full"
+                } ${
+                  isActive(item.href)
+                    ? "text-white underline decoration-gold decoration-2"
+                    : "text-white/90 no-underline"
+                }`}
+              >
+                {t(item.label)}
+              </span>
             </Link>
           ))}
           <div
-            style={{ transitionDelay: open ? `${100 + nav.length * 60}ms` : "0ms" }}
-            className={`w-full transition-all duration-300 ease-out ${
-              open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+            style={{ transitionDelay: open ? `${120 + nav.length * 70}ms` : "0ms" }}
+            className={`w-full transition-all duration-500 ease-out ${
+              open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
             <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
@@ -235,9 +241,9 @@ export default function MobileMenu({
             </Button>
           </div>
           <div
-            style={{ transitionDelay: open ? `${160 + nav.length * 60}ms` : "0ms" }}
-            className={`mt-6 flex items-center gap-4 transition-all duration-300 ease-out ${
-              open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+            style={{ transitionDelay: open ? `${190 + nav.length * 70}ms` : "0ms" }}
+            className={`mt-6 flex w-full items-center justify-between transition-all duration-500 ease-out ${
+              open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
             <LanguageSwitcher openUp />
