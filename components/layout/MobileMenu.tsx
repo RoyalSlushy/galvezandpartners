@@ -148,11 +148,11 @@ export default function MobileMenu({
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="flex h-11 w-11 flex-col items-center justify-center gap-[6px]"
+        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
       >
-        <span className="block h-[3px] w-7 bg-cream" />
-        <span className="block h-[3px] w-7 bg-cream" />
-        <span className="block h-[3px] w-7 bg-cream" />
+        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-8 bg-cream" />
       </button>
 
       {/* Dimmed backdrop — tap to close. */}
