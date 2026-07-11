@@ -148,11 +148,11 @@ export default function MobileMenu({
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
+        className="flex h-11 w-11 flex-col items-center justify-center gap-[6px]"
       >
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
       </button>
 
       {/* Dimmed backdrop — tap to close. */}
@@ -208,12 +208,10 @@ export default function MobileMenu({
               {t(item.label)}
             </Link>
           ))}
-          <div className="mt-2 flex items-center gap-4">
-            <LanguageSwitcher openUp />
-            <Button href="/contact-us" onClick={() => setOpen(false)}>
-              {t("Connect")}
-            </Button>
-          </div>
+          <Button href="/contact-us" className="mt-2" onClick={() => setOpen(false)}>
+            {t("Connect")}
+          </Button>
+          <LanguageSwitcher className="mt-2" openUp />
           <SocialIcons socials={socials} className="mt-6" />
         </nav>
       </div>
