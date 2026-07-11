@@ -177,19 +177,16 @@ export default function MobileMenu({
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
       >
-        <div className="flex items-center justify-between px-6 py-6">
-          <Link href="/" onClick={() => setOpen(false)} aria-label="Galvez & Partners — home">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-14 w-auto" />
-          </Link>
-          <button
-            type="button"
-            aria-label="Close menu"
+        <div className="px-6 py-6">
+          <Link
+            href="/"
             onClick={() => setOpen(false)}
-            className="text-4xl leading-none text-white"
+            aria-label="Galvez & Partners — home"
+            className="block"
           >
-            &times;
-          </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-auto w-full" />
+          </Link>
         </div>
 
         <nav aria-label="Site" className="mt-auto flex flex-col items-end gap-6 px-8 pb-12 text-right">
@@ -211,8 +208,10 @@ export default function MobileMenu({
           <Button href="/contact-us" className="mt-2" onClick={() => setOpen(false)}>
             {t("Connect")}
           </Button>
-          <LanguageSwitcher className="mt-2" openUp />
-          <SocialIcons socials={socials} className="mt-6" />
+          <div className="mt-6 flex items-center gap-4">
+            <LanguageSwitcher openUp />
+            <SocialIcons socials={socials} />
+          </div>
         </nav>
       </div>
     </div>
