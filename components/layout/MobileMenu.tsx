@@ -177,7 +177,7 @@ export default function MobileMenu({
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
       >
-        <div className="px-6 py-6">
+        <div className="px-10 py-10">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -205,7 +205,7 @@ export default function MobileMenu({
               {t(item.label)}
             </Link>
           ))}
-          <Button href="/contact-us" className="mt-2" onClick={() => setOpen(false)}>
+          <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
             {t("Connect")}
           </Button>
           <div className="mt-6 flex items-center gap-4">
