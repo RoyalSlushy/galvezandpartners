@@ -207,7 +207,6 @@ export default function Carousel({
   return (
     <div
       ref={rootRef}
-      data-x-swipe
       className={`select-none ${className}`}
       role="group"
       aria-roledescription="carousel"
