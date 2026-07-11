@@ -222,6 +222,7 @@ export default function MobileMenu({
           className="drawer-glyph-grid"
           glyphClassName="bg-cream"
           fontClassName="text-cream"
+          scale={1.5}
         />
 
         <div className="relative z-10 px-10 py-10">
