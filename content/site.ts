@@ -14,6 +14,11 @@ export const NAV: NavItem[] = [
 
 export const TAGLINE = "We Work Our Ads Off.";
 
+// Mobile header picture: the right half of the header on phones, sitting flush
+// against the hero below it. Stored as a bare Wix media id (resized on render);
+// editable from the admin drawer, so this default is just a swappable placeholder.
+export const HEADER_IMAGE = "18e608_eb9c9327bbfc4b828dfc63d5f2ea08caf000.jpg";
+
 export type Social = { label: string; href: string; icon: "facebook" | "instagram" | "linkedin" | "tiktok" };
 
 export const SOCIALS: Social[] = [

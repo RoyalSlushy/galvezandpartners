@@ -5,6 +5,7 @@ import {
   CONTACT,
   FOOTER,
   TAGLINE,
+  HEADER_IMAGE,
   SITE,
   THEME,
   GLYPHS,
@@ -39,6 +40,7 @@ export type SiteContent = {
   site: { name: string; brand: string; description: string };
   theme: string;
   glyphs: Glyph[];
+  headerImage: string;
 };
 
 export type HomeContent = {
@@ -89,6 +91,7 @@ export const DEFAULT_SITE: SiteContent = {
   site: { name: SITE.name, brand: SITE.brand, description: SITE.description },
   theme: THEME,
   glyphs: GLYPHS.map((g) => ({ ...g })),
+  headerImage: HEADER_IMAGE,
 };
 
 export const DEFAULT_HOME: HomeContent = {

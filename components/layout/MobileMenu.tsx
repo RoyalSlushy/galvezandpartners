@@ -9,6 +9,9 @@ import Button from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useT } from "@/components/i18n/LocaleProvider";
 import CtaGrid from "@/components/sections/home/CtaGrid";
+import EditableImage from "@/components/admin/editable/EditableImage";
+import { useCmsValue } from "@/components/admin/AdminProvider";
+import { wixImage } from "@/lib/wix";
 
 type Side = "left" | "right";
 
@@ -46,15 +49,22 @@ function startsInHorizontalScroller(el: EventTarget | null): boolean {
 export default function MobileMenu({
   nav,
   socials,
+  headerImage,
 }: {
   nav: NavItem[];
   socials: Social[];
+  headerImage: string;
 }) {
   const [open, setOpen] = useState(false);
   // Which edge the drawer is docked to; set by the opening gesture.
   const [side, setSide] = useState<Side>("right");
   const t = useT();
   const pathname = usePathname();
+
+  // Header picture (right half of the mobile header). Draft-aware so the admin
+  // media picker updates it live; a bare Wix id is resized, a full URL used as-is.
+  const headerImg = useCmsValue("site.headerImage", headerImage);
+  const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -237,8 +247,15 @@ export default function MobileMenu({
                     underline scales in from its center — the same treatment the
                     desktop nav uses. */}
                 <span
-                  style={{ transitionDelay: shown ? `${120 + i * 70}ms` : "0ms" }}
-                  className={`relative inline-block font-heading text-3xl uppercase tracking-wide transition-transform duration-500 ease-out hover:text-gold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
+                  style={
+                    {
+                      transitionDelay: shown ? `${120 + i * 70}ms` : "0ms",
+                      // The underline grows in a beat after the text has risen,
+                      // so the center-out scale reads as its own gesture.
+                      "--ul-delay": shown ? `${260 + i * 70}ms` : "0ms",
+                    } as React.CSSProperties
+                  }
+                  className={`relative inline-block font-heading text-3xl uppercase tracking-wide transition-transform duration-500 ease-out hover:text-gold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 after:[transition-delay:var(--ul-delay)] ${
                     shown ? "translate-y-0" : "translate-y-full"
                   } ${active ? "text-white" : "text-white/90"} ${
                     shown && active ? "after:scale-x-100" : "after:scale-x-0"
@@ -274,7 +291,10 @@ export default function MobileMenu({
   };
 
   return (
-    <div className="sm:hidden">
+    <div className="flex w-full self-stretch sm:hidden">
+      {/* Mobile header row: the logo (left half) opens the drawer on tap; the
+          picture (right half) fills the header's full height so its bottom sits
+          flush against the hero below. */}
       <button
         type="button"
         aria-label="Open menu"
@@ -283,12 +303,20 @@ export default function MobileMenu({
           setSide("right");
           setOpen(true);
         }}
-        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
+        className="flex w-1/2 items-center"
       >
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
       </button>
+      <div className="w-1/2 overflow-hidden">
+        <EditableImage
+          path="site.headerImage"
+          raw={headerImg}
+          src={headerSrc}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+      </div>
 
       {/* Dimmed backdrop — tap to close. */}
       <div

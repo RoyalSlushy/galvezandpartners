@@ -52,6 +52,7 @@ export default async function RootLayout({
                 nav={site.nav}
                 socials={site.socials}
                 tagline={site.tagline}
+                headerImage={site.headerImage}
               />
               <main className="flex-1">{children}</main>
               <Footer

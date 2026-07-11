@@ -51,6 +51,7 @@ const FIELD_LABELS: Record<string, string> = {
   "site.footer.copyright": "copyright",
   "site.footer.credit": "credit",
   "site.nav.*.label": "menu link",
+  "site.headerImage": "mobile header image",
   "site.site.name": "site name",
   "site.site.brand": "brand",
   "site.site.description": "meta description",
