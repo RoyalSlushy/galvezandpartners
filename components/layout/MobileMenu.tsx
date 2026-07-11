@@ -308,13 +308,17 @@ export default function MobileMenu({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
       </button>
-      <div className="w-1/2 overflow-hidden">
+      {/* The picture is bottom-anchored (flush with the hero) and padded down so
+          its top starts at the logo's top line — the logo is centered in the
+          header, so that offset is half the leftover height above a 4rem logo.
+          object-contain keeps the whole image in view without distortion. */}
+      <div className="w-1/2 overflow-hidden pt-[calc((var(--header-h)_-_4rem)/2)]">
         <EditableImage
           path="site.headerImage"
           raw={headerImg}
           src={headerSrc}
           alt=""
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain object-bottom"
         />
       </div>
 
