@@ -1,85 +1,115 @@
-# galvezandpartners.com — site mirror
+# galvezandpartners.com — custom Next.js + Tailwind site
 
-A static mirror of **galvezandpartners.com** (Galvez & Partners / G&P Advertising,
-a Phoenix, AZ advertising & marketing firm), captured by an automated crawl of
-the live site.
+A custom, fully self-authored **Next.js (App Router, TypeScript) + Tailwind CSS**
+rebuild of the Galvez & Partners / G&P Advertising site (a Phoenix, AZ advertising
+& marketing firm).
 
-## What's captured
-
-Every page listed in the site's `sitemap.xml` was crawled — both the English
-site and its Spanish (`/es`) counterpart, including the dynamic case-study
-pages. **28 pages total** (14 English + 14 Spanish).
-
-| Page | URL | Local file |
-|------|-----|------------|
-| Home | `/` | `index.html` |
-| Our Works | `/our-works` | `our-works.html` |
-| Our Team | `/our-team` | `our-team.html` |
-| Our Partners | `/our-partners` | `our-partners.html` |
-| Our Partners (list) | `/our-partners-list` | `our-partners-list.html` |
-| Contact Us | `/contact-us` | `contact-us.html` |
-| Case Studies (index) | `/case-study` | `case-study.html` |
-| "o" page | `/o` | `o.html` |
-| Case study: Case Study 6 | `/case-study/case-study-6` | `case-study/case-study-6.html` |
-| Case study: Arizona Alzheimer's Consortium | `/case-study/arizona-alzheimer's-consortium` | `case-study/arizona-alzheimer's-consortium.html` |
-| Case study: La Bombita | `/case-study/la-bombita` | `case-study/la-bombita.html` |
-| Case study: Helios Education Foundation | `/case-study/helios-education-foundation` | `case-study/helios-education-foundation.html` |
-| Case study: Precision Aging Network | `/case-study/precision-aging-network` | `case-study/precision-aging-network.html` |
-| Case study: ELG Accident Attorneys | `/case-study/elg-accident-attorneys` | `case-study/elg-accident-attorneys.html` |
-
-The Spanish site mirrors the same set under `es/` (`es/index.html`,
-`es/our-works.html`, `es/case-study/la-bombita.html`, …).
-
-## How it was crawled
-
-The live site is hosted on **Wix (Thunderbolt)**, which **server-renders** the
-full text content of each page into the initial HTML — so headings, copy, and
-links are all present in the captured files even before any JavaScript runs.
-
-`tools/crawl.py` performs the crawl:
-
-1. Reads the page list from the site's sitemaps (`sitemap.xml`,
-   `es_es-sitemap.xml`, and the per-section sitemaps they reference).
-2. Downloads each page's server-rendered HTML over `curl` (with retry/backoff).
-3. **Rewrites internal navigation links** — the `<a href>` / `<link href>`
-   entries that point at another captured page — to **relative local paths**, so
-   you can click through the whole mirror offline. Apostrophe/ampersand
-   encodings (`%27`, `&#x27;`, `&#39;`, `&amp;`) are normalised so every link
-   variant resolves to the right local file.
-4. Leaves **Wix CDN asset URLs absolute** — images (`static.wixstatic.com`),
-   CSS/JS bundles (`static.parastorage.com`), fonts, and runtime data
-   (`*.wixapps.net`). A Wix site's styling and imagery are served from these
-   hosts and reconstructed client-side, so they can't be meaningfully bundled
-   into a static folder; keeping them absolute means the pages render fully when
-   you have network access, and degrade to (fully readable) unstyled content
-   when you don't.
-
-Links to paths that aren't part of this mirror (e.g. the Wix `/es/blank`
-placeholder) are left absolute so they still resolve against the live site.
-
-To re-run the crawl (e.g. to refresh the mirror):
+The site began as a captured mirror of the original Wix build; it has since been
+**detached from Wix** — every page is now hand-authored React components styled
+with Tailwind, with no Wix runtime, no `dangerouslySetInnerHTML`, and no
+`comp-XXXX` id coupling. Brand tokens (colors, fonts, fluid type) are formalized
+in `tailwind.config.ts`.
 
 ```sh
-python3 tools/crawl.py .
+npm install
+npm run dev      # http://localhost:3000
+# or: npm run build && npm run start
 ```
 
-## Viewing locally
+## How it works
+
+- **Routing** — one route per page under `app/` (`/`, `/our-works`, `/our-team`,
+  `/our-partners`, `/contact-us`, `/case-study`, `/o`, and
+  `/case-study/[slug]` for the four case studies). All server-rendered on
+  demand (`force-dynamic`) so CMS edits show up immediately.
+- **In-page CMS** — there is no separate admin page. The gear icon in the
+  footer opens a password unlock; once unlocked, a small icon drawer sits in
+  the bottom-right corner. Toggling edit mode highlights every managed element
+  on the live page: click text to edit it in place (Enter applies,
+  Shift+Enter adds a line in multiline fields, Esc cancels), click an image to
+  open a visual picker (drag-drop upload to Supabase Storage, gallery of images
+  already on the site, or paste a URL), and use the hover chips on list items
+  (team, services, nav, galleries…) to add/remove/reorder. All edits preview
+  live and batch locally until the drawer's save icon writes them to Supabase
+  (`site_content` via the `admin-content` edge function). Every image slot —
+  including the homepage hero — also accepts **video** (MP4/WebM up to 40 MB):
+  drop a clip into the picker and it renders as a muted, looping, autoplaying
+  background (a still first frame for `prefers-reduced-motion` visitors).
+- **Styling** — Tailwind CSS. Design tokens (navy/gold/cream palette, the
+  Garet/Sebastien font scale as fluid `clamp()` sizes, 980px site width,
+  750/1000px breakpoints) live in `tailwind.config.ts`; `@font-face` and base
+  layers are in `app/globals.css`.
+- **Interactivity** — plain React: `components/ui/Carousel.tsx` (swipe/arrows/
+  dots/keyboard), `components/ui/RevealOnScroll.tsx` (+ `useInView`) for on-scroll
+  enter animations, and `components/layout/MobileMenu.tsx` for the mobile nav.
+- **Content** — typed defaults live in `content/`; Supabase `site_content`
+  rows (one JSON blob per section) override them via `lib/cms.ts`.
+- **Assets** — images and fonts are still served from the Wix CDN
+  (`static.wixstatic.com`) by URL; `lib/wix.ts` builds image URLs. These can be
+  self-hosted later without touching the components.
+
+## Project layout
+
+| Path | Purpose |
+|------|---------|
+| `app/` | Routes (one folder per page) + `layout.tsx` (Header/Footer shell) + `globals.css` |
+| `components/layout/` | `Header`, `Footer`, `MobileMenu`, `NavLinks` |
+| `components/ui/` | `Carousel`, `RevealOnScroll`/`useInView`, `Button`, `Container`, `SocialIcons` |
+| `components/sections/` | Page section components (home, work, team, partners, contact) |
+| `content/` | Typed content: `site`, `home`, `work`, `team`, `caseStudies` |
+| `lib/wix.ts` | Wix CDN image URL helper |
+| `tailwind.config.ts` | Brand design tokens |
+| `public/logo.svg` | Wordmark logo |
+
+## Instagram feed (optional live posts)
+
+The homepage Instagram strip (`components/sections/home/InstagramFeed.tsx`)
+renders through a custom UI — a drifting film-strip of tilted cards, not an
+`<iframe>` embed. By default it shows a **CMS-curated** list of posts
+(`home.instagram.posts` — image, link, caption, editable in the drawer), so it
+works with zero setup.
+
+To show the account's **real** latest posts, set **one** environment variable and
+the same UI switches to the live feed automatically (`lib/instagram.ts` fetches
+server-side and caches for an hour; the curated list stays as the edit-mode
+source and the fallback). Instagram's Basic Display API was retired on
+4 Dec 2024, so the `@galvezandpartners` account must be a **Business or Creator**
+account either way.
+
+**Option 1 — Behold.so (recommended, no token upkeep):** a managed service that
+handles the Instagram auth + token refresh and serves a plain JSON feed.
 
 ```sh
-python3 -m http.server 8000
-# open http://localhost:8000/
+BEHOLD_FEED_URL=https://feeds.behold.so/xxxxxxxxxxxx
 ```
 
-With network access the pages render with full Wix styling and images. Offline,
-the text content and internal navigation still work; styling/images won't load
-because they live on the Wix CDNs.
+1. Sign up at <https://behold.so> (free tier ≈ 1,200 views/mo) and connect the
+   `@galvezandpartners` Instagram account.
+2. Create a **JSON feed** and copy its unique URL.
+3. Set `BEHOLD_FEED_URL` in the host env (Netlify → Site configuration →
+   Environment variables) and redeploy.
+
+**Option 2 — Instagram Graph API directly (free, DIY token):**
+
+```sh
+INSTAGRAM_ACCESS_TOKEN=<long-lived-token>        # long-lived token, ~60 days
+INSTAGRAM_USER_ID=me                             # optional (defaults to the token's account)
+INSTAGRAM_API_BASE=https://graph.instagram.com   # optional
+```
+
+Create a Meta app at <https://developers.facebook.com>, add the *Instagram*
+product (Instagram API with Instagram Login), connect the account, authorize the
+`instagram_business_basic` scope, and exchange for a long-lived token (refresh it
+before expiry via `graph.instagram.com/refresh_access_token`).
+
+Both variables are server-only (no `NEXT_PUBLIC_` prefix), so nothing sensitive
+reaches the browser. With neither set, the curated posts show and nothing breaks.
 
 ## Notes
 
-- Network egress to the site + its Wix CDN hosts must be reachable for the crawl
-  to run and for the mirror to render with assets. In a Claude Code web session
-  this means the environment's network policy must allow `galvezandpartners.com`
-  and the Wix hosts (`*.wixstatic.com`, `*.parastorage.com`, `*.wixapps.net`).
-  This session's environment had egress open, so the crawl ran directly.
-- `robots.txt` on the live site is `Allow: /` (only `*?lightbox=` is
-  disallowed, which the crawl does not request).
+- The Spanish (`/es`) site and the old captured `*.html` files have been removed;
+  legacy `*.html` and `/es/*` URLs 301-redirect to their English routes
+  (`next.config.mjs`).
+- The contact form writes submissions to the Supabase `contact_submissions`
+  table.
+- Images and fonts require network access to the Wix CDN to render.

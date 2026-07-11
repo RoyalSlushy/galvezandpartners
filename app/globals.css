@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ *
+ * Brand fonts — kept on the Wix CDN for now (the @font-face src URLs
+ * are copied verbatim from the original captured site). The family
+ * names below are the original Wix `wf_*` identifiers; they're exposed
+ * to Tailwind via the CSS variables in :root.
+ * ------------------------------------------------------------------ */
+@font-face {
+  font-display: swap;
+  font-family: wf_d964e73c45034caa91135f22d; /* Sebastien Slab Round — display */
+  src: url("https://static.wixstatic.com/ufonts/2ce6ca_d964e73c45034caa91135f22d0e9ad86/woff2/file.woff2") format("woff2"),
+       url("https://static.wixstatic.com/ufonts/2ce6ca_d964e73c45034caa91135f22d0e9ad86/woff/file.woff") format("woff");
+}
+@font-face {
+  font-display: swap;
+  font-family: wf_c848322e7cb046f8945bedd0a; /* Garet Heavy — headings */
+  src: url("https://static.wixstatic.com/ufonts/024280_c848322e7cb046f8945bedd0ada91dff/woff2/file.woff2") format("woff2"),
+       url("https://static.wixstatic.com/ufonts/024280_c848322e7cb046f8945bedd0ada91dff/woff/file.woff") format("woff");
+}
+@font-face {
+  font-display: swap;
+  font-family: wf_a7e11b7c415f4d0cbdac5a7e9; /* Garet Book — body */
+  src: url("https://static.wixstatic.com/ufonts/1690ee_a7e11b7c415f4d0cbdac5a7e94ec127e/woff2/file.woff2") format("woff2"),
+       url("https://static.wixstatic.com/ufonts/1690ee_a7e11b7c415f4d0cbdac5a7e94ec127e/woff/file.woff") format("woff");
+}
+@font-face {
+  font-display: swap;
+  font-family: "din-next-w01-light"; /* small captions */
+  font-style: normal;
+  font-weight: 400;
+  src: url("https://static.parastorage.com/fonts/v2/eca8b0cd-45d8-43cf-aee7-ca462bc5497c/v1/din-next-w01-light.woff2") format("woff2");
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0110, U+0131, U+2013-2014, U+2018-2019, U+201C-201D, U+2026;
+}
+
+:root {
+  --font-display: wf_d964e73c45034caa91135f22d;
+  --font-heading: wf_c848322e7cb046f8945bedd0a;
+  --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
+  --header-h: 124px; /* mobile header height */
+
+  /* Brand color tokens (space-separated RGB, consumed by the Tailwind `navy`,
+     `gold`, … utilities). These defaults are the "Midnight Gold" theme; the
+     active theme overrides them via a `:root:root{}` block rendered in the
+     layout, and the admin editor previews themes by setting them inline on
+     <html>. Keep in sync with lib/themes.ts. */
+  --c-navy: 20 25 36; /* #141924 */
+  --c-navy-soft: 35 42 61; /* #232a3d */
+  --c-gold: 230 179 103; /* #e6b367 */
+  --c-gold-bright: 224 169 79; /* #e0a94f */
+  --c-gold-dark: 173 134 77; /* #ad864d */
+  --c-cream: 243 216 176; /* #f3d8b0 */
+  --c-brown-deep: 115 90 51; /* #735a33 */
+
+  /* Optional full-page background gradient (a themed "sky"). Themes that want a
+     sunset glow set this; the rest leave it `none` for a flat base color. */
+  --c-backdrop: none;
+}
+
+/* Desktop (Tailwind `sm` breakpoint = 751px) header height */
+@media (min-width: 751px) {
+  :root {
+    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+  }
+}
+
+/* Homepage hero is exactly the viewport minus the header, on every breakpoint,
+   so the whole hero (image, CTA, carousel and skyline) fits in one screen. */
+.hero-fill {
+  height: calc(100vh - var(--header-h));
+  height: calc(100svh - var(--header-h));
+}
+
+/* Hero layout grid holding the storefront image ("main"), the carousel card and
+   the CTA. Mobile stacks them with the CTA button between the image and the
+   carousel card. */
+.hero-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+  /* Image and carousel flex to share the leftover height (and can shrink so the
+     shrink-to-fit type keeps them inside the viewport); the CTA keeps its own
+     height so the pill is never clipped. */
+  grid-template-rows: minmax(0, 1.35fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "main"
+    "cta"
+    "carousel";
+}
+.hero-main {
+  grid-area: main;
+}
+.hero-carousel {
+  grid-area: carousel;
+}
+.hero-cta {
+  grid-area: cta;
+}
+
+@media (min-width: 751px) {
+  /* The shell is a size container so the grid can respond to its aspect ratio. */
+  .hero-shell {
+    container-type: size;
+    container-name: heroshell;
+  }
+  /* Default desktop: image on top (full width), carousel + CTA in the row below. */
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.5fr);
+    grid-template-rows: minmax(0, 1fr) fit-content(340px);
+    grid-template-areas:
+      "main main"
+      "carousel cta";
+  }
+}
+
+/* When the main-hero container is over twice as wide as it is long, put the image
+   in a full-height 2/3 column and stack the carousel (top) + CTA (bottom) in the
+   1/3 column. */
+@container heroshell (min-aspect-ratio: 2/1) {
+  .hero-grid {
+    /* Let the grid shrink to the (fixed-height) shell instead of overflowing it. */
+    min-height: 0;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    /* Carousel row flexes to fill the leftover height (and may shrink on very
+       short viewports); the CTA keeps its content height so its button is never
+       clipped. */
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main carousel"
+      "main cta";
+  }
+}
+
+/* The carousel card is a query container so its slides can switch to a
+   side-by-side layout once it is wide enough (see the @container rule below). */
+.hero-card {
+  container-type: inline-size;
+}
+
+/* When the carousel card is wide enough, lay each slide's heading and body
+   side by side instead of stacked. */
+@container (min-width: 620px) {
+  .hero-slide-fit {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
+     leaving the body the rest of the row for maximum breathing room. */
+  .hero-slide-fit > h3 {
+    flex: 0 0 auto;
+    width: min-content;
+  }
+  .hero-slide-body {
+    margin-top: 0;
+    max-width: none;
+    flex: 1;
+  }
+}
+
+/* Slowly "breathe" the hero background gradient in and out by drifting an
+   oversized gradient up and down. */
+@keyframes hero-breathe {
+  0%, 100% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+}
+.hero-breathe {
+  background-size: 100% 140%;
+  animation: hero-breathe 8s ease-in-out infinite;
+}
+
+/* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between
+   them, held at 10% opacity. Each 24px tile carries one letter and every row
+   shifts the sequence one across, so the letters read on the diagonal. The tiles
+   themselves (letters, size, spacing) are rendered as DOM cells by the CtaGrid
+   component so uploaded glyphs — or the Sebastian Slab font fallback — can be
+   used; this rule only holds the panel-wide opacity + fade and clips the
+   oversized, drifting layer. The diagonal drift (and its hover speed-up) is
+   driven in JS by CtaGrid so the position carries through the speed change
+   without resetting. */
+.cta-grid {
+  /* Alpha ramp measured from the bottom of the panel: 10% at the bottom (0%
+     height), 5% at 50% height, fading to 0% by 60% height and up. In CSS
+     `to bottom` terms that's transparent through the top 40%, then 0.5 alpha at
+     50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
+  opacity: 0.1;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+}
+
+@layer base {
+  /* Custom horizontal swipe gestures (card carousel, mobile nav drawer) must not
+     be hijacked by the browser's back/forward overscroll navigation. Set on the
+     root scroller so it actually takes effect. */
+  html {
+    overscroll-behavior-x: none;
+  }
+  body {
+    @apply bg-navy font-body text-white antialiased;
+    overscroll-behavior-x: none;
+  }
+  /* Themed "sky": a fixed gradient painted behind all content. Themes without a
+     backdrop leave --c-backdrop: none, so nothing is drawn and the flat bg-navy
+     shows through (Midnight Gold and Denim Blue stay exactly as before). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--c-backdrop, none);
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  /* Gold pill CTA — the site's primary button style ("Connect", "Let's Connect") */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-7 py-3 font-heading uppercase tracking-wide transition;
+  }
+  .btn-gold {
+    @apply btn bg-gold text-navy hover:bg-gold-bright;
+  }
+  .btn-outline {
+    @apply btn border-2 border-gold text-gold hover:bg-gold hover:text-navy;
+  }
+}
+
+/* Outlined display type (marquee words, ghost index numerals). Layer opacity
+   utilities on top to tune the stroke's strength per use. */
+.text-stroke-gold {
+  color: transparent;
+  -webkit-text-stroke: 2px rgb(var(--c-gold) / 0.85);
+}
+.text-stroke-white {
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Scroll-linked word ink-fill (manifesto section). MulticulturalReveal adds
+   .wordfill-armed once its effect is live and toggles [data-lit] per word as
+   the block travels up the viewport — without JS the text stays fully lit. */
+.wordfill-armed [data-word] {
+  opacity: 0.15;
+  transition: opacity 0.45s ease;
+}
+.wordfill-armed [data-word][data-lit] {
+  opacity: 1;
+}
+
+/* Full-viewport height with a vh fallback for browsers without svh
+   (same convention as .hero-fill). */
+.h-viewport {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
+   the 1200px site width kicks in, then center. .gallery-scroll mirrors the
+   same inset as scroll-padding so snap points don't swallow the gutter. */
+.gallery-pad {
+  padding-left: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+  padding-right: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+}
+.gallery-scroll {
+  scroll-padding-left: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+}
+@media (min-width: 751px) {
+  .gallery-pad {
+    padding-left: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+    padding-right: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+  }
+  .gallery-scroll {
+    scroll-padding-left: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+  }
+}
+
+/* Respect reduced-motion globally for our scroll-reveal utility */
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-in {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .hero-breathe {
+    animation: none !important;
+  }
+  .wordfill-armed [data-word] {
+    opacity: 1 !important;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   In-page CMS (admin edit mode). Every rule is gated behind the
+   body[data-gp-edit-mode] attribute or a .gp-* class, so none of this affects
+   normal visitors. */
+
+/* Editable elements: faint dashed outline for discoverability, stronger on
+   hover. The outline sits outside the box, so layout never shifts. */
+body[data-gp-edit-mode] [data-gp-editable] {
+  cursor: pointer;
+  outline: 1px dashed rgba(230, 179, 103, 0.35);
+  outline-offset: 3px;
+  border-radius: 2px;
+  transition: outline-color 150ms ease, background-color 150ms ease;
+}
+body[data-gp-edit-mode] [data-gp-editable]:hover {
+  outline: 1px dashed rgba(230, 179, 103, 0.95);
+  background-color: rgba(230, 179, 103, 0.08);
+}
+
+/* The element currently being edited. */
+body[data-gp-edit-mode] [data-gp-editing],
+body[data-gp-edit-mode] [data-gp-editing]:hover {
+  cursor: text;
+  outline: 2px solid #e6b367;
+  outline-offset: 3px;
+  background-color: rgba(20, 25, 36, 0.35);
+  user-select: text;
+  -webkit-user-select: text;
+}
+body[data-gp-edit-mode] [data-gp-editing]:focus {
+  outline: 2px solid #e6b367;
+}
+
+/* Icon-button tooltips in the admin drawer. */
+.gp-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #232a3d;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.gp-tip:hover::after,
+.gp-tip:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}

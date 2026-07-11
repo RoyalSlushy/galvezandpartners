@@ -1,0 +1,28 @@
+{
+  "name": "galvezandpartners-next",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js (App Router) clone of galvezandpartners.com — renders the captured Wix UI per route with restored interactivity.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@netlify/plugin-nextjs": "^5.15.12",
+    "@supabase/supabase-js": "^2.110.0",
+    "autoprefixer": "^10.4.20",
+    "next": "14.2.35",
+    "postcss": "^8.4.47",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwindcss": "^3.4.14"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.11",
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.0",
+    "typescript": "5.6.3"
+  }
+}
