@@ -148,11 +148,11 @@ export default function MobileMenu({
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="flex h-16 w-10 flex-col items-center justify-center gap-[7px]"
+        className="flex h-11 w-11 flex-col items-center justify-center gap-[6px]"
       >
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
-        <span className="block h-[3px] w-8 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
+        <span className="block h-[3px] w-7 bg-cream" />
       </button>
 
       {/* Dimmed backdrop — tap to close. */}
@@ -177,16 +177,19 @@ export default function MobileMenu({
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
       >
-        <div className="px-10 py-10">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            aria-label="Galvez & Partners — home"
-            className="block"
-          >
+        <div className="flex items-center justify-between px-6 py-6">
+          <Link href="/" onClick={() => setOpen(false)} aria-label="Galvez & Partners — home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-auto w-full" />
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-14 w-auto" />
           </Link>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+            className="text-4xl leading-none text-white"
+          >
+            &times;
+          </button>
         </div>
 
         <nav aria-label="Site" className="mt-auto flex flex-col items-end gap-6 px-8 pb-12 text-right">
@@ -205,13 +208,11 @@ export default function MobileMenu({
               {t(item.label)}
             </Link>
           ))}
-          <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
+          <Button href="/contact-us" className="mt-2" onClick={() => setOpen(false)}>
             {t("Connect")}
           </Button>
-          <div className="mt-6 flex items-center gap-4">
-            <LanguageSwitcher openUp />
-            <SocialIcons socials={socials} />
-          </div>
+          <LanguageSwitcher className="mt-2" openUp />
+          <SocialIcons socials={socials} className="mt-6" />
         </nav>
       </div>
     </div>
