@@ -52,10 +52,26 @@ export default function MobileMenu({
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  // Lock body scroll while the drawer is open. Using `position: fixed` with a
+  // preserved offset (rather than just `overflow: hidden`) keeps iOS Safari from
+  // scrolling behind the drawer, and restoring the offset on close avoids the
+  // page jumping back to the top.
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const { body } = document;
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
     return () => {
-      document.body.style.overflow = "";
+      body.style.position = "";
+      body.style.top = "";
+      body.style.left = "";
+      body.style.right = "";
+      body.style.width = "";
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -190,13 +206,16 @@ export default function MobileMenu({
         </div>
 
         <nav aria-label="Site" className="mt-auto flex flex-col items-end gap-6 px-8 pb-12 text-right">
-          {nav.map((item) => (
+          {nav.map((item, i) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
               aria-current={isActive(item.href) ? "page" : undefined}
-              className={`font-heading text-3xl uppercase tracking-wide underline-offset-8 transition hover:text-gold ${
+              style={{ transitionDelay: open ? `${100 + i * 60}ms` : "0ms" }}
+              className={`font-heading text-3xl uppercase tracking-wide underline-offset-8 transition-all duration-300 ease-out hover:text-gold ${
+                open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+              } ${
                 isActive(item.href)
                   ? "text-white underline decoration-gold decoration-2"
                   : "text-white/90 no-underline"
@@ -205,10 +224,22 @@ export default function MobileMenu({
               {t(item.label)}
             </Link>
           ))}
-          <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
-            {t("Connect")}
-          </Button>
-          <div className="mt-6 flex items-center gap-4">
+          <div
+            style={{ transitionDelay: open ? `${100 + nav.length * 60}ms` : "0ms" }}
+            className={`w-full transition-all duration-300 ease-out ${
+              open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+            }`}
+          >
+            <Button href="/contact-us" className="mt-2 w-full" onClick={() => setOpen(false)}>
+              {t("Connect")}
+            </Button>
+          </div>
+          <div
+            style={{ transitionDelay: open ? `${160 + nav.length * 60}ms` : "0ms" }}
+            className={`mt-6 flex items-center gap-4 transition-all duration-300 ease-out ${
+              open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+            }`}
+          >
             <LanguageSwitcher openUp />
             <SocialIcons socials={socials} />
           </div>
