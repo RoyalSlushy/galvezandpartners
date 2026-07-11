@@ -208,10 +208,12 @@ export default function MobileMenu({
               {t(item.label)}
             </Link>
           ))}
-          <Button href="/contact-us" className="mt-2" onClick={() => setOpen(false)}>
-            {t("Connect")}
-          </Button>
-          <LanguageSwitcher className="mt-2" openUp />
+          <div className="mt-2 flex items-center gap-4">
+            <LanguageSwitcher openUp />
+            <Button href="/contact-us" onClick={() => setOpen(false)}>
+              {t("Connect")}
+            </Button>
+          </div>
           <SocialIcons socials={socials} className="mt-6" />
         </nav>
       </div>

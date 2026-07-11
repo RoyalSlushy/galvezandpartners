@@ -48,6 +48,7 @@ export default function LanguageSwitcher({
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 py-1 text-white/90 transition hover:text-white"
       >
+        <span className="text-base leading-none">{active.flag}</span>
         <span className="font-heading text-base leading-none tracking-wide opacity-80">
           {active.short}
         </span>
@@ -80,10 +81,11 @@ export default function LanguageSwitcher({
               setLocale(l.code);
               setOpen(false);
             }}
-            className={`flex w-full items-center gap-3 px-4 py-2.5 text-left font-heading text-base tracking-wide transition hover:bg-white/5 ${
+            className={`flex w-full items-center gap-2 px-4 py-2.5 text-left font-heading text-base tracking-wide transition hover:bg-white/5 ${
               l.code === locale ? "text-gold-bright" : "text-white/85"
             }`}
           >
+            <span className="leading-none">{l.flag}</span>
             <span>{l.short}</span>
           </button>
         ))}
