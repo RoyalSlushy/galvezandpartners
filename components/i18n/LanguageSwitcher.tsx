@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LOCALES } from "@/content/i18n";
 import { useLocale } from "./LocaleProvider";
+import FlagIcon from "./FlagIcon";
 
 /**
  * Compact flag + chevron language toggle. Opens a small menu of locales; the
@@ -48,7 +49,7 @@ export default function LanguageSwitcher({
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 py-1 text-white/90 transition hover:text-white"
       >
-        <span className="text-base leading-none">{active.flag}</span>
+        <FlagIcon code={active.code} />
         <span className="font-heading text-base leading-none tracking-wide opacity-80">
           {active.short}
         </span>
@@ -85,7 +86,7 @@ export default function LanguageSwitcher({
               l.code === locale ? "text-gold-bright" : "text-white/85"
             }`}
           >
-            <span className="leading-none">{l.flag}</span>
+            <FlagIcon code={l.code} />
             <span>{l.short}</span>
           </button>
         ))}

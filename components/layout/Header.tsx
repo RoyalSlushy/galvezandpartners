@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { NavItem, Social } from "@/content/site";
 import DesktopNav from "./DesktopNav";
 import MobileMenu from "./MobileMenu";
-import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 
 /** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. */
@@ -32,10 +31,7 @@ export default function Header({
 
         <DesktopNav nav={nav} socials={socials} tagline={tagline} editMode={editMode} />
 
-        <div className="flex flex-col items-end gap-1.5 sm:hidden">
-          <MobileMenu nav={nav} socials={socials} />
-          <LanguageSwitcher />
-        </div>
+        <MobileMenu nav={nav} socials={socials} />
       </div>
     </header>
   );
