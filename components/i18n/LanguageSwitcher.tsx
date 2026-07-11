@@ -8,7 +8,14 @@ import { useLocale } from "./LocaleProvider";
  * Compact flag + chevron language toggle. Opens a small menu of locales; the
  * choice is applied instantly (no reload) via the LocaleProvider and persisted.
  */
-export default function LanguageSwitcher({ className = "" }: { className?: string }) {
+export default function LanguageSwitcher({
+  className = "",
+  openUp = false,
+}: {
+  className?: string;
+  /** Open the menu above the trigger instead of below (e.g. near a bottom edge). */
+  openUp?: boolean;
+}) {
   const { locale, setLocale } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -39,10 +46,10 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full px-1.5 py-1 text-white/90 transition hover:text-white"
+        className="flex items-center gap-1.5 py-1 text-white/90 transition hover:text-white"
       >
-        <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full text-2xl leading-none ring-1 ring-white/25">
-          {active.flag}
+        <span className="font-heading text-base leading-none tracking-wide opacity-80">
+          {active.short}
         </span>
         <svg
           viewBox="0 0 20 20"
@@ -55,8 +62,12 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
 
       <div
         role="menu"
-        className={`absolute right-0 z-50 mt-2 min-w-[9rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+        className={`absolute right-0 z-50 min-w-[5rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
+          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        } ${
+          open
+            ? "pointer-events-auto opacity-100"
+            : `pointer-events-none opacity-0 ${openUp ? "translate-y-1" : "-translate-y-1"}`
         }`}
       >
         {LOCALES.map((l) => (
@@ -69,12 +80,11 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
               setLocale(l.code);
               setOpen(false);
             }}
-            className={`flex w-full items-center gap-3 px-4 py-2.5 text-left font-body text-base transition hover:bg-white/5 ${
+            className={`flex w-full items-center gap-3 px-4 py-2.5 text-left font-heading text-base tracking-wide transition hover:bg-white/5 ${
               l.code === locale ? "text-gold-bright" : "text-white/85"
             }`}
           >
-            <span className="text-xl leading-none">{l.flag}</span>
-            <span>{l.label}</span>
+            <span>{l.short}</span>
           </button>
         ))}
       </div>
