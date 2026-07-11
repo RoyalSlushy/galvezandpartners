@@ -193,8 +193,15 @@
 }
 
 @layer base {
+  /* Custom horizontal swipe gestures (card carousel, mobile nav drawer) must not
+     be hijacked by the browser's back/forward overscroll navigation. Set on the
+     root scroller so it actually takes effect. */
+  html {
+    overscroll-behavior-x: none;
+  }
   body {
     @apply bg-navy font-body text-white antialiased;
+    overscroll-behavior-x: none;
   }
   /* Themed "sky": a fixed gradient painted behind all content. Themes without a
      backdrop leave --c-backdrop: none, so nothing is drawn and the flat bg-navy

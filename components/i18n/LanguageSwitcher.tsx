@@ -8,7 +8,14 @@ import { useLocale } from "./LocaleProvider";
  * Compact flag + chevron language toggle. Opens a small menu of locales; the
  * choice is applied instantly (no reload) via the LocaleProvider and persisted.
  */
-export default function LanguageSwitcher({ className = "" }: { className?: string }) {
+export default function LanguageSwitcher({
+  className = "",
+  openUp = false,
+}: {
+  className?: string;
+  /** Open the menu above the trigger instead of below (e.g. near a bottom edge). */
+  openUp?: boolean;
+}) {
   const { locale, setLocale } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,8 +62,12 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
 
       <div
         role="menu"
-        className={`absolute right-0 z-50 mt-2 min-w-[5rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
+        className={`absolute right-0 z-50 min-w-[5rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
+          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        } ${
+          open
+            ? "pointer-events-auto opacity-100"
+            : `pointer-events-none opacity-0 ${openUp ? "translate-y-1" : "-translate-y-1"}`
         }`}
       >
         {LOCALES.map((l) => (
