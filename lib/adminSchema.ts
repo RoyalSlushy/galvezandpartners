@@ -16,7 +16,7 @@ export function normalizePath(path: string): string {
 const LIST_TEMPLATES: Record<string, () => unknown> = {
   "team.members": () => ({ name: "New Member", role: "Role", photo: "", socials: [] }),
   "team.members.*.socials": () => ({ label: "Instagram", href: "", icon: "instagram" }),
-  "home.services": () => ({ title: "New Service", description: "Describe this service." }),
+  "home.services": () => ({ title: "New Service", description: "Describe this service.", media: "" }),
   "home.multicultural.cards": () => ({ title: "new card", body: "Card copy goes here." }),
   "site.nav": () => ({ label: "New Link", href: "/" }),
   "site.socials": () => ({
@@ -64,6 +64,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.servicesHeading": "services heading",
   "home.services.*.title": "service title",
   "home.services.*.description": "service description",
+  "home.services.*.media": "card backdrop",
   "home.multicultural.titleLines": "title lines",
   "home.multicultural.intro": "intro",
   "home.multicultural.cards.*.title": "card title",

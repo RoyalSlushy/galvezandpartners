@@ -5,7 +5,8 @@ import Button from "@/components/ui/Button";
 import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { Service } from "@/content/home";
-import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { resolveImage } from "@/lib/adminClient";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
@@ -200,6 +201,8 @@ function HeroServiceSlide({
   editMode: boolean;
   tv: (s: string) => string;
 }) {
+  const admin = useAdmin();
+  const media = service.media ?? "";
   const { ref } = useFitText<HTMLDivElement>({
     max: 19,
     min: 9,
@@ -207,23 +210,54 @@ function HeroServiceSlide({
     deps: [service.title, service.description],
   });
   return (
-    <div
-      className={`hero-slide flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3${
-        editMode ? " relative" : ""
-      }`}
-    >
+    <div className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3">
+      {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
+          behind the text, tilted 15° counterclockwise and tinted toward the
+          theme's gold accent by a color-blend overlay, all at 20% opacity.
+          The rotated layer intentionally bleeds past the slide's edges — the
+          card container's rounded overflow-hidden masks it. */}
+      {media ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20"
+        >
+          <div className="relative isolate h-full w-full">
+            <EditableImage
+              path={`home.services.${index}.media`}
+              raw={media}
+              src={resolveImage(media, 700, 900)}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gold mix-blend-color" />
+          </div>
+        </div>
+      ) : null}
       {editMode && (
-        <ListControls
-          listPath="home.services"
-          index={index}
-          count={count}
-          label="service"
-          className="right-8 top-2 sm:right-12"
-        />
+        <>
+          <ListControls
+            listPath="home.services"
+            index={index}
+            count={count}
+            label="service"
+            className="right-8 top-2 sm:right-12"
+          />
+          {/* The backdrop itself is pointer-transparent (it sits behind the
+              text), so edit mode gets this chip to open its media picker. */}
+          <button
+            type="button"
+            onClick={() =>
+              admin.openImagePicker({ path: `home.services.${index}.media`, raw: media })
+            }
+            className="absolute left-8 top-2 z-20 rounded-full border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
+          >
+            {media ? "backdrop" : "add backdrop"}
+          </button>
+        </>
       )}
       <div
         ref={ref}
-        className="hero-slide-fit flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
+        className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
       >
         <EditableText
           path={`home.services.${index}.title`}
