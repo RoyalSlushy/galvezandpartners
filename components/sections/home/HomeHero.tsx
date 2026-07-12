@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
-import Carousel from "@/components/ui/Carousel";
+import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { Service } from "@/content/home";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
@@ -209,8 +210,71 @@ function HeroServiceSlide({
     query: MOBILE,
     deps: [service.title, service.description],
   });
+
+  // Backdrop video playback state machine:
+  //  - idle (default): paused at the start.
+  //  - hover: plays on loop; on hover-exit it keeps playing (no snap back to
+  //    the start) until the current pass ends, then rests at the start.
+  //  - swipe: plays through once, then rests at the start.
+  //  - autoscroll / arrows / dots / keyboard / leaving the slide: paused at
+  //    the start, immediately (no fade-out grace — the slide is off-stage).
+  const { isActive, cause } = useCarouselSlide(index);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onEnded = () => {
+      v.pause();
+      v.currentTime = 0;
+    };
+    v.addEventListener("ended", onEnded);
+    return () => v.removeEventListener("ended", onEnded);
+  }, [media]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const wasActive = wasActiveRef.current;
+    wasActiveRef.current = isActive;
+
+    if (!isActive) {
+      v.pause();
+      v.currentTime = 0;
+      v.loop = false;
+      return;
+    }
+    if (!wasActive) {
+      v.pause();
+      v.currentTime = 0;
+      v.loop = false;
+      if (cause === "swipe") {
+        v.play().catch(() => {});
+      }
+    }
+  }, [isActive, cause]);
+
+  const onBackdropHoverStart = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.loop = true;
+    v.play().catch(() => {});
+  };
+  const onBackdropHoverEnd = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Stop looping but keep playing — the 'ended' listener above rewinds to
+    // the start once the current pass actually finishes.
+    v.loop = false;
+  };
+
   return (
-    <div className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3">
+    <div
+      className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3"
+      onMouseEnter={onBackdropHoverStart}
+      onMouseLeave={onBackdropHoverEnd}
+    >
       {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
           behind the text, tilted 15° counterclockwise at 10% opacity. The
           filter chain collapses the media to a single gold-family hue
@@ -237,6 +301,9 @@ function HeroServiceSlide({
               alt=""
               className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
               playbackRate={0.75}
+              autoPlayVideo={false}
+              loopVideo={false}
+              videoRef={videoRef}
             />
           </div>
         </div>

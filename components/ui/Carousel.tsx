@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -9,6 +11,24 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+
+/** Why the active slide last changed — lets a slide distinguish "the carousel
+ * auto-advanced to me" / "an arrow or dot was clicked" from "the user swiped to
+ * me", since some slides (e.g. the hero's video backdrops) only auto-play on a
+ * swipe and stay paused-at-start otherwise. */
+export type CarouselCause = "auto" | "swipe" | "manual";
+
+export const CarouselContext = createContext<{ current: number; cause: CarouselCause }>({
+  current: 0,
+  cause: "manual",
+});
+
+/** Convenience hook for a slide to read whether it is the active one and why
+ * the carousel landed on it. */
+export function useCarouselSlide(index: number) {
+  const { current, cause } = useContext(CarouselContext);
+  return { isActive: current === index, cause };
+}
 
 /**
  * One-card-at-a-time carousel with crossfade + slide, wrap-around, prev/next
@@ -42,6 +62,7 @@ export default function Carousel({
   const n = slides.length;
   const [current, setCurrent] = useState(0);
   const [dir, setDir] = useState(1);
+  const [cause, setCause] = useState<CarouselCause>("manual");
 
   // Hover-driven ambient state.
   const [hovering, setHovering] = useState(false); // spotlight follows the cursor while true
@@ -61,20 +82,22 @@ export default function Carousel({
   const rafId = useRef<number>();
 
   const go = useCallback(
-    (target: number, d?: number) => {
+    (target: number, d?: number, c: CarouselCause = "manual") => {
       const t = ((target % n) + n) % n;
       setDir(d ?? (target > current ? 1 : -1));
       setCurrent(t);
+      setCause(c);
     },
     [current, n]
   );
-  const next = useCallback(() => go(current + 1, 1), [go, current]);
-  const prev = useCallback(() => go(current - 1, -1), [go, current]);
+  const next = useCallback((c?: CarouselCause) => go(current + 1, 1, c), [go, current]);
+  const prev = useCallback((c?: CarouselCause) => go(current - 1, -1, c), [go, current]);
 
   // Auto-advance is decoupled from `current` so the interval can stay stable.
   const advance = useCallback(() => {
     setDir(1);
     setCurrent((c) => (c + 1) % n);
+    setCause("auto");
   }, [n]);
 
   // Track the reduced-motion preference so we can skip the auto-scroll.
@@ -188,8 +211,8 @@ export default function Carousel({
     if (!start.current) return;
     const dx = e.clientX - start.current.x;
     if (horiz.current && Math.abs(dx) > 48) {
-      if (dx < 0) next();
-      else prev();
+      if (dx < 0) next("swipe");
+      else prev("swipe");
     }
     start.current = null;
   };
@@ -222,83 +245,85 @@ export default function Carousel({
       onPointerLeave={onLeave}
       style={{ touchAction: "pan-y" }}
     >
-      {/* Ambient spotlight — fills the carousel container and tracks the cursor,
-          sitting behind the cards, handles and dots. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
-        style={{
-          opacity: hovering ? 1 : 0,
-          background:
-            "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(186,230,253,0.1) 0%, rgba(186,230,253,0.045) 42%, transparent 82%)",
-        }}
-      />
+      <CarouselContext.Provider value={{ current, cause }}>
+        {/* Ambient spotlight — fills the carousel container and tracks the cursor,
+            sitting behind the cards, handles and dots. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+          style={{
+            opacity: hovering ? 1 : 0,
+            background:
+              "radial-gradient(circle 520px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(186,230,253,0.1) 0%, rgba(186,230,253,0.045) 42%, transparent 82%)",
+          }}
+        />
 
-      <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
-        {slides.map((slide, i) => {
-          const isActive = i === current;
-          const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;
-          return (
-            <div
+        <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
+          {slides.map((slide, i) => {
+            const isActive = i === current;
+            const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;
+            return (
+              <div
+                key={i}
+                aria-hidden={!isActive}
+                className="col-start-1 row-start-1 transition-[opacity,transform] duration-[450ms] ease-out"
+                style={{
+                  opacity: isActive ? 1 : 0,
+                  transform: `translateX(${isActive ? 0 : offset}px)`,
+                  pointerEvents: isActive ? "auto" : "none",
+                  zIndex: isActive ? 2 : 0,
+                }}
+              >
+                {slide}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves.
+            Always shown on touch-only devices. */}
+        <button
+          type="button"
+          aria-label="Previous"
+          onClick={() => prev()}
+          style={{
+            opacity: handlesVisible || noHover ? 1 : 0,
+            pointerEvents: handlesVisible || noHover ? "auto" : "none",
+          }}
+          className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
+        >
+          &#8249;
+        </button>
+        <button
+          type="button"
+          aria-label="Next"
+          onClick={() => next()}
+          style={{
+            opacity: handlesVisible || noHover ? 1 : 0,
+            pointerEvents: handlesVisible || noHover ? "auto" : "none",
+          }}
+          className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
+        >
+          &#8250;
+        </button>
+
+        {/* Dots — first dot's left edge flush with the slide heading (matching the
+            slide's px-8 / sm:px-12 padding). */}
+        <div className="absolute bottom-3 left-8 z-10 flex gap-2 sm:left-12">
+          {slides.map((_, i) => (
+            <button
               key={i}
-              aria-hidden={!isActive}
-              className="col-start-1 row-start-1 transition-[opacity,transform] duration-[450ms] ease-out"
-              style={{
-                opacity: isActive ? 1 : 0,
-                transform: `translateX(${isActive ? 0 : offset}px)`,
-                pointerEvents: isActive ? "auto" : "none",
-                zIndex: isActive ? 2 : 0,
-              }}
-            >
-              {slide}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves.
-          Always shown on touch-only devices. */}
-      <button
-        type="button"
-        aria-label="Previous"
-        onClick={prev}
-        style={{
-          opacity: handlesVisible || noHover ? 1 : 0,
-          pointerEvents: handlesVisible || noHover ? "auto" : "none",
-        }}
-        className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
-      >
-        &#8249;
-      </button>
-      <button
-        type="button"
-        aria-label="Next"
-        onClick={next}
-        style={{
-          opacity: handlesVisible || noHover ? 1 : 0,
-          pointerEvents: handlesVisible || noHover ? "auto" : "none",
-        }}
-        className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
-      >
-        &#8250;
-      </button>
-
-      {/* Dots — first dot's left edge flush with the slide heading (matching the
-          slide's px-8 / sm:px-12 padding). */}
-      <div className="absolute bottom-3 left-8 z-10 flex gap-2 sm:left-12">
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Show slide ${i + 1}`}
-            aria-current={i === current}
-            onClick={() => go(i)}
-            className={`h-2 w-2 rounded-full transition ${
-              i === current ? "scale-125 bg-gold-bright" : "bg-white/40 hover:bg-white/70"
-            }`}
-          />
-        ))}
-      </div>
+              type="button"
+              aria-label={`Show slide ${i + 1}`}
+              aria-current={i === current}
+              onClick={() => go(i)}
+              className={`h-2 w-2 rounded-full transition ${
+                i === current ? "scale-125 bg-gold-bright" : "bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      </CarouselContext.Provider>
     </div>
   );
 }

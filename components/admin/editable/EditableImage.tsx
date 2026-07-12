@@ -19,6 +19,16 @@ type EditableImageProps = {
   /** Playback speed for video sources (1 = normal). Not a real HTML attribute,
    * so it's applied imperatively via a ref effect. */
   playbackRate?: number;
+  /** Whether a video source autoplays on mount (default true, matching prior
+   * behavior). Callers that drive playback manually (e.g. on hover) pass
+   * false so the video starts paused. */
+  autoPlayVideo?: boolean;
+  /** Whether a video source loops (default true). Callers that drive looping
+   * manually (e.g. only while hovered) pass false. */
+  loopVideo?: boolean;
+  /** Exposes the underlying <video> element so a caller can drive playback
+   * (play/pause/loop/currentTime) imperatively. No-op for image sources. */
+  videoRef?: React.Ref<HTMLVideoElement>;
 };
 
 /**
@@ -35,19 +45,30 @@ export default function EditableImage({
   className,
   label,
   playbackRate = 1,
+  autoPlayVideo = true,
+  loopVideo = true,
+  videoRef: externalVideoRef,
 }: EditableImageProps) {
   const editMode = useEditMode();
   const admin = useAdmin();
   const reduced = usePrefersReducedMotion();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const internalVideoRef = useRef<HTMLVideoElement | null>(null);
   const fieldLabel = label ?? labelFor(path);
+
+  // Attaches the internal ref (used by this component's own effects below)
+  // and forwards the same node to the caller's ref, if one was passed.
+  const setVideoRef = (el: HTMLVideoElement | null) => {
+    internalVideoRef.current = el;
+    if (typeof externalVideoRef === "function") externalVideoRef(el);
+    else if (externalVideoRef) (externalVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+  };
 
   // Reduced-motion visitors get a still first frame rather than a looping clip
   // (the hook corrects after first paint, so pause any playback that slipped
   // through). Videos are used as backgrounds — the hero especially — so this
   // keeps an autoplaying loop from becoming un-pausable motion (WCAG 2.2.2).
   useEffect(() => {
-    const v = videoRef.current;
+    const v = internalVideoRef.current;
     if (v && reduced) {
       v.pause();
       try {
@@ -61,7 +82,7 @@ export default function EditableImage({
   // Apply the playback speed imperatively — browsers can reset it when a new
   // source loads, so re-set it on `loadedmetadata` too, not just on mount.
   useEffect(() => {
-    const v = videoRef.current;
+    const v = internalVideoRef.current;
     if (!v) return;
     v.playbackRate = playbackRate;
     const onLoaded = () => {
@@ -87,12 +108,12 @@ export default function EditableImage({
   if (isVideoUrl(raw)) {
     return (
       <video
-        ref={videoRef}
+        ref={setVideoRef}
         src={src}
         className={className}
-        autoPlay={!reduced}
+        autoPlay={autoPlayVideo && !reduced}
         muted
-        loop={!reduced}
+        loop={loopVideo && !reduced}
         playsInline
         preload={reduced ? "metadata" : "auto"}
         // Pause playback in edit mode so clicks target the picker, not controls.
