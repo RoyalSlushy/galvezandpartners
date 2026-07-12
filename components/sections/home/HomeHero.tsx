@@ -212,25 +212,26 @@ function HeroServiceSlide({
   return (
     <div className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3">
       {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
-          behind the text, tilted 15° counterclockwise and tinted toward the
-          theme's gold accent by a color-blend overlay, all at 20% opacity.
-          The rotated layer intentionally bleeds past the slide's edges — the
-          card container's rounded overflow-hidden masks it. */}
+          behind the text, tilted 15° counterclockwise at 20% opacity. The
+          filter chain collapses the media to a single gold-family hue
+          (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
+          white background black; the screen blend on this layer then drops
+          that black out against the card, so white areas vanish and only the
+          artwork glows in the one hue. The rotated layer intentionally bleeds
+          past the slide's edges — the card container's rounded
+          overflow-hidden masks it. */}
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20 mix-blend-screen"
         >
-          <div className="relative isolate h-full w-full">
-            <EditableImage
-              path={`home.services.${index}.media`}
-              raw={media}
-              src={resolveImage(media, 700, 900)}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gold mix-blend-color" />
-          </div>
+          <EditableImage
+            path={`home.services.${index}.media`}
+            raw={media}
+            src={resolveImage(media, 700, 900)}
+            alt=""
+            className="h-full w-full object-cover [filter:grayscale(1)_invert(1)_sepia(1)_saturate(1.75)]"
+          />
         </div>
       ) : null}
       {editMode && (
