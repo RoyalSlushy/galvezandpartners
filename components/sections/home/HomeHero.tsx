@@ -215,23 +215,29 @@ function HeroServiceSlide({
           behind the text, tilted 15° counterclockwise at 20% opacity. The
           filter chain collapses the media to a single gold-family hue
           (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
-          white background black; the screen blend on this layer then drops
-          that black out against the card, so white areas vanish and only the
-          artwork glows in the one hue. The rotated layer intentionally bleeds
-          past the slide's edges — the card container's rounded
-          overflow-hidden masks it. */}
+          white background black; the screen blend then drops that black out,
+          so white areas vanish and only the artwork glows in the one hue.
+          The blend can't reach the real card behind it — the carousel slide
+          wrapper's transform isolates this subtree — so the media screens
+          against a local stand-in painted in the card's exact color, which
+          composites identically. The rotated layer intentionally bleeds past
+          the slide's edges — the card container's rounded overflow-hidden
+          masks it. */}
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20 mix-blend-screen"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20"
         >
-          <EditableImage
-            path={`home.services.${index}.media`}
-            raw={media}
-            src={resolveImage(media, 700, 900)}
-            alt=""
-            className="h-full w-full object-cover [filter:grayscale(1)_invert(1)_sepia(1)_saturate(1.75)]"
-          />
+          <div className="relative isolate h-full w-full">
+            <div className="absolute inset-0 bg-navy-soft" />
+            <EditableImage
+              path={`home.services.${index}.media`}
+              raw={media}
+              src={resolveImage(media, 700, 900)}
+              alt=""
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+            />
+          </div>
         </div>
       ) : null}
       {editMode && (
