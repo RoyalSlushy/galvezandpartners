@@ -212,7 +212,7 @@ function HeroServiceSlide({
   return (
     <div className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3">
       {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
-          behind the text, tilted 15° counterclockwise at 20% opacity. The
+          behind the text, tilted 15° counterclockwise at 10% opacity. The
           filter chain collapses the media to a single gold-family hue
           (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
           white background black; the screen blend then drops that black out,
@@ -226,7 +226,7 @@ function HeroServiceSlide({
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-20"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10"
         >
           <div className="relative isolate h-full w-full">
             <div className="absolute inset-0 bg-navy-soft" />
@@ -236,6 +236,7 @@ function HeroServiceSlide({
               src={resolveImage(media, 700, 900)}
               alt=""
               className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+              playbackRate={0.75}
             />
           </div>
         </div>
