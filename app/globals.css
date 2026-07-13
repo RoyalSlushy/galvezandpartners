@@ -40,6 +40,7 @@
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
   --header-h: 124px; /* mobile header height */
+  --cityscape-h: 64px; /* skyline band reserved at the bottom of the hero */
 
   /* Brand color tokens (space-separated RGB, consumed by the Tailwind `navy`,
      `gold`, … utilities). These defaults are the "Midnight Gold" theme; the
@@ -63,14 +64,16 @@
 @media (min-width: 751px) {
   :root {
     --header-h: 140px; /* taller, to give the logo + nav/social more room */
+    --cityscape-h: 104px;
   }
 }
 
-/* Homepage hero is exactly the viewport minus the header, on every breakpoint,
-   so the whole hero (image, CTA, carousel and skyline) fits in one screen. */
+/* Homepage hero fills the viewport below the header, minus the skyline band the
+   cityscape reserves at the bottom — so the rising section's cityscape sits in
+   the initial viewport, flush under the hero, on every breakpoint. */
 .hero-fill {
-  height: calc(100vh - var(--header-h));
-  height: calc(100svh - var(--header-h));
+  height: calc(100vh - var(--header-h) - var(--cityscape-h));
+  height: calc(100svh - var(--header-h) - var(--cityscape-h));
 }
 
 /* Hero layout grid holding the storefront image ("main"), the carousel card and

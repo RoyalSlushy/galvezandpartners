@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useAdmin, useCmsValue } from "./AdminProvider";
 import {
   DEFAULT_HERO_GRADIENT,
@@ -43,13 +42,6 @@ export default function HeroGradientPicker() {
   const gradient = useCmsValue<HeroGradient>("home.hero.gradient", DEFAULT_HERO_GRADIENT);
   const stops = gradient.stops ?? [];
 
-  // The eyedropper is Chromium-only — feature-detect on the client so the button
-  // only appears where it works.
-  const [supportsEyeDropper, setSupportsEyeDropper] = useState(false);
-  useEffect(() => {
-    setSupportsEyeDropper(typeof window !== "undefined" && "EyeDropper" in window);
-  }, []);
-
   const commit = (next: HeroGradient) => admin.setValue("home.hero.gradient", next);
 
   const setStop = (i: number, patch: Partial<GradientStop>) =>
@@ -82,8 +74,12 @@ export default function HeroGradientPicker() {
 
   // Sample any pixel on screen with the native eyedropper and add it as a stop.
   const pickWithEyeDropper = async () => {
-    const Ctor = window.EyeDropper;
-    if (!Ctor || stops.length >= MAX_STOPS) return;
+    if (stops.length >= MAX_STOPS) return;
+    const Ctor = typeof window !== "undefined" ? window.EyeDropper : undefined;
+    if (!Ctor) {
+      admin.notify("The eyedropper needs Chrome or Edge (not supported in this browser)", "err");
+      return;
+    }
     try {
       const { sRGBHex } = await new Ctor().open();
       addStop(sRGBHex);
@@ -213,17 +209,15 @@ export default function HeroGradientPicker() {
             >
               + Add color
             </button>
-            {supportsEyeDropper && (
-              <button
-                type="button"
-                onClick={pickWithEyeDropper}
-                title="Pick a color from anywhere on screen"
-                aria-label="Add color with the eyedropper"
-                className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
-              >
-                <EyeDropperIcon className="h-4 w-4" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={pickWithEyeDropper}
+              title="Pick a color from anywhere on screen"
+              aria-label="Add color with the eyedropper"
+              className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
+            >
+              <EyeDropperIcon className="h-4 w-4" />
+            </button>
           </div>
         )}
       </div>

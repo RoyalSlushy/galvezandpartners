@@ -1,18 +1,21 @@
 /**
  * Downtown skyline silhouette that caps the top of the rising content block, so
  * it comes up together with that section as the page scrolls over the pinned
- * hero. The front row is painted in the section's own base color, so the
- * building bases fuse seamlessly with the panel below; the gaps between the
- * buildings stay transparent, letting the pinned hero show through them. As the
- * section climbs, this jagged edge is the border that rises with it.
+ * hero. The hero reserves `--cityscape-h` at its base (see `.hero-fill`), so at
+ * rest this band sits in the initial viewport flush under the hero; as the page
+ * scrolls it rises with the section over the hero. The front row is painted in
+ * the section's own base color, so the building bases fuse seamlessly with the
+ * panel below; the gaps between the buildings stay transparent, letting the
+ * hero show through as it rises. `none` keeps the row spanning the full width at
+ * the fixed band height on every viewport.
  */
 export default function Cityscape() {
   return (
     <div aria-hidden className="relative z-10 -mb-px w-full leading-[0]">
       <svg
         viewBox="0 0 800 150"
-        preserveAspectRatio="xMidYMax meet"
-        className="block h-[64px] w-full sm:h-[104px]"
+        preserveAspectRatio="none"
+        className="block h-[var(--cityscape-h)] w-full"
       >
         {/* Back row: taller, hazier towers in the panel tint for depth. */}
         <g className="fill-navy-soft">
