@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
-import Carousel from "@/components/ui/Carousel";
+import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { Service } from "@/content/home";
-import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { resolveImage } from "@/lib/adminClient";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
@@ -200,30 +202,137 @@ function HeroServiceSlide({
   editMode: boolean;
   tv: (s: string) => string;
 }) {
+  const admin = useAdmin();
+  const media = service.media ?? "";
   const { ref } = useFitText<HTMLDivElement>({
     max: 19,
     min: 9,
     query: MOBILE,
     deps: [service.title, service.description],
   });
+
+  // Backdrop video playback state machine:
+  //  - idle (default): paused at the start.
+  //  - hover: plays on loop; on hover-exit it keeps playing (no snap back to
+  //    the start) until the current pass ends, then rests at the start.
+  //  - swipe: plays through once, then rests at the start.
+  //  - autoscroll / arrows / dots / keyboard / leaving the slide: paused at
+  //    the start, immediately (no fade-out grace — the slide is off-stage).
+  const { isActive, cause } = useCarouselSlide(index);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onEnded = () => {
+      v.pause();
+      v.currentTime = 0;
+    };
+    v.addEventListener("ended", onEnded);
+    return () => v.removeEventListener("ended", onEnded);
+  }, [media]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const wasActive = wasActiveRef.current;
+    wasActiveRef.current = isActive;
+
+    if (!isActive) {
+      v.pause();
+      v.currentTime = 0;
+      v.loop = false;
+      return;
+    }
+    if (!wasActive) {
+      v.pause();
+      v.currentTime = 0;
+      v.loop = false;
+      if (cause === "swipe") {
+        v.play().catch(() => {});
+      }
+    }
+  }, [isActive, cause]);
+
+  const onBackdropHoverStart = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.loop = true;
+    v.play().catch(() => {});
+  };
+  const onBackdropHoverEnd = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Stop looping but keep playing — the 'ended' listener above rewinds to
+    // the start once the current pass actually finishes.
+    v.loop = false;
+  };
+
   return (
     <div
-      className={`hero-slide flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3${
-        editMode ? " relative" : ""
-      }`}
+      className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3"
+      onMouseEnter={onBackdropHoverStart}
+      onMouseLeave={onBackdropHoverEnd}
     >
+      {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
+          behind the text, tilted 15° counterclockwise at 10% opacity. The
+          filter chain collapses the media to a single gold-family hue
+          (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
+          white background black; the screen blend then drops that black out,
+          so white areas vanish and only the artwork glows in the one hue.
+          The blend can't reach the real card behind it — the carousel slide
+          wrapper's transform isolates this subtree — so the media screens
+          against a local stand-in painted in the card's exact color, which
+          composites identically. The rotated layer intentionally bleeds past
+          the slide's edges — the card container's rounded overflow-hidden
+          masks it. */}
+      {media ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10"
+        >
+          <div className="relative isolate h-full w-full">
+            <div className="absolute inset-0 bg-navy-soft" />
+            <EditableImage
+              path={`home.services.${index}.media`}
+              raw={media}
+              src={resolveImage(media, 700, 900)}
+              alt=""
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+              playbackRate={0.75}
+              autoPlayVideo={false}
+              loopVideo={false}
+              videoRef={videoRef}
+            />
+          </div>
+        </div>
+      ) : null}
       {editMode && (
-        <ListControls
-          listPath="home.services"
-          index={index}
-          count={count}
-          label="service"
-          className="right-8 top-2 sm:right-12"
-        />
+        <>
+          <ListControls
+            listPath="home.services"
+            index={index}
+            count={count}
+            label="service"
+            className="right-8 top-2 sm:right-12"
+          />
+          {/* The backdrop itself is pointer-transparent (it sits behind the
+              text), so edit mode gets this chip to open its media picker. */}
+          <button
+            type="button"
+            onClick={() =>
+              admin.openImagePicker({ path: `home.services.${index}.media`, raw: media })
+            }
+            className="absolute left-8 top-2 z-20 rounded-full border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
+          >
+            {media ? "backdrop" : "add backdrop"}
+          </button>
+        </>
       )}
       <div
         ref={ref}
-        className="hero-slide-fit flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
+        className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
       >
         <EditableText
           path={`home.services.${index}.title`}

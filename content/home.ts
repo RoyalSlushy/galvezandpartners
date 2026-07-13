@@ -10,7 +10,10 @@ export const HERO = {
   ctaHref: "/contact-us",
 };
 
-export type Service = { title: string; description: string };
+/** `media` is an optional decorative backdrop for the service's carousel card
+ * (gif / mp4 / svg — a full URL or bare Wix media id), rendered tilted behind
+ * the card text. Empty/absent means no backdrop; set from the admin editor. */
+export type Service = { title: string; description: string; media?: string };
 
 export const SERVICES: Service[] = [
   {

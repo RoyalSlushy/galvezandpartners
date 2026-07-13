@@ -20,14 +20,11 @@ import { useGlyphMap } from "@/components/ui/Glyph";
  * The panel-wide opacity + bottom fade live in the `.cta-grid` CSS; this
  * component renders the letter cells and animates the layer's `transform`.
  */
-const TILE = 28; // px — one letter per tile (letter box 20px + 8px gutter)
-const GLYPH_H = 20; // px — masked-glyph / font letter height (25% up from 16)
-const GLYPH_W = 17.5; // px — masked-glyph box width (25% up from 14)
+const TILE = 28; // px — one letter per tile (letter box 20px + 8px gutter) at scale 1
+const GLYPH_H = 20; // px — masked-glyph / font letter height at scale 1
+const GLYPH_W = 17.5; // px — masked-glyph box width at scale 1
 const LETTERS = ["G", "A", "L", "V", "E", "Z"];
-const PERIOD = TILE * LETTERS.length; // 144px — the letter pattern repeats here
 const OVERSCAN = LETTERS.length; // extra tiles per side so the drift never gaps
-const BASE_SPEED = TILE / 4500; // px per ms → one tile every 4.5s
-const HOVER_SPEED = BASE_SPEED * 3; // 200% faster while hovered
 const RAMP_MS = 150; // time to ramp fully between base and hover speed
 
 const easeInQuad = (u: number) => u * u;
@@ -48,11 +45,35 @@ function maskStyle(svg: string): React.CSSProperties {
   };
 }
 
-export default function CtaGrid() {
+export default function CtaGrid({
+  className = "cta-grid",
+  glyphClassName = "bg-navy",
+  fontClassName = "text-navy",
+  scale = 1,
+}: {
+  /** Wrapper class controlling panel-wide opacity + fade (defaults to the home
+   * CTA's gold-panel treatment; the mobile drawer passes `drawer-glyph-grid`). */
+  className?: string;
+  /** Tailwind background class the masked glyph boxes are tinted with. */
+  glyphClassName?: string;
+  /** Tailwind text-color class for the font fallback letters. */
+  fontClassName?: string;
+  /** Uniform size multiplier for the tile/glyph grid (drift speed scales with
+   * it too, so the period still takes the same time). Defaults to 1 (the home
+   * CTA's original sizing); the drawer passes a larger value. */
+  scale?: number;
+} = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const glyphs = useGlyphMap();
   const [dims, setDims] = useState({ cols: 0, rows: 0 });
+
+  const tile = TILE * scale;
+  const glyphW = GLYPH_W * scale;
+  const glyphH = GLYPH_H * scale;
+  const period = tile * LETTERS.length;
+  const baseSpeed = tile / 4500;
+  const hoverSpeed = baseSpeed * 3;
 
   // Size the letter grid to cover the panel plus one period of overscan on
   // every side, so the up-right drift never exposes an uncovered edge.
@@ -61,15 +82,15 @@ export default function CtaGrid() {
     if (!wrap) return;
     const measure = () => {
       const { width, height } = wrap.getBoundingClientRect();
-      const cols = Math.ceil(width / TILE) + OVERSCAN * 2;
-      const rows = Math.ceil(height / TILE) + OVERSCAN * 2;
+      const cols = Math.ceil(width / tile) + OVERSCAN * 2;
+      const rows = Math.ceil(height / tile) + OVERSCAN * 2;
       setDims((d) => (d.cols === cols && d.rows === rows ? d : { cols, rows }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, []);
+  }, [tile]);
 
   // Drift the whole letter layer diagonally, easing the speed up on hover.
   useEffect(() => {
@@ -111,8 +132,8 @@ export default function CtaGrid() {
       const u = Math.min(1, (t - tweenStart) / tweenDur);
       factor = from + (to - from) * ease(u);
 
-      const speed = BASE_SPEED + (HOVER_SPEED - BASE_SPEED) * factor;
-      pos = (pos + speed * dt) % PERIOD;
+      const speed = baseSpeed + (hoverSpeed - baseSpeed) * factor;
+      pos = (pos + speed * dt) % period;
       // Up-right drift: shift the layer right (+x) and up (-y).
       layer.style.transform = `translate(${pos}px, ${-pos}px)`;
 
@@ -125,7 +146,7 @@ export default function CtaGrid() {
       card?.removeEventListener("mouseenter", onEnter);
       card?.removeEventListener("mouseleave", onLeave);
     };
-  }, []);
+  }, [period, baseSpeed, hoverSpeed]);
 
   const cells = useMemo(() => {
     const out: React.ReactNode[] = [];
@@ -138,17 +159,17 @@ export default function CtaGrid() {
           <span
             key={`${r}-${c}`}
             className="flex items-center justify-center"
-            style={{ width: TILE, height: TILE }}
+            style={{ width: tile, height: tile }}
           >
             {svg ? (
               <span
-                className="bg-navy"
-                style={{ width: GLYPH_W, height: GLYPH_H, ...maskStyle(svg) }}
+                className={glyphClassName}
+                style={{ width: glyphW, height: glyphH, ...maskStyle(svg) }}
               />
             ) : (
               <span
-                className="font-display font-bold leading-none text-navy"
-                style={{ fontSize: GLYPH_H }}
+                className={`font-display font-bold leading-none ${fontClassName}`}
+                style={{ fontSize: glyphH }}
               >
                 {ch}
               </span>
@@ -158,18 +179,18 @@ export default function CtaGrid() {
       }
     }
     return out;
-  }, [dims, glyphs]);
+  }, [dims, glyphs, glyphClassName, fontClassName, tile, glyphW, glyphH]);
 
   return (
-    <div ref={wrapRef} aria-hidden className="cta-grid pointer-events-none absolute inset-0">
+    <div ref={wrapRef} aria-hidden className={`${className} pointer-events-none absolute inset-0`}>
       <div
         ref={layerRef}
         className="absolute grid"
         style={{
-          top: -PERIOD,
-          left: -PERIOD,
-          gridTemplateColumns: `repeat(${dims.cols}, ${TILE}px)`,
-          gridAutoRows: `${TILE}px`,
+          top: -period,
+          left: -period,
+          gridTemplateColumns: `repeat(${dims.cols}, ${tile}px)`,
+          gridAutoRows: `${tile}px`,
           willChange: "transform",
         }}
       >
