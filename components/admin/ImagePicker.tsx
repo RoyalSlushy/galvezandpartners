@@ -12,6 +12,7 @@ import {
 } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
+import HeroGradientPicker from "./HeroGradientPicker";
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -281,6 +282,10 @@ export default function ImagePicker() {
             className="mt-2 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
           />
         </div>
+
+        {/* The hero image doubles as the anchor for the hero's background
+            gradient, so its config gets a color picker for those gradient stops. */}
+        {picker.path === "home.hero.image" && <HeroGradientPicker />}
 
         <div className="mt-5 flex justify-end gap-2">
           <button
