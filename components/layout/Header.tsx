@@ -24,7 +24,7 @@ export default function Header({
   const editMode = useEditMode();
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-navy">
+    <header className="w-full bg-navy">
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">

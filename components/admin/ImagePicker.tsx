@@ -283,9 +283,9 @@ export default function ImagePicker() {
           />
         </div>
 
-        {/* The hero image doubles as the anchor for the hero's background
-            gradient, so its config gets a color picker for those gradient stops. */}
-        {picker.path === "home.hero.image" && <HeroGradientPicker />}
+        {/* The mobile header image config also hosts the color picker for the
+            hero's background gradient stops (the gradient affects only the hero). */}
+        {picker.path === "site.headerImage" && <HeroGradientPicker />}
 
         <div className="mt-5 flex justify-end gap-2">
           <button

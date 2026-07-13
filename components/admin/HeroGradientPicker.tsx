@@ -22,10 +22,11 @@ const DIRECTIONS: { label: string; angle: number }[] = [
 const MAX_STOPS = 6;
 
 /**
- * Color picker for the hero background gradient, shown inside the hero image
- * config. Editing stages a draft change to `home.hero.gradient` (like any other
- * CMS edit) — the hero repaints live and it's persisted on Save. The gradient
- * affects only the hero section; the rest of the site keeps following the theme.
+ * Color picker for the hero background gradient, shown inside the mobile header
+ * image config. Editing stages a draft change to `home.hero.gradient` (like any
+ * other CMS edit) — the hero repaints live and it's persisted on Save. The
+ * gradient affects only the hero section; the rest of the site keeps following
+ * the theme.
  */
 export default function HeroGradientPicker() {
   const admin = useAdmin();
