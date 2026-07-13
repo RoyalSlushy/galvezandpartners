@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAdmin, useCmsValue } from "./AdminProvider";
 import {
   DEFAULT_HERO_GRADIENT,
@@ -8,6 +9,15 @@ import {
 } from "@/content/home";
 import { heroGradientCss } from "@/lib/heroGradient";
 import { XIcon } from "./icons";
+
+// The EyeDropper API (Chromium only) isn't in the default DOM typings yet.
+type EyeDropperResult = { sRGBHex: string };
+type EyeDropperInstance = { open: (opts?: { signal?: AbortSignal }) => Promise<EyeDropperResult> };
+declare global {
+  interface Window {
+    EyeDropper?: new () => EyeDropperInstance;
+  }
+}
 
 /** Preset directions offered as one-tap buttons (label → gradient angle). */
 const DIRECTIONS: { label: string; angle: number }[] = [
@@ -33,6 +43,13 @@ export default function HeroGradientPicker() {
   const gradient = useCmsValue<HeroGradient>("home.hero.gradient", DEFAULT_HERO_GRADIENT);
   const stops = gradient.stops ?? [];
 
+  // The eyedropper is Chromium-only — feature-detect on the client so the button
+  // only appears where it works.
+  const [supportsEyeDropper, setSupportsEyeDropper] = useState(false);
+  useEffect(() => {
+    setSupportsEyeDropper(typeof window !== "undefined" && "EyeDropper" in window);
+  }, []);
+
   const commit = (next: HeroGradient) => admin.setValue("home.hero.gradient", next);
 
   const setStop = (i: number, patch: Partial<GradientStop>) =>
@@ -43,7 +60,7 @@ export default function HeroGradientPicker() {
     commit({ ...gradient, stops: stops.filter((_, j) => j !== i) });
   };
 
-  const addStop = () => {
+  const addStop = (color = "#ffffff") => {
     if (stops.length >= MAX_STOPS) return;
     // Drop the new stop into the widest gap between existing positions, so it
     // lands somewhere useful rather than on top of another stop.
@@ -60,7 +77,19 @@ export default function HeroGradientPicker() {
       }
     }
     const position = Math.round((gapStart + gapEnd) / 2);
-    commit({ ...gradient, stops: [...stops, { color: "#ffffff", position }] });
+    commit({ ...gradient, stops: [...stops, { color, position }] });
+  };
+
+  // Sample any pixel on screen with the native eyedropper and add it as a stop.
+  const pickWithEyeDropper = async () => {
+    const Ctor = window.EyeDropper;
+    if (!Ctor || stops.length >= MAX_STOPS) return;
+    try {
+      const { sRGBHex } = await new Ctor().open();
+      addStop(sRGBHex);
+    } catch {
+      /* user pressed Escape / dismissed the eyedropper — no change */
+    }
   };
 
   const setAngle = (angle: number) =>
@@ -176,13 +205,26 @@ export default function HeroGradientPicker() {
           </div>
         ))}
         {stops.length < MAX_STOPS && (
-          <button
-            type="button"
-            onClick={addStop}
-            className="w-full rounded-lg border border-dashed border-white/15 py-2 font-heading text-xs uppercase tracking-widest text-white/50 transition hover:border-gold/60 hover:text-gold"
-          >
-            + Add color
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => addStop()}
+              className="flex-1 rounded-lg border border-dashed border-white/15 py-2 font-heading text-xs uppercase tracking-widest text-white/50 transition hover:border-gold/60 hover:text-gold"
+            >
+              + Add color
+            </button>
+            {supportsEyeDropper && (
+              <button
+                type="button"
+                onClick={pickWithEyeDropper}
+                title="Pick a color from anywhere on screen"
+                aria-label="Add color with the eyedropper"
+                className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
+              >
+                <EyeDropperIcon className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -198,4 +240,24 @@ function normalizeHex(color: string): string {
     return "#" + c.slice(1).split("").map((ch) => ch + ch).join("").toLowerCase();
   }
   return "#000000";
+}
+
+function EyeDropperIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m2 22 1-1h3l9-9" />
+      <path d="M3 21v-3l9-9" />
+      <path d="m15 6 3.4-3.4a2.1 2.1 0 0 1 3 3L21 6l-3 3-3-3Z" />
+      <path d="m9 12 3 3" />
+    </svg>
+  );
 }

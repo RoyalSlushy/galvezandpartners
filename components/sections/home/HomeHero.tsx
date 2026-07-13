@@ -66,12 +66,12 @@ export default function HomeHero({
   ));
 
   return (
-    // Pinned to the top of the viewport: the header scrolls away and the
-    // sections below scroll up and over the hero (see page.tsx). The background
-    // gradient is admin-authored via the mobile header image config's color
-    // picker and affects only this section.
+    // Pinned below the sticky header: the sections below scroll up and over the
+    // hero, the cityscape skyline rising with them (see page.tsx). The
+    // background gradient is admin-authored via the mobile header image config's
+    // color picker and affects only this section.
     <section
-      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pb-0 pt-0 sm:overflow-visible sm:pb-4"
+      className="hero-breathe hero-fill sticky top-[var(--header-h)] z-0 flex w-full flex-col overflow-hidden pb-0 pt-0 sm:overflow-visible sm:pb-4"
       style={{ backgroundImage: heroGradientCss(gradient) }}
     >
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
@@ -152,8 +152,6 @@ export default function HomeHero({
           </div>
         </div>
       </Container>
-
-      <HeroSkyline />
     </section>
   );
 }
@@ -362,57 +360,6 @@ function HeroServiceSlide({
           className="hero-slide-body mt-1 max-w-xl whitespace-pre-line font-body text-[0.92em] leading-snug text-white/80 sm:mt-3 sm:text-lg"
         />
       </div>
-    </div>
-  );
-}
-
-/**
- * Mobile-only hero footer: a downtown skyline silhouette (two depth layers)
- * over a warm sunset glow, bleeding to the full viewport width and sitting
- * flush with the bottom of the hero.
- */
-function HeroSkyline() {
-  return (
-    <div aria-hidden className="relative shrink-0 sm:hidden">
-      {/* Sunset glow the buildings sit against — ramps up into a bright cream
-          horizon behind the rooftops. */}
-      <div className="absolute inset-x-0 bottom-0 h-full bg-[linear-gradient(to_bottom,transparent_0%,rgba(243,216,176,0.18)_38%,rgba(248,232,198,0.75)_70%,#fdf2d6_100%)]" />
-      <svg
-        viewBox="0 0 800 150"
-        preserveAspectRatio="xMidYMax meet"
-        className="relative block w-full"
-      >
-        {/* Back row: taller, hazier towers. */}
-        <g fill="#4d608a" opacity="0.7">
-          <rect x="20" y="55" width="34" height="95" />
-          <rect x="95" y="30" width="28" height="120" />
-          <rect x="107" y="12" width="3" height="18" />
-          <rect x="165" y="62" width="40" height="88" />
-          <rect x="270" y="25" width="30" height="125" />
-          <rect x="283" y="8" width="3" height="17" />
-          <rect x="350" y="52" width="36" height="98" />
-          <rect x="455" y="38" width="30" height="112" />
-          <rect x="530" y="60" width="42" height="90" />
-          <rect x="635" y="30" width="32" height="120" />
-          <rect x="649" y="12" width="3" height="18" />
-          <rect x="720" y="64" width="40" height="86" />
-        </g>
-        {/* Front row: shorter, darker buildings with sunset gaps between them. */}
-        <g fill="#2c3550">
-          <rect x="0" y="92" width="52" height="58" />
-          <rect x="68" y="78" width="48" height="72" />
-          <rect x="135" y="100" width="52" height="50" />
-          <rect x="205" y="84" width="46" height="66" />
-          <rect x="280" y="104" width="58" height="46" />
-          <rect x="360" y="88" width="50" height="62" />
-          <rect x="440" y="74" width="44" height="76" />
-          <rect x="505" y="100" width="54" height="50" />
-          <rect x="580" y="84" width="48" height="66" />
-          <rect x="648" y="104" width="54" height="46" />
-          <rect x="715" y="80" width="40" height="70" />
-          <rect x="770" y="100" width="30" height="50" />
-        </g>
-      </svg>
     </div>
   );
 }
