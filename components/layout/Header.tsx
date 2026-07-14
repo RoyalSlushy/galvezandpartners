@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import type { NavItem, Social } from "@/content/site";
 import DesktopNav from "./DesktopNav";
 import MobileMenu from "./MobileMenu";
+import EditableImage from "@/components/admin/editable/EditableImage";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { wixImage } from "@/lib/wix";
 
 /** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. */
 export default function Header({
@@ -22,6 +24,8 @@ export default function Header({
   const nav = useCmsValue("site.nav", serverNav);
   const socials = useCmsValue("site.socials", serverSocials);
   const tagline = useCmsValue("site.tagline", serverTagline);
+  const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
+  const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
   // On the homepage the header background fades from 80% opacity at the top to
   // 0% at the bottom, so it softly blends into the hero directly below it. The
@@ -36,12 +40,21 @@ export default function Header({
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">
-        {/* Desktop logo — on mobile the logo lives inside MobileMenu (and opens
-            the drawer), so it's hidden here below sm. */}
-        <Link href="/" aria-label="Galvez & Partners — home" className="hidden shrink-0 items-center sm:flex">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
-        </Link>
+        {/* Desktop logo + header image cluster — on mobile the logo lives inside
+            MobileMenu (and opens the drawer), so this is hidden below sm. */}
+        <div className="hidden shrink-0 items-center gap-4 sm:flex">
+          <Link href="/" aria-label="Galvez & Partners — home" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
+          </Link>
+          <EditableImage
+            path="site.headerImage"
+            raw={headerImg}
+            src={headerSrc}
+            alt=""
+            className="h-14 w-auto object-contain sm:h-16"
+          />
+        </div>
 
         <DesktopNav nav={nav} socials={socials} tagline={tagline} editMode={editMode} />
 

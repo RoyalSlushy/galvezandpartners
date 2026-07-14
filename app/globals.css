@@ -76,6 +76,9 @@
 .hero-fill {
   height: calc(100vh - var(--header-h));
   height: calc(100svh - var(--header-h));
+  /* Admin-authored hero gradient: a linear ramp on mobile, floating radial orbs
+     on desktop. HomeHero sets both as inline custom properties. */
+  background-image: var(--hero-grad);
 }
 
 /* Hero layout grid holding the storefront image ("main"), the carousel card and
@@ -105,6 +108,10 @@
 }
 
 @media (min-width: 751px) {
+  /* Desktop swaps the linear ramp for the floating radial orbs. */
+  .hero-fill {
+    background-image: var(--hero-grad-desktop);
+  }
   /* The shell is a size container so the grid can respond to its aspect ratio. */
   .hero-shell {
     container-type: size;

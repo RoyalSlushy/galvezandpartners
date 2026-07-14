@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
-import { heroGradientCss } from "@/lib/heroGradient";
+import { heroGradientCss, heroRadialCss } from "@/lib/heroGradient";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { resolveImage } from "@/lib/adminClient";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -78,8 +78,15 @@ export default function HomeHero({
     // gradient is admin-authored via the mobile header image config's color
     // picker and affects only this section.
     <section
-      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-0"
-      style={{ backgroundImage: heroGradientCss(gradient) }}
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
+      style={
+        {
+          // Linear ramp on mobile, floating radial orbs on desktop (see
+          // .hero-fill in globals.css, which picks the variable per breakpoint).
+          "--hero-grad": heroGradientCss(gradient),
+          "--hero-grad-desktop": heroRadialCss(gradient),
+        } as CSSProperties
+      }
     >
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
         <div className="hero-grid min-h-0 flex-1">
@@ -326,7 +333,7 @@ function HeroServiceSlide({
               raw={media}
               src={resolveImage(media, 700, 900)}
               alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
               playbackRate={0.75}
               autoPlayVideo={false}
               loopVideo={false}
