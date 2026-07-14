@@ -372,30 +372,26 @@ export default function MobileMenu({
         />
       </div>
 
-      {/* Floating bottom nav (mobile only). Collapsed, it's a glassmorphic
-          hamburger button in the bottom-right corner; once the first screen is
-          scrolled past it grows into a full-width glassmorphic bottom header —
-          logotype (left), current page (center), hamburger (right). */}
+      {/* Floating bottom nav (mobile only). In the hero it's a gold hamburger
+          button sized to sit within the cityscape band in the bottom-right
+          corner; once the first screen is scrolled past it grows into a
+          full-width glassmorphic bottom header — logotype (left), current page
+          (center), hamburger (right). */}
       <div
-        className={`fixed z-30 flex items-center overflow-hidden border border-white/15 bg-navy/40 shadow-2xl backdrop-blur-xl transition-all duration-500 ease-out sm:hidden ${
+        className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
           expanded
-            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-x-0 border-b-0 px-4"
-            : "bottom-5 right-5 h-14 w-14 justify-center gap-0 rounded-full"
+            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
+            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 rounded-full bg-gold text-navy"
         }`}
       >
         <Link
           href="/"
           aria-label="Galvez & Partners — home"
-          className={`overflow-hidden transition-all duration-300 ${
-            expanded ? "w-28 opacity-100" : "pointer-events-none w-0 opacity-0"
+          className={`overflow-hidden font-display leading-none tracking-tight transition-all duration-300 ${
+            expanded ? "w-auto text-[1.7rem] opacity-100" : "pointer-events-none w-0 text-[1.7rem] opacity-0"
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.svg"
-            alt="Galvez & Partners"
-            className="h-8 w-28 max-w-none object-contain object-left"
-          />
+          G+P
         </Link>
         <span
           className={`min-w-0 flex-1 truncate text-center font-heading text-sm uppercase tracking-wide text-white/90 transition-opacity duration-300 ${
@@ -412,7 +408,7 @@ export default function MobileMenu({
             setSide("right");
             setOpen(true);
           }}
-          className="flex shrink-0 items-center justify-center text-white transition hover:text-gold"
+          className="flex shrink-0 items-center justify-center"
         >
           <HamburgerIcon className="h-6 w-6" />
         </button>

@@ -35,7 +35,9 @@ export default function Footer({
 
   const menu: NavItem[] = [...nav, { label: "Connect With Us", href: "/contact-us" }];
   return (
-    <footer className="w-full bg-navy pt-16 pb-8 text-white">
+    // Extra bottom padding on mobile clears the floating bottom nav (h-16) so
+    // the credit line and admin gear are never hidden behind it.
+    <footer className="w-full bg-navy pt-16 pb-28 text-white sm:pb-8">
       <Container className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}

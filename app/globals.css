@@ -68,13 +68,14 @@
   }
 }
 
-/* Homepage hero fills the viewport below the header. The section is padded down
-   by --cityscape-h so no hero content sits in that bottom band; the rising
-   section's cityscape overlaps that band, so its buildings stand against the
-   hero gradient itself rather than a separate panel. */
+/* Homepage hero fills the whole viewport: the header overlaps its top (see
+   Header.tsx), so the hero extends up behind the fading header. The section is
+   padded down by --cityscape-h so no hero content sits in that bottom band; the
+   rising section's cityscape overlaps that band, so its buildings stand against
+   the hero gradient itself rather than a separate panel. */
 .hero-fill {
-  height: calc(100vh - var(--header-h));
-  height: calc(100svh - var(--header-h));
+  height: 100vh;
+  height: 100svh;
 }
 
 /* Hero layout grid holding the storefront image ("main"), the carousel card and
