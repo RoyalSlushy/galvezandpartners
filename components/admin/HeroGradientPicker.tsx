@@ -33,7 +33,7 @@ const MAX_STOPS = 6;
 export default function HeroGradientPicker() {
   const admin = useAdmin();
   const gradient = useCmsValue<HeroGradient>("home.hero.gradient", DEFAULT_HERO_GRADIENT);
-  const heroImage = useCmsValue<string>("home.hero.image", "");
+  const headerImage = useCmsValue<string>("site.headerImage", "");
   const stops = gradient.stops ?? [];
 
   const commit = (next: HeroGradient) => admin.setValue("home.hero.gradient", next);
@@ -68,16 +68,17 @@ export default function HeroGradientPicker() {
 
   // Pick a color and add it as a stop. On desktop Chromium the native
   // eyedropper lets you sample anywhere; on every other browser (incl. mobile)
-  // we sample from the hero image with the custom picker (see lib/eyedropper).
-  const heroImageSrc =
-    heroImage && !isVideoUrl(heroImage) ? resolveImage(heroImage, 1600, 1000) : undefined;
+  // we sample from the current mobile header image with the custom picker (see
+  // lib/eyedropper).
+  const headerImageSrc =
+    headerImage && !isVideoUrl(headerImage) ? resolveImage(headerImage, 1600, 1000) : undefined;
   const pickWithEyeDropper = async () => {
     if (stops.length >= MAX_STOPS) return;
-    if (!heroImageSrc && !hasNativeEyeDropper()) {
-      admin.notify("Set a hero image — the eyedropper picks colors from it", "err");
+    if (!headerImageSrc && !hasNativeEyeDropper()) {
+      admin.notify("Set a mobile header image — the eyedropper picks colors from it", "err");
       return;
     }
-    const hex = await pickScreenColor(heroImageSrc);
+    const hex = await pickScreenColor(headerImageSrc);
     if (hex) addStop(hex);
   };
 
@@ -205,7 +206,7 @@ export default function HeroGradientPicker() {
             <button
               type="button"
               onClick={pickWithEyeDropper}
-              title="Eyedropper — sample a color from the hero image"
+              title="Eyedropper — sample a color from the mobile header image"
               aria-label="Add color with the eyedropper"
               className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
             >
