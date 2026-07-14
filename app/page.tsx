@@ -26,7 +26,7 @@ export default async function Home() {
           rest, the skyline overlaps the hero's bare bottom band — its buildings
           stand against the hero gradient with no panel behind them — then an
           opaque base covers the hero as the content climbs. */}
-      <div className="relative z-10 mt-[calc(-1*var(--cityscape-h))]">
+      <div className="relative z-10 mt-[calc(-1*var(--cityscape-h))] sm:mt-0">
         <Cityscape />
         <div className="bg-navy">
           <WordMarquee words={home.marqueeWords} />
