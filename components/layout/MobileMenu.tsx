@@ -313,7 +313,15 @@ export default function MobileMenu({
   };
 
   return (
-    <div ref={headerRowRef} className="flex w-full self-stretch sm:hidden">
+    <div
+      ref={headerRowRef}
+      className={`flex w-full self-stretch sm:hidden ${
+        // Home lets the header fade into the hero (see Header.tsx), so it needs
+        // no divider; every other page gets a bottom underline under the logo +
+        // header-image row to separate it from the content below.
+        pathname === "/" ? "" : "border-b border-white/15"
+      }`}
+    >
       {/* Mobile header row: the logo (left 60%) opens the drawer on tap and fills
           its column's full width at its own aspect ratio; the picture (remaining
           40%) fills the header's full height so its bottom sits flush against the
