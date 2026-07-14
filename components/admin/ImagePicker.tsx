@@ -5,14 +5,20 @@ import { createPortal } from "react-dom";
 import { useAdmin } from "./AdminProvider";
 import {
   collectImages,
+  getByPath,
   isVideoUrl,
   listUploadedImages,
   resolveImage,
   uploadImage,
 } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
+import { DEFAULT_HERO_GRADIENT, type HeroGradient } from "@/content/home";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
 import HeroGradientPicker from "./HeroGradientPicker";
+
+/** Configs whose picker also edits the hero background gradient. */
+const GRADIENT_PATH = "home.hero.gradient";
+const GRADIENT_HOST_PATHS = new Set(["site.headerImage"]);
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -31,6 +37,17 @@ export default function ImagePicker() {
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlDebounce = useRef<ReturnType<typeof setTimeout>>();
+
+  // For the header-image config, the hero gradient is edited alongside the
+  // image. Its edits are held here as a pending value (captured on open) and
+  // only committed on Apply — so Apply governs the stops just like the image.
+  const showsGradient = GRADIENT_HOST_PATHS.has(picker.path);
+  const [initialGradient] = useState<HeroGradient>(
+    () => (getByPath(admin.drafts ?? {}, GRADIENT_PATH) as HeroGradient) ?? DEFAULT_HERO_GRADIENT,
+  );
+  const [gradient, setGradient] = useState<HeroGradient>(initialGradient);
+  const gradientChanged =
+    showsGradient && JSON.stringify(gradient) !== JSON.stringify(initialGradient);
 
   // Body scroll lock + Escape to close (same pattern as MobileMenu).
   useEffect(() => {
@@ -103,7 +120,14 @@ export default function ImagePicker() {
     }, 400);
   }
 
-  const changed = selected !== picker.raw && selected.trim().length > 0;
+  const imageChanged = selected !== picker.raw && selected.trim().length > 0;
+  const changed = imageChanged || gradientChanged;
+
+  const applyChanges = () => {
+    if (imageChanged) admin.setValue(picker.path, selected.trim());
+    if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
+    admin.closeImagePicker();
+  };
 
   return createPortal(
     <div
@@ -171,7 +195,7 @@ export default function ImagePicker() {
             )}
           </div>
           <div className="flex items-center justify-between border-t border-white/10 px-3 py-1.5 text-[11px] text-white/40">
-            <span>{changed ? "New image (applies when you press Apply)" : "Current image"}</span>
+            <span>{imageChanged ? "New image (applies when you press Apply)" : "Current image"}</span>
             <span className="max-w-[50%] truncate">{selected}</span>
           </div>
         </div>
@@ -284,8 +308,11 @@ export default function ImagePicker() {
         </div>
 
         {/* The mobile header image config also hosts the color picker for the
-            hero's background gradient stops (the gradient affects only the hero). */}
-        {picker.path === "site.headerImage" && <HeroGradientPicker />}
+            hero's background gradient stops (the gradient affects only the hero).
+            Edits are pending until Apply, alongside the image. */}
+        {showsGradient && (
+          <HeroGradientPicker gradient={gradient} onChange={setGradient} imageRaw={selected} />
+        )}
 
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -298,10 +325,7 @@ export default function ImagePicker() {
           <button
             type="button"
             disabled={!changed}
-            onClick={() => {
-              admin.setValue(picker.path, selected.trim());
-              admin.closeImagePicker();
-            }}
+            onClick={applyChanges}
             className="rounded-lg bg-gold px-5 py-2 font-heading text-sm text-navy transition hover:bg-cream disabled:opacity-40"
           >
             Apply

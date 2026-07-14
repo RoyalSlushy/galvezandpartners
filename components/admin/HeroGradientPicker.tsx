@@ -1,6 +1,6 @@
 "use client";
 
-import { useAdmin, useCmsValue } from "./AdminProvider";
+import { useAdmin } from "./AdminProvider";
 import {
   DEFAULT_HERO_GRADIENT,
   type GradientStop,
@@ -25,18 +25,27 @@ const MAX_STOPS = 6;
 
 /**
  * Color picker for the hero background gradient, shown inside the mobile header
- * image config. Editing stages a draft change to `home.hero.gradient` (like any
- * other CMS edit) — the hero repaints live and it's persisted on Save. The
- * gradient affects only the hero section; the rest of the site keeps following
- * the theme.
+ * image config. It's a controlled editor: edits are held as a pending value by
+ * the ImagePicker and only committed to `home.hero.gradient` when the admin
+ * presses Apply (like the image itself). The gradient affects only the hero
+ * section; the rest of the site keeps following the theme.
+ *
+ * `imageRaw` is the image currently shown in the picker (the pending selection),
+ * which the eyedropper samples colors from.
  */
-export default function HeroGradientPicker() {
+export default function HeroGradientPicker({
+  gradient,
+  onChange,
+  imageRaw,
+}: {
+  gradient: HeroGradient;
+  onChange: (next: HeroGradient) => void;
+  imageRaw: string;
+}) {
   const admin = useAdmin();
-  const gradient = useCmsValue<HeroGradient>("home.hero.gradient", DEFAULT_HERO_GRADIENT);
-  const headerImage = useCmsValue<string>("site.headerImage", "");
   const stops = gradient.stops ?? [];
 
-  const commit = (next: HeroGradient) => admin.setValue("home.hero.gradient", next);
+  const commit = onChange;
 
   const setStop = (i: number, patch: Partial<GradientStop>) =>
     commit({ ...gradient, stops: stops.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
@@ -68,10 +77,10 @@ export default function HeroGradientPicker() {
 
   // Pick a color and add it as a stop. On desktop Chromium the native
   // eyedropper lets you sample anywhere; on every other browser (incl. mobile)
-  // we sample from the current mobile header image with the custom picker (see
-  // lib/eyedropper).
+  // we sample from the mobile header image currently shown in the picker with
+  // the custom picker (see lib/eyedropper).
   const headerImageSrc =
-    headerImage && !isVideoUrl(headerImage) ? resolveImage(headerImage, 1600, 1000) : undefined;
+    imageRaw && !isVideoUrl(imageRaw) ? resolveImage(imageRaw, 1600, 1000) : undefined;
   const pickWithEyeDropper = async () => {
     if (stops.length >= MAX_STOPS) return;
     if (!headerImageSrc && !hasNativeEyeDropper()) {
