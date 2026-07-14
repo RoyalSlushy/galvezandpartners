@@ -1,14 +1,15 @@
 /**
- * Cross-browser "pick a color from the screen" helper.
+ * "Pick a color" helper for the gradient editor.
  *
- * Chromium ships the native `EyeDropper` API and we use it when present (best
- * UX — no permission prompt). Everywhere else (Firefox, Safari, …) we fall back
- * to a screen capture via `getDisplayMedia`: we grab one frame, paint it into a
- * full-screen overlay with a zoom loupe, and let the admin click the pixel they
- * want. Resolves to a `#rrggbb` string, or `null` if the pick is cancelled.
+ * The native `EyeDropper` API only exists on desktop Chromium, and screen
+ * capture (`getDisplayMedia`) is unavailable on mobile — so neither works on
+ * Chrome for Android/iOS. This module provides a custom, fully cross-browser
+ * eyedropper that samples straight from an image (the hero image) on a canvas:
+ * it needs no permissions and works identically on desktop and touch devices.
  *
- * `isSupported()` reports whether either path is usable so callers can decide
- * whether to offer the tool at all.
+ * `pickScreenColor(imageSrc)` uses the native eyedropper when present (lets you
+ * pick anywhere on screen) and otherwise falls back to the custom image
+ * sampler. Both resolve to a `#rrggbb` string, or `null` if cancelled.
  */
 
 type NativeEyeDropper = { open: () => Promise<{ sRGBHex: string }> };
@@ -18,12 +19,12 @@ function nativeCtor(): (new () => NativeEyeDropper) | undefined {
   return (window as unknown as { EyeDropper?: new () => NativeEyeDropper }).EyeDropper;
 }
 
-export function isSupported(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(nativeCtor() || navigator.mediaDevices?.getDisplayMedia);
+/** Whether the browser's built-in "pick anywhere" eyedropper exists. */
+export function hasNativeEyeDropper(): boolean {
+  return Boolean(nativeCtor());
 }
 
-export async function pickScreenColor(): Promise<string | null> {
+export async function pickScreenColor(imageSrc?: string): Promise<string | null> {
   const Ctor = nativeCtor();
   if (Ctor) {
     try {
@@ -33,152 +34,203 @@ export async function pickScreenColor(): Promise<string | null> {
       return null; // dismissed
     }
   }
-  return captureAndPick();
+  if (imageSrc) return pickImageColor(imageSrc);
+  return null;
 }
 
-const hex2 = (n: number) => n.toString(16).padStart(2, "0");
+const hex2 = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
 const toHex = (r: number, g: number, b: number) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
 
-async function captureAndPick(): Promise<string | null> {
-  const media = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
-  if (!media?.getDisplayMedia) return null;
-
-  let stream: MediaStream;
-  try {
-    stream = await media.getDisplayMedia({ video: true, audio: false });
-  } catch {
-    return null; // denied / cancelled the share prompt
-  }
-
-  // Grab a single painted frame, then release the capture immediately.
-  const video = document.createElement("video");
-  video.srcObject = stream;
-  video.muted = true;
-  video.playsInline = true;
-  try {
-    await video.play();
-  } catch {
-    /* autoplay may reject; metadata is enough to draw a frame */
-  }
-  await new Promise<void>((res) => {
-    if (video.videoWidth) return res();
-    video.addEventListener("loadedmetadata", () => res(), { once: true });
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    // If the CORS load fails, retry without it — the image still displays, and
+    // sampling degrades gracefully (getImageData throws → "can't read" notice).
+    img.onerror = () => {
+      const bare = new Image();
+      bare.onload = () => resolve(bare);
+      bare.onerror = () => resolve(null);
+      bare.src = src;
+    };
+    img.src = src;
   });
-  await new Promise((r) => requestAnimationFrame(() => r(null)));
+}
 
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
+/**
+ * Custom eyedropper: shows `src` full-screen and lets the user drag a loupe over
+ * it (touch or mouse) to sample a pixel. Mouse users can also click to pick;
+ * touch users confirm with the "Use color" button (so a fingertip never hides
+ * the target). Resolves to the picked hex, or null on cancel.
+ */
+export async function pickImageColor(src: string): Promise<string | null> {
+  const img = await loadImage(src);
+  if (!img) return null;
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return null;
+
   const frame = document.createElement("canvas");
-  frame.width = vw;
-  frame.height = vh;
+  frame.width = iw;
+  frame.height = ih;
   const fctx = frame.getContext("2d", { willReadFrequently: true });
-  if (!fctx || !vw || !vh) {
-    stream.getTracks().forEach((t) => t.stop());
-    return null;
+  if (!fctx) return null;
+  fctx.drawImage(img, 0, 0);
+  let readable = true;
+  try {
+    fctx.getImageData(0, 0, 1, 1);
+  } catch {
+    readable = false; // cross-origin taint — display only
   }
-  fctx.drawImage(video, 0, 0, vw, vh);
-  stream.getTracks().forEach((t) => t.stop());
-  video.srcObject = null;
 
   return new Promise<string | null>((resolve) => {
     const overlay = document.createElement("div");
     overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-label", "Pick a color from the captured screen");
+    overlay.setAttribute("aria-label", "Pick a color from the image");
     overlay.style.cssText =
-      "position:fixed;inset:0;z-index:2147483647;cursor:crosshair;background:#0b0f16;" +
-      "display:flex;align-items:center;justify-content:center;overscroll-behavior:contain;";
+      "position:fixed;inset:0;z-index:2147483647;background:#0b0f16;display:flex;" +
+      "flex-direction:column;touch-action:none;overscroll-behavior:contain;";
 
-    // Display the frame at a "contain" fit so aspect ratio is preserved.
-    const scale = Math.min(window.innerWidth / vw, window.innerHeight / vh);
-    const dw = Math.max(1, Math.round(vw * scale));
-    const dh = Math.max(1, Math.round(vh * scale));
+    const stage = document.createElement("div");
+    stage.style.cssText =
+      "position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;";
     const disp = document.createElement("canvas");
-    disp.width = dw;
-    disp.height = dh;
-    disp.style.cssText = "display:block;";
-    const dctx = disp.getContext("2d");
-    dctx?.drawImage(frame, 0, 0, dw, dh);
-    overlay.appendChild(disp);
+    disp.style.cssText = "display:block;touch-action:none;cursor:crosshair;";
+    stage.appendChild(disp);
 
-    const LOUPE = 132;
+    const cross = document.createElement("div");
+    cross.style.cssText =
+      "position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border:2px solid #fff;" +
+      "border-radius:9999px;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.5);pointer-events:none;display:none;";
+    stage.appendChild(cross);
+
+    const LOUPE = 120;
     const ZOOM = 9;
     const loupe = document.createElement("canvas");
     loupe.width = LOUPE;
     loupe.height = LOUPE;
     loupe.style.cssText =
-      `position:fixed;width:${LOUPE}px;height:${LOUPE}px;border-radius:9999px;` +
-      "border:2px solid #fff;box-shadow:0 6px 20px rgba(0,0,0,.55);pointer-events:none;" +
-      "transform:translate(-50%,-50%);display:none;z-index:1;image-rendering:pixelated;";
+      `position:absolute;width:${LOUPE}px;height:${LOUPE}px;border-radius:9999px;border:2px solid #fff;` +
+      "box-shadow:0 6px 20px rgba(0,0,0,.55);pointer-events:none;transform:translate(-50%,-135%);" +
+      "display:none;image-rendering:pixelated;";
     const lctx = loupe.getContext("2d");
     if (lctx) lctx.imageSmoothingEnabled = false;
-    overlay.appendChild(loupe);
+    stage.appendChild(loupe);
+    overlay.appendChild(stage);
 
-    const readout = document.createElement("div");
-    readout.style.cssText =
-      "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2;pointer-events:none;" +
-      "display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:9999px;" +
-      "background:rgba(20,25,36,.92);border:1px solid rgba(255,255,255,.15);color:#fff;" +
-      "font:600 13px system-ui,-apple-system,sans-serif;";
+    const bar = document.createElement("div");
+    bar.style.cssText =
+      "display:flex;align-items:center;gap:12px;padding:14px 16px;background:#141924;border-top:1px solid rgba(255,255,255,.1);";
     const swatch = document.createElement("span");
     swatch.style.cssText =
-      "width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.3);background:#000;";
-    const label = document.createElement("span");
-    label.textContent = "Click to pick · Esc to cancel";
-    readout.append(swatch, label);
-    overlay.appendChild(readout);
+      "width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:#000;flex:none;";
+    const hexLabel = document.createElement("span");
+    hexLabel.style.cssText =
+      "font:600 14px system-ui,-apple-system,sans-serif;color:#fff;flex:1;letter-spacing:.03em;";
+    hexLabel.textContent = readable ? "Drag over the image to sample" : "Can’t read this image’s colors";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.style.cssText =
+      "padding:9px 14px;border-radius:9999px;border:none;background:transparent;color:rgba(255,255,255,.7);" +
+      "font:600 13px system-ui;cursor:pointer;";
+    const useBtn = document.createElement("button");
+    useBtn.type = "button";
+    useBtn.textContent = "Use color";
+    useBtn.style.cssText =
+      "padding:9px 16px;border-radius:9999px;border:none;background:#e6b367;color:#141924;" +
+      "font:700 13px system-ui;cursor:pointer;opacity:.5;";
+    useBtn.disabled = true;
+    bar.append(swatch, hexLabel, cancelBtn, useBtn);
+    overlay.appendChild(bar);
 
     document.body.appendChild(overlay);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    const sampleAt = (clientX: number, clientY: number): [number, number, number] | null => {
-      const rect = disp.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) return null;
-      const fx = Math.min(vw - 1, Math.floor((x / rect.width) * vw));
-      const fy = Math.min(vh - 1, Math.floor((y / rect.height) * vh));
-      const d = fctx.getImageData(fx, fy, 1, 1).data;
-      return [d[0], d[1], d[2]];
+    const fit = () => {
+      const sw = stage.clientWidth || window.innerWidth;
+      const sh = stage.clientHeight || window.innerHeight;
+      const scale = Math.min(sw / iw, sh / ih) || 1;
+      disp.width = Math.max(1, Math.round(iw * scale));
+      disp.height = Math.max(1, Math.round(ih * scale));
+      disp.getContext("2d")?.drawImage(frame, 0, 0, disp.width, disp.height);
     };
+    fit();
 
-    const onMove = (e: PointerEvent) => {
+    let current: string | null = null;
+    let lastType = "mouse";
+
+    const sample = (clientX: number, clientY: number) => {
+      if (!readable) return;
       const rect = disp.getBoundingClientRect();
-      const inside =
-        e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-      if (!inside || !lctx) {
-        loupe.style.display = "none";
-        return;
+      const stageRect = stage.getBoundingClientRect();
+      const x = Math.max(0, Math.min(rect.width - 1, clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height - 1, clientY - rect.top));
+      const left = rect.left - stageRect.left + x;
+      const top = rect.top - stageRect.top + y;
+
+      cross.style.display = "block";
+      cross.style.left = `${left}px`;
+      cross.style.top = `${top}px`;
+
+      const fx = (x / rect.width) * iw;
+      const fy = (y / rect.height) * ih;
+      if (lctx) {
+        const srcSize = LOUPE / ZOOM;
+        lctx.clearRect(0, 0, LOUPE, LOUPE);
+        lctx.drawImage(frame, fx - srcSize / 2, fy - srcSize / 2, srcSize, srcSize, 0, 0, LOUPE, LOUPE);
+        lctx.strokeStyle = "rgba(255,255,255,.9)";
+        lctx.lineWidth = 1;
+        lctx.strokeRect(LOUPE / 2 - ZOOM / 2, LOUPE / 2 - ZOOM / 2, ZOOM, ZOOM);
       }
       loupe.style.display = "block";
-      loupe.style.left = `${e.clientX}px`;
-      loupe.style.top = `${e.clientY}px`;
-      const fx = ((e.clientX - rect.left) / rect.width) * vw;
-      const fy = ((e.clientY - rect.top) / rect.height) * vh;
-      const src = LOUPE / ZOOM;
-      lctx.clearRect(0, 0, LOUPE, LOUPE);
-      lctx.drawImage(frame, fx - src / 2, fy - src / 2, src, src, 0, 0, LOUPE, LOUPE);
-      lctx.strokeStyle = "rgba(255,255,255,.9)";
-      lctx.lineWidth = 1;
-      lctx.strokeRect(LOUPE / 2 - ZOOM / 2, LOUPE / 2 - ZOOM / 2, ZOOM, ZOOM);
-      const rgb = sampleAt(e.clientX, e.clientY);
-      if (rgb) swatch.style.background = toHex(rgb[0], rgb[1], rgb[2]);
+      loupe.style.left = `${left}px`;
+      loupe.style.top = `${top}px`;
+
+      const px = Math.min(iw - 1, Math.floor(fx));
+      const py = Math.min(ih - 1, Math.floor(fy));
+      const d = fctx.getImageData(px, py, 1, 1).data;
+      current = toHex(d[0], d[1], d[2]);
+      swatch.style.background = current;
+      hexLabel.textContent = current.toUpperCase();
+      useBtn.disabled = false;
+      useBtn.style.opacity = "1";
+    };
+
+    let dragging = false;
+    const onDown = (e: PointerEvent) => {
+      lastType = e.pointerType || "mouse";
+      dragging = true;
+      disp.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+      sample(e.clientX, e.clientY);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (dragging || e.pointerType === "mouse") {
+        e.preventDefault();
+        sample(e.clientX, e.clientY);
+      }
+    };
+    const onUp = () => {
+      dragging = false;
+    };
+    const onClick = () => {
+      // Mouse: a click picks immediately. Touch confirms via the button so the
+      // fingertip doesn't obscure the target pixel.
+      if (lastType === "mouse" && current) finish(current);
     };
 
     const cleanup = () => {
-      window.removeEventListener("pointermove", onMove, true);
       window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("resize", fit);
       overlay.remove();
       document.body.style.overflow = prevOverflow;
     };
     const finish = (val: string | null) => {
       cleanup();
       resolve(val);
-    };
-    const onClick = (e: MouseEvent) => {
-      e.preventDefault();
-      const rgb = sampleAt(e.clientX, e.clientY);
-      finish(rgb ? toHex(rgb[0], rgb[1], rgb[2]) : null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -188,12 +240,14 @@ async function captureAndPick(): Promise<string | null> {
       }
     };
 
-    window.addEventListener("pointermove", onMove, true);
+    disp.addEventListener("pointerdown", onDown);
+    disp.addEventListener("pointermove", onMove);
+    disp.addEventListener("pointerup", onUp);
+    disp.addEventListener("pointercancel", onUp);
+    disp.addEventListener("click", onClick);
+    cancelBtn.addEventListener("click", () => finish(null));
+    useBtn.addEventListener("click", () => finish(current));
     window.addEventListener("keydown", onKey, true);
-    overlay.addEventListener("click", onClick);
-    overlay.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      finish(null);
-    });
+    window.addEventListener("resize", fit);
   });
 }

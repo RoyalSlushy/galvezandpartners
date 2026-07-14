@@ -7,7 +7,8 @@ import {
   type HeroGradient,
 } from "@/content/home";
 import { heroGradientCss } from "@/lib/heroGradient";
-import { isSupported as eyedropperSupported, pickScreenColor } from "@/lib/eyedropper";
+import { hasNativeEyeDropper, pickScreenColor } from "@/lib/eyedropper";
+import { isVideoUrl, resolveImage } from "@/lib/adminClient";
 import { XIcon } from "./icons";
 
 /** Preset directions offered as one-tap buttons (label → gradient angle). */
@@ -32,6 +33,7 @@ const MAX_STOPS = 6;
 export default function HeroGradientPicker() {
   const admin = useAdmin();
   const gradient = useCmsValue<HeroGradient>("home.hero.gradient", DEFAULT_HERO_GRADIENT);
+  const heroImage = useCmsValue<string>("home.hero.image", "");
   const stops = gradient.stops ?? [];
 
   const commit = (next: HeroGradient) => admin.setValue("home.hero.gradient", next);
@@ -64,15 +66,18 @@ export default function HeroGradientPicker() {
     commit({ ...gradient, stops: [...stops, { color, position }] });
   };
 
-  // Sample any pixel on screen and add it as a stop. Uses the native eyedropper
-  // on Chromium and a screen-capture fallback elsewhere (see lib/eyedropper).
+  // Pick a color and add it as a stop. On desktop Chromium the native
+  // eyedropper lets you sample anywhere; on every other browser (incl. mobile)
+  // we sample from the hero image with the custom picker (see lib/eyedropper).
+  const heroImageSrc =
+    heroImage && !isVideoUrl(heroImage) ? resolveImage(heroImage, 1600, 1000) : undefined;
   const pickWithEyeDropper = async () => {
     if (stops.length >= MAX_STOPS) return;
-    if (!eyedropperSupported()) {
-      admin.notify("The eyedropper isn't available in this browser", "err");
+    if (!heroImageSrc && !hasNativeEyeDropper()) {
+      admin.notify("Set a hero image — the eyedropper picks colors from it", "err");
       return;
     }
-    const hex = await pickScreenColor();
+    const hex = await pickScreenColor(heroImageSrc);
     if (hex) addStop(hex);
   };
 
@@ -200,7 +205,7 @@ export default function HeroGradientPicker() {
             <button
               type="button"
               onClick={pickWithEyeDropper}
-              title="Pick a color from anywhere on screen"
+              title="Eyedropper — sample a color from the hero image"
               aria-label="Add color with the eyedropper"
               className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
             >
