@@ -1,13 +1,12 @@
 /**
  * Downtown skyline silhouette that caps the top of the rising content block, so
  * it comes up together with that section as the page scrolls over the pinned
- * hero. The hero reserves `--cityscape-h` at its base (see `.hero-fill`), so at
- * rest this band sits in the initial viewport flush under the hero; as the page
- * scrolls it rises with the section over the hero. The front row is painted in
- * the section's own base color, so the building bases fuse seamlessly with the
- * panel below; the gaps between the buildings stay transparent, letting the
- * hero show through as it rises. `none` keeps the row spanning the full width at
- * the fixed band height on every viewport.
+ * hero. The block is pulled up by one `--cityscape-h` band (see page.tsx), so at
+ * rest the skyline overlaps the hero's bare bottom band: it has no panel behind
+ * it — the buildings stand directly against the hero gradient, and the gaps show
+ * the gradient through. The front row is painted in the content's base color so
+ * its bases fuse with the opaque panel below as the section rises. `none` keeps
+ * the row spanning the full width at the fixed band height on every viewport.
  */
 export default function Cityscape() {
   return (

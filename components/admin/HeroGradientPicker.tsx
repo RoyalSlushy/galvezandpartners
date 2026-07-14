@@ -7,16 +7,8 @@ import {
   type HeroGradient,
 } from "@/content/home";
 import { heroGradientCss } from "@/lib/heroGradient";
+import { isSupported as eyedropperSupported, pickScreenColor } from "@/lib/eyedropper";
 import { XIcon } from "./icons";
-
-// The EyeDropper API (Chromium only) isn't in the default DOM typings yet.
-type EyeDropperResult = { sRGBHex: string };
-type EyeDropperInstance = { open: (opts?: { signal?: AbortSignal }) => Promise<EyeDropperResult> };
-declare global {
-  interface Window {
-    EyeDropper?: new () => EyeDropperInstance;
-  }
-}
 
 /** Preset directions offered as one-tap buttons (label → gradient angle). */
 const DIRECTIONS: { label: string; angle: number }[] = [
@@ -72,20 +64,16 @@ export default function HeroGradientPicker() {
     commit({ ...gradient, stops: [...stops, { color, position }] });
   };
 
-  // Sample any pixel on screen with the native eyedropper and add it as a stop.
+  // Sample any pixel on screen and add it as a stop. Uses the native eyedropper
+  // on Chromium and a screen-capture fallback elsewhere (see lib/eyedropper).
   const pickWithEyeDropper = async () => {
     if (stops.length >= MAX_STOPS) return;
-    const Ctor = typeof window !== "undefined" ? window.EyeDropper : undefined;
-    if (!Ctor) {
-      admin.notify("The eyedropper needs Chrome or Edge (not supported in this browser)", "err");
+    if (!eyedropperSupported()) {
+      admin.notify("The eyedropper isn't available in this browser", "err");
       return;
     }
-    try {
-      const { sRGBHex } = await new Ctor().open();
-      addStop(sRGBHex);
-    } catch {
-      /* user pressed Escape / dismissed the eyedropper — no change */
-    }
+    const hex = await pickScreenColor();
+    if (hex) addStop(hex);
   };
 
   const setAngle = (angle: number) =>

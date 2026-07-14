@@ -66,12 +66,14 @@ export default function HomeHero({
   ));
 
   return (
-    // Pinned below the sticky header: the sections below scroll up and over the
-    // hero, the cityscape skyline rising with them (see page.tsx). The
-    // background gradient is admin-authored via the mobile header image config's
-    // color picker and affects only this section.
+    // Pinned to the top of the viewport: the header scrolls away and the
+    // sections below scroll up and over the hero, the cityscape skyline rising
+    // with them (see page.tsx). The bottom band (--cityscape-h) is left as bare
+    // gradient so the cityscape's buildings stand against it. The gradient is
+    // admin-authored via the mobile header image config's color picker and
+    // affects only this section.
     <section
-      className="hero-breathe hero-fill sticky top-[var(--header-h)] z-0 flex w-full flex-col overflow-hidden pb-0 pt-0 sm:overflow-visible sm:pb-4"
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible"
       style={{ backgroundImage: heroGradientCss(gradient) }}
     >
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">

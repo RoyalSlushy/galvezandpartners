@@ -68,12 +68,13 @@
   }
 }
 
-/* Homepage hero fills the viewport below the header, minus the skyline band the
-   cityscape reserves at the bottom — so the rising section's cityscape sits in
-   the initial viewport, flush under the hero, on every breakpoint. */
+/* Homepage hero fills the viewport below the header. The section is padded down
+   by --cityscape-h so no hero content sits in that bottom band; the rising
+   section's cityscape overlaps that band, so its buildings stand against the
+   hero gradient itself rather than a separate panel. */
 .hero-fill {
-  height: calc(100vh - var(--header-h) - var(--cityscape-h));
-  height: calc(100svh - var(--header-h) - var(--cityscape-h));
+  height: calc(100vh - var(--header-h));
+  height: calc(100svh - var(--header-h));
 }
 
 /* Hero layout grid holding the storefront image ("main"), the carousel card and

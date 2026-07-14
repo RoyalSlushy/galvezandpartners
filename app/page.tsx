@@ -20,11 +20,13 @@ export default async function Home() {
     <>
       <HomeHero hero={home.hero} services={home.services} />
       {/* Everything below the hero rises up and over it as you scroll (the hero
-          is pinned below the sticky header). This block sits above the hero
-          (z-10), capped by the cityscape skyline so the skyline rises together
-          with the section, over an opaque base that covers the hero as the
-          content climbs. */}
-      <div className="relative z-10">
+          is pinned). This block sits above the hero (z-10), capped by the
+          cityscape skyline so the skyline rises together with the section. The
+          negative top margin pulls the block up by one cityscape band so, at
+          rest, the skyline overlaps the hero's bare bottom band — its buildings
+          stand against the hero gradient with no panel behind them — then an
+          opaque base covers the hero as the content climbs. */}
+      <div className="relative z-10 mt-[calc(-1*var(--cityscape-h))]">
         <Cityscape />
         <div className="bg-navy">
           <WordMarquee words={home.marqueeWords} />
