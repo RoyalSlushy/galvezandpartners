@@ -58,6 +58,9 @@ export default function MobileMenu({
   const [open, setOpen] = useState(false);
   // Which edge the drawer is docked to; set by the opening gesture.
   const [side, setSide] = useState<Side>("right");
+  // The floating bottom nav starts as a corner hamburger and expands into a
+  // bottom header once the first screen has been scrolled past.
+  const [expanded, setExpanded] = useState(false);
   const t = useT();
   const pathname = usePathname();
 
@@ -68,6 +71,23 @@ export default function MobileMenu({
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // Current page label for the expanded bottom header's center slot.
+  const currentNav = nav.find((item) => isActive(item.href));
+  const currentLabel = currentNav ? t(currentNav.label) : "";
+
+  // Expand the floating nav once the viewport has scrolled past ~half the first
+  // screen (into the next section).
+  useEffect(() => {
+    const onScroll = () => setExpanded(window.scrollY > window.innerHeight * 0.5);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   // The logo now fills its column's full width (its height follows from the
   // SVG's own aspect ratio, not a fixed size), so the picture's top-padding —
@@ -352,6 +372,52 @@ export default function MobileMenu({
         />
       </div>
 
+      {/* Floating bottom nav (mobile only). Collapsed, it's a glassmorphic
+          hamburger button in the bottom-right corner; once the first screen is
+          scrolled past it grows into a full-width glassmorphic bottom header —
+          logotype (left), current page (center), hamburger (right). */}
+      <div
+        className={`fixed z-30 flex items-center overflow-hidden border border-white/15 bg-navy/40 shadow-2xl backdrop-blur-xl transition-all duration-500 ease-out sm:hidden ${
+          expanded
+            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-x-0 border-b-0 px-4"
+            : "bottom-5 right-5 h-14 w-14 justify-center gap-0 rounded-full"
+        }`}
+      >
+        <Link
+          href="/"
+          aria-label="Galvez & Partners — home"
+          className={`overflow-hidden transition-all duration-300 ${
+            expanded ? "w-28 opacity-100" : "pointer-events-none w-0 opacity-0"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt="Galvez & Partners"
+            className="h-8 w-28 max-w-none object-contain object-left"
+          />
+        </Link>
+        <span
+          className={`min-w-0 flex-1 truncate text-center font-heading text-sm uppercase tracking-wide text-white/90 transition-opacity duration-300 ${
+            expanded ? "opacity-100" : "w-0 flex-none opacity-0"
+          }`}
+        >
+          {currentLabel}
+        </span>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={open}
+          onClick={() => {
+            setSide("right");
+            setOpen(true);
+          }}
+          className="flex shrink-0 items-center justify-center text-white transition hover:text-gold"
+        >
+          <HamburgerIcon className="h-6 w-6" />
+        </button>
+      </div>
+
       {/* Dimmed backdrop — tap to close. */}
       <div
         aria-hidden
@@ -364,5 +430,21 @@ export default function MobileMenu({
       {renderDrawer("left")}
       {renderDrawer("right")}
     </div>
+  );
+}
+
+function HamburgerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
   );
 }
