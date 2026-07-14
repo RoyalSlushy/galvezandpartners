@@ -153,16 +153,28 @@
     align-items: center;
     gap: 2rem;
   }
-  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
-     leaving the body the rest of the row for maximum breathing room. */
-  .hero-slide-fit > h3 {
-    flex: 0 0 auto;
-    width: min-content;
+  /* The heading stacks above the body (the row `display:flex` is overridden by
+     the slide's `sm:block`), so give it a generous, stable width: wide enough to
+     keep the type large while the two-line fit wraps longer titles. */
+  .hero-slide-heading {
+    width: 72%;
   }
   .hero-slide-body {
     margin-top: 0;
     max-width: none;
     flex: 1;
+  }
+}
+
+/* Desktop (sm+) heading: capped to two lines. useFitText shrinks the type until
+   the words wrap into at most two lines inside this box; overflow is hidden only
+   as a backstop below the min font size, which the fit is tuned to avoid. Gated
+   on the sm breakpoint so it always pairs with the desktop fit (the @container
+   row layout above only engages at even wider viewports). */
+@media (min-width: 751px) {
+  .hero-slide-heading {
+    max-height: 2.45em; /* two lines at leading-1.15, relative to the fitted font */
+    overflow: hidden;
   }
 }
 

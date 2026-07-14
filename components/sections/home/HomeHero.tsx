@@ -28,6 +28,9 @@ type Hero = {
 
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
+/** Matches the `sm` breakpoint upward — where the carousel heading is fit to
+ * two lines (see HeroServiceSlide). */
+const DESKTOP = "(min-width: 751px)";
 
 /**
  * Homepage hero: fills the viewport below the header. On mobile everything —
@@ -226,6 +229,14 @@ function HeroServiceSlide({
     query: MOBILE,
     deps: [service.title, service.description],
   });
+  // Desktop: shrink the heading (only if needed) so it never exceeds two lines
+  // in its box — no clamp/ellipsis, so no text is ever hidden.
+  const { ref: headingRef } = useFitText<HTMLDivElement>({
+    max: 32,
+    min: 15,
+    query: DESKTOP,
+    deps: [service.title],
+  });
 
   // Backdrop video playback state machine:
   //  - idle (default): paused at the start.
@@ -350,12 +361,17 @@ function HeroServiceSlide({
         ref={ref}
         className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
       >
-        <EditableText
-          path={`home.services.${index}.title`}
-          value={tv(service.title)}
-          as="h3"
-          className="font-display text-[2em] leading-none text-sky-200 sm:text-[2.025rem]"
-        />
+        {/* On mobile the heading scales with the shared fit (capped so it never
+            rivals the hero headline); on desktop it's fit to two lines within
+            this box (see .hero-slide-heading in globals.css). */}
+        <div ref={headingRef} className="hero-slide-heading">
+          <EditableText
+            path={`home.services.${index}.title`}
+            value={tv(service.title)}
+            as="h3"
+            className="font-display text-[min(2em,1.55rem)] leading-none text-sky-200 sm:text-[1em] sm:leading-[1.15] sm:text-balance"
+          />
+        </div>
         <EditableText
           path={`home.services.${index}.description`}
           value={tv(service.description)}
