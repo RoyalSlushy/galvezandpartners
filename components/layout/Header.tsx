@@ -52,7 +52,7 @@ export default function Header({
             raw={headerImg}
             src={headerSrc}
             alt=""
-            className="h-14 w-auto object-contain sm:h-16"
+            className="h-14 w-auto object-contain sm:h-20"
           />
         </div>
 

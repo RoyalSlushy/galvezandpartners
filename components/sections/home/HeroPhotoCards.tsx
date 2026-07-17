@@ -4,23 +4,37 @@ import { wixImage } from "@/lib/wix";
 /**
  * Small decorative "photocards" of work pulled from the case studies, scattered
  * into the hero's side gutters — away from the body content — as a subtle
- * sprinkled-in flourish. Purely decorative (aria-hidden, pointer-transparent)
- * and only shown on wide desktops (min-[1440px]) where the gutters outside the
- * 1200px content column are wide enough to hold them without crowding the body.
+ * sprinkled-in flourish that slowly falls in place. Purely decorative
+ * (aria-hidden, pointer-transparent) and shown from min-[1440px] where the side
+ * gutters first open up; the cards then grow at min-[1600px] as the gutters get
+ * roomier, and stay clear of the body even after it widens on ultrawide (see the
+ * --site-max tiers in globals.css).
  */
 
-type Card = { study: number; img: number; className: string };
+type Card = {
+  study: number;
+  img: number;
+  /** Edge anchor + vertical placement. */
+  pos: string;
+  /** Card width — modest where the gutter first opens, larger once it widens. */
+  w: string;
+  /** Resting tilt, kept off the animated (translate) transform. */
+  rot: string;
+  /** Fall timing — staggered + negative-offset so the cards drift out of sync. */
+  dur: string;
+  delay: string;
+};
 
-// Pull a spread of images across the four case studies and pin each to a fixed
-// spot hugging the left/right edge, tilted a little so they read as loose
+// A spread of images across the four case studies, each pinned to a fixed spot
+// hugging the left/right edge and tilted a little so they read as loose
 // snapshots rather than a tidy grid.
 const CARDS: Card[] = [
-  { study: 0, img: 0, className: "left-[0.75rem] top-[15%] w-24 -rotate-[8deg]" },
-  { study: 2, img: 1, className: "left-[1.5rem] top-[45%] w-28 rotate-[6deg]" },
-  { study: 1, img: 4, className: "left-[0.5rem] bottom-[12%] w-24 -rotate-[5deg]" },
-  { study: 3, img: 2, className: "right-[0.75rem] top-[13%] w-28 rotate-[7deg]" },
-  { study: 1, img: 6, className: "right-[1.5rem] top-[47%] w-24 -rotate-[6deg]" },
-  { study: 0, img: 5, className: "right-[0.5rem] bottom-[14%] w-28 rotate-[9deg]" },
+  { study: 0, img: 0, pos: "left-[0.75rem] top-[13%]", w: "w-28 min-[1600px]:w-36", rot: "-8deg", dur: "13s", delay: "-2s" },
+  { study: 2, img: 1, pos: "left-[1.25rem] top-[43%]", w: "w-32 min-[1600px]:w-40", rot: "6deg", dur: "16s", delay: "-7s" },
+  { study: 1, img: 4, pos: "left-[0.5rem] bottom-[11%]", w: "w-28 min-[1600px]:w-36", rot: "-5deg", dur: "11s", delay: "-4s" },
+  { study: 3, img: 2, pos: "right-[0.75rem] top-[11%]", w: "w-32 min-[1600px]:w-40", rot: "7deg", dur: "14s", delay: "-9s" },
+  { study: 1, img: 6, pos: "right-[1.25rem] top-[45%]", w: "w-28 min-[1600px]:w-36", rot: "-6deg", dur: "12s", delay: "-1s" },
+  { study: 0, img: 5, pos: "right-[0.5rem] bottom-[13%]", w: "w-32 min-[1600px]:w-40", rot: "9deg", dur: "15s", delay: "-6s" },
 ];
 
 export default function HeroPhotoCards() {
@@ -36,14 +50,20 @@ export default function HeroPhotoCards() {
         return (
           <figure
             key={i}
-            className={`absolute rounded-md bg-white/95 p-1.5 shadow-2xl shadow-black/40 ring-1 ring-black/10 opacity-90 ${card.className}`}
+            className={`photocard-fall absolute ${card.pos} ${card.w}`}
+            style={{ animationDuration: card.dur, animationDelay: card.delay }}
           >
-            <img
-              src={wixImage(id, 220, 275)}
-              alt=""
-              loading="lazy"
-              className="block aspect-[4/5] w-full rounded-sm object-cover"
-            />
+            <div
+              className="rounded-md bg-white/95 p-2 opacity-90 shadow-2xl shadow-black/40 ring-1 ring-black/10"
+              style={{ transform: `rotate(${card.rot})` }}
+            >
+              <img
+                src={wixImage(id, 300, 375)}
+                alt=""
+                loading="lazy"
+                className="block aspect-[4/5] w-full rounded-sm object-cover"
+              />
+            </div>
           </figure>
         );
       })}

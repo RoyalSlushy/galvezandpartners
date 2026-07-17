@@ -68,6 +68,27 @@
   }
 }
 
+/* Ultrawide: widen the shared site width (header + body containers, via the
+   Tailwind `site` maxWidth token) by a good amount. Only kicks in on genuinely
+   ultrawide viewports so normal desktops keep the 1200px column — and the side
+   gutters that hold the hero photocards — untouched. Even at the widest tier the
+   viewport still leaves generous gutters for those cards. */
+@media (min-width: 1920px) {
+  :root {
+    --site-max: 1560px;
+  }
+}
+@media (min-width: 2400px) {
+  :root {
+    --site-max: 1760px;
+  }
+}
+@media (min-width: 3000px) {
+  :root {
+    --site-max: 2000px;
+  }
+}
+
 /* Homepage hero fills the viewport below the header (it starts under the header,
    never behind it). The section is padded down by --cityscape-h so no hero
    content sits in that bottom band; the rising section's cityscape overlaps that
@@ -205,6 +226,20 @@
   animation: hero-breathe 8s ease-in-out infinite;
 }
 
+/* Hero photocards drift slowly downward and back — a gentle, weighted "slow
+   fall" (the downward reach is larger than the upward one). Each card sets its
+   own duration/delay inline so they fall out of sync. The translate lives on the
+   figure (page-space vertical); the card's tilt sits on the inner element, so
+   the two transforms don't fight. */
+@keyframes photocard-fall {
+  0% { transform: translateY(-8px); }
+  100% { transform: translateY(20px); }
+}
+.photocard-fall {
+  animation: photocard-fall 13s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 /* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between
    them, held at 10% opacity. Each 24px tile carries one letter and every row
    shifts the sequence one across, so the letters read on the diagonal. The tiles
@@ -334,6 +369,9 @@
     opacity: 1 !important;
   }
   .hero-breathe {
+    animation: none !important;
+  }
+  .photocard-fall {
     animation: none !important;
   }
   .wordfill-armed [data-word] {
