@@ -258,7 +258,7 @@
      50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
   overflow: hidden;
-  transition: opacity 250ms ease;
+  transition: opacity 500ms ease;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
 }

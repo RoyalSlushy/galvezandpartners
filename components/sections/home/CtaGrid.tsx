@@ -25,7 +25,7 @@ const GLYPH_H = 20; // px — masked-glyph / font letter height at scale 1
 const GLYPH_W = 17.5; // px — masked-glyph box width at scale 1
 const LETTERS = ["G", "A", "L", "V", "E", "Z"];
 const OVERSCAN = LETTERS.length; // extra tiles per side so the drift never gaps
-const RAMP_MS = 150; // time to ramp fully between base and hover speed
+const RAMP_MS = 300; // time to ease fully between base and hover speed (in/out)
 
 const easeInQuad = (u: number) => u * u;
 const easeOutQuad = (u: number) => u * (2 - u);

@@ -330,7 +330,7 @@ function HeroServiceSlide({
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-16%] sm:right-2 sm:w-[58%]"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-2 sm:w-[72%]"
         >
           <div className="relative isolate h-full w-full">
             <div className="absolute inset-0 bg-navy-soft" />
@@ -339,7 +339,7 @@ function HeroServiceSlide({
               raw={media}
               src={resolveImage(media, 700, 900)}
               alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain sm:object-right"
               playbackRate={0.75}
               autoPlayVideo={false}
               loopVideo={false}

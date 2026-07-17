@@ -29,12 +29,12 @@ type Card = {
 // hugging the left/right edge and tilted a little so they read as loose
 // snapshots rather than a tidy grid.
 const CARDS: Card[] = [
-  { study: 0, img: 0, pos: "left-[0.75rem] top-[13%]", w: "w-28 min-[1600px]:w-36", rot: "-8deg", dur: "13s", delay: "-2s" },
-  { study: 2, img: 1, pos: "left-[1.25rem] top-[43%]", w: "w-32 min-[1600px]:w-40", rot: "6deg", dur: "16s", delay: "-7s" },
-  { study: 1, img: 4, pos: "left-[0.5rem] bottom-[11%]", w: "w-28 min-[1600px]:w-36", rot: "-5deg", dur: "11s", delay: "-4s" },
-  { study: 3, img: 2, pos: "right-[0.75rem] top-[11%]", w: "w-32 min-[1600px]:w-40", rot: "7deg", dur: "14s", delay: "-9s" },
-  { study: 1, img: 6, pos: "right-[1.25rem] top-[45%]", w: "w-28 min-[1600px]:w-36", rot: "-6deg", dur: "12s", delay: "-1s" },
-  { study: 0, img: 5, pos: "right-[0.5rem] bottom-[13%]", w: "w-32 min-[1600px]:w-40", rot: "9deg", dur: "15s", delay: "-6s" },
+  { study: 0, img: 0, pos: "left-[0.75rem] top-[13%]", w: "w-32 min-[1600px]:w-44", rot: "-8deg", dur: "13s", delay: "-2s" },
+  { study: 2, img: 1, pos: "left-[1.25rem] top-[43%]", w: "w-36 min-[1600px]:w-48", rot: "6deg", dur: "16s", delay: "-7s" },
+  { study: 1, img: 4, pos: "left-[0.5rem] bottom-[11%]", w: "w-32 min-[1600px]:w-44", rot: "-5deg", dur: "11s", delay: "-4s" },
+  { study: 3, img: 2, pos: "right-[0.75rem] top-[11%]", w: "w-36 min-[1600px]:w-48", rot: "7deg", dur: "14s", delay: "-9s" },
+  { study: 1, img: 6, pos: "right-[1.25rem] top-[45%]", w: "w-32 min-[1600px]:w-44", rot: "-6deg", dur: "12s", delay: "-1s" },
+  { study: 0, img: 5, pos: "right-[0.5rem] bottom-[13%]", w: "w-36 min-[1600px]:w-48", rot: "9deg", dur: "15s", delay: "-6s" },
 ];
 
 export default function HeroPhotoCards() {
