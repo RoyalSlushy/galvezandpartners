@@ -200,7 +200,7 @@
     margin-top: 0;
     /* Cap the line length so the body copy keeps a comfortable measure instead
        of stretching the full width of a wide (or ultrawide) card. */
-    max-width: 34rem;
+    max-width: 51rem;
     flex: 1;
   }
 }
@@ -258,8 +258,14 @@
      50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
   overflow: hidden;
+  transition: opacity 250ms ease;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+}
+/* Hovering the CTA card lifts the letter grid a little more into view (partway,
+   not fully) — pairs with the drift speed-up CtaGrid runs on the same hover. */
+.hero-cta:hover .cta-grid {
+  opacity: 0.22;
 }
 
 /* Mobile drawer backdrop: the same drifting "GALVEZ" letter grid as the CTA,
