@@ -330,7 +330,7 @@ function HeroServiceSlide({
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-2 sm:w-[72%]"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-2 sm:w-auto sm:aspect-[4/5]"
         >
           <div className="relative isolate h-full w-full">
             <div className="absolute inset-0 bg-navy-soft" />

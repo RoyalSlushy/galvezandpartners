@@ -63,9 +63,20 @@
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+    --header-h: 168px; /* taller, to give the logo + nav/social more room */
     --cityscape-h: 104px;
   }
+}
+
+/* Homepage header carries no fill of its own — just a subtle gold glow spilling
+   down from above, so the masthead reads as light over the hero rather than a
+   solid band. */
+.header-glow {
+  background-image: radial-gradient(
+    120% 150% at 50% -35%,
+    rgb(var(--c-gold) / 0.1),
+    transparent 58%
+  );
 }
 
 /* Ultrawide: widen the shared site width (header + body containers, via the

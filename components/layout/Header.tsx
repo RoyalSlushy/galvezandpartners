@@ -27,18 +27,16 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the desktop header carries no fill of its own — it shows the
-  // page surface directly, which is the same navy the hero paints just below, so
-  // the masthead reads as one continuous background with the hero body (no
-  // separate header band). Mobile keeps a soft navy→transparent fade for
-  // legibility over the hero image directly beneath it. The header stays in
-  // normal flow (it does not overlap the hero), so the hero image never bleeds
-  // up behind it. Other pages keep the header solid.
+  // On the homepage the header has no background fill of its own — instead a
+  // subtle gold glow (see .header-glow) spills down from above, so the masthead
+  // reads as soft light over the hero rather than a solid band. The header stays
+  // in normal flow (it does not overlap the hero), so the hero image never
+  // bleeds up behind it. Other pages keep the header solid.
   const isHome = usePathname() === "/";
 
   return (
     <header
-      className={`w-full ${isHome ? "bg-gradient-to-b from-navy via-navy/60 to-transparent sm:bg-none" : "bg-navy"}`}
+      className={`w-full ${isHome ? "header-glow" : "bg-navy"}`}
     >
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
@@ -50,19 +48,19 @@ export default function Header({
         <div className="hidden shrink-0 items-center gap-4 sm:flex sm:self-stretch">
           <Link href="/" aria-label="Galvez & Partners — home" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
           </Link>
           {/* Header image: bottom flush with the header's bottom edge (self-end)
               while its top stays level with the centered logo. Its height is
-              (header-h + logo-h) / 2 — i.e. header-h/2 + 2.5rem, since the logo
-              is sm:h-20 (5rem) — which places its top exactly at the logo's top
+              (header-h + logo-h) / 2 — i.e. header-h/2 + 3rem, since the logo
+              is sm:h-24 (6rem) — which places its top exactly at the logo's top
               for any header height. */}
           <EditableImage
             path="site.headerImage"
             raw={headerImg}
             src={headerSrc}
             alt=""
-            className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_2.5rem)] sm:self-end"
+            className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_3rem)] sm:self-end"
           />
         </div>
 
