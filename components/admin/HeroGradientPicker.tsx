@@ -1,0 +1,260 @@
+"use client";
+
+import { useAdmin } from "./AdminProvider";
+import {
+  DEFAULT_HERO_GRADIENT,
+  type GradientStop,
+  type HeroGradient,
+} from "@/content/home";
+import { heroGradientCss } from "@/lib/heroGradient";
+import { hasNativeEyeDropper, pickScreenColor } from "@/lib/eyedropper";
+import { isVideoUrl, resolveImage } from "@/lib/adminClient";
+import { XIcon } from "./icons";
+
+/** Preset directions offered as one-tap buttons (label → gradient angle). */
+const DIRECTIONS: { label: string; angle: number }[] = [
+  { label: "↓", angle: 180 },
+  { label: "↑", angle: 0 },
+  { label: "→", angle: 90 },
+  { label: "←", angle: 270 },
+  { label: "↘", angle: 135 },
+  { label: "↖", angle: 315 },
+];
+
+const MAX_STOPS = 6;
+
+/**
+ * Color picker for the hero background gradient, shown inside the mobile header
+ * image config. It's a controlled editor: edits are held as a pending value by
+ * the ImagePicker and only committed to `home.hero.gradient` when the admin
+ * presses Apply (like the image itself). The gradient affects only the hero
+ * section; the rest of the site keeps following the theme.
+ *
+ * `imageRaw` is the image currently shown in the picker (the pending selection),
+ * which the eyedropper samples colors from.
+ */
+export default function HeroGradientPicker({
+  gradient,
+  onChange,
+  imageRaw,
+}: {
+  gradient: HeroGradient;
+  onChange: (next: HeroGradient) => void;
+  imageRaw: string;
+}) {
+  const admin = useAdmin();
+  const stops = gradient.stops ?? [];
+
+  const commit = onChange;
+
+  const setStop = (i: number, patch: Partial<GradientStop>) =>
+    commit({ ...gradient, stops: stops.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
+
+  const removeStop = (i: number) => {
+    if (stops.length <= 2) return;
+    commit({ ...gradient, stops: stops.filter((_, j) => j !== i) });
+  };
+
+  const addStop = (color = "#ffffff") => {
+    if (stops.length >= MAX_STOPS) return;
+    // Drop the new stop into the widest gap between existing positions, so it
+    // lands somewhere useful rather than on top of another stop.
+    const sorted = [...stops].sort((a, b) => a.position - b.position);
+    let gapStart = 0;
+    let gapEnd = 100;
+    let widest = -1;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const span = sorted[i + 1].position - sorted[i].position;
+      if (span > widest) {
+        widest = span;
+        gapStart = sorted[i].position;
+        gapEnd = sorted[i + 1].position;
+      }
+    }
+    const position = Math.round((gapStart + gapEnd) / 2);
+    commit({ ...gradient, stops: [...stops, { color, position }] });
+  };
+
+  // Pick a color and add it as a stop. On desktop Chromium the native
+  // eyedropper lets you sample anywhere; on every other browser (incl. mobile)
+  // we sample from the mobile header image currently shown in the picker with
+  // the custom picker (see lib/eyedropper).
+  const headerImageSrc =
+    imageRaw && !isVideoUrl(imageRaw) ? resolveImage(imageRaw, 1600, 1000) : undefined;
+  const pickWithEyeDropper = async () => {
+    if (stops.length >= MAX_STOPS) return;
+    if (!headerImageSrc && !hasNativeEyeDropper()) {
+      admin.notify("Set a mobile header image — the eyedropper picks colors from it", "err");
+      return;
+    }
+    const hex = await pickScreenColor(headerImageSrc);
+    if (hex) addStop(hex);
+  };
+
+  const setAngle = (angle: number) =>
+    commit({ ...gradient, angle: ((angle % 360) + 360) % 360 });
+
+  const preview = heroGradientCss(gradient);
+
+  return (
+    <div className="mt-6 border-t border-white/10 pt-5">
+      <div className="flex items-center justify-between">
+        <p className="font-heading text-xs uppercase tracking-widest text-white/50">
+          Hero background gradient
+        </p>
+        <button
+          type="button"
+          onClick={() => commit(DEFAULT_HERO_GRADIENT)}
+          className="font-heading text-[11px] uppercase tracking-widest text-white/40 transition hover:text-gold"
+        >
+          Reset
+        </button>
+      </div>
+      <p className="mt-1 text-[11px] leading-snug text-white/40">
+        Recolors only the hero backdrop behind this image. The rest of the site
+        keeps its theme colors.
+      </p>
+
+      {/* Live preview of the exact gradient the hero will render. */}
+      <div
+        className="mt-3 h-20 w-full rounded-xl border border-white/10"
+        style={{ backgroundImage: preview }}
+        aria-hidden
+      />
+
+      {/* Direction */}
+      <div className="mt-4">
+        <div className="flex items-center justify-between">
+          <span className="font-heading text-[11px] uppercase tracking-widest text-white/45">
+            Direction
+          </span>
+          <span className="tabular-nums text-[11px] text-white/45">{Math.round(gradient.angle)}°</span>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <div className="flex gap-1">
+            {DIRECTIONS.map((d) => (
+              <button
+                key={d.label}
+                type="button"
+                onClick={() => setAngle(d.angle)}
+                aria-pressed={Math.round(gradient.angle) === d.angle}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg border text-sm transition ${
+                  Math.round(gradient.angle) === d.angle
+                    ? "border-gold bg-gold/10 text-gold"
+                    : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            value={Math.round(gradient.angle)}
+            onChange={(e) => setAngle(Number(e.target.value))}
+            aria-label="Gradient angle"
+            className="h-1 flex-1 cursor-pointer accent-gold"
+          />
+        </div>
+      </div>
+
+      {/* Stops */}
+      <div className="mt-4 space-y-2">
+        <span className="font-heading text-[11px] uppercase tracking-widest text-white/45">
+          Color stops
+        </span>
+        {stops.map((stop, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 rounded-lg border border-white/10 bg-navy px-2.5 py-2"
+          >
+            <label className="relative h-7 w-7 shrink-0 overflow-hidden rounded-md border border-white/15">
+              <span className="block h-full w-full" style={{ backgroundColor: stop.color }} />
+              <input
+                type="color"
+                value={normalizeHex(stop.color)}
+                onChange={(e) => setStop(i, { color: e.target.value })}
+                aria-label={`Stop ${i + 1} color`}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(stop.position)}
+              onChange={(e) => setStop(i, { position: Number(e.target.value) })}
+              aria-label={`Stop ${i + 1} position`}
+              className="h-1 flex-1 cursor-pointer accent-gold"
+            />
+            <span className="w-10 shrink-0 text-right tabular-nums text-[11px] text-white/45">
+              {Math.round(stop.position)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => removeStop(i)}
+              disabled={stops.length <= 2}
+              aria-label={`Remove stop ${i + 1}`}
+              className="shrink-0 rounded p-1 text-white/40 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+        {stops.length < MAX_STOPS && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => addStop()}
+              className="flex-1 rounded-lg border border-dashed border-white/15 py-2 font-heading text-xs uppercase tracking-widest text-white/50 transition hover:border-gold/60 hover:text-gold"
+            >
+              + Add color
+            </button>
+            <button
+              type="button"
+              onClick={pickWithEyeDropper}
+              title="Eyedropper — sample a color from the mobile header image"
+              aria-label="Add color with the eyedropper"
+              className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
+            >
+              <EyeDropperIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Coerce any CSS color to a `#rrggbb` string that `<input type="color">`
+ * accepts (it rejects shorthand / alpha / named colors). Falls back to black. */
+function normalizeHex(color: string): string {
+  const c = color.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(c)) {
+    return "#" + c.slice(1).split("").map((ch) => ch + ch).join("").toLowerCase();
+  }
+  return "#000000";
+}
+
+function EyeDropperIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m2 22 1-1h3l9-9" />
+      <path d="M3 21v-3l9-9" />
+      <path d="m15 6 3.4-3.4a2.1 2.1 0 0 1 3 3L21 6l-3 3-3-3Z" />
+      <path d="m9 12 3 3" />
+    </svg>
+  );
+}

@@ -58,6 +58,9 @@ export default function MobileMenu({
   const [open, setOpen] = useState(false);
   // Which edge the drawer is docked to; set by the opening gesture.
   const [side, setSide] = useState<Side>("right");
+  // The floating bottom nav starts as a corner hamburger and expands into a
+  // bottom header once the first screen has been scrolled past.
+  const [expanded, setExpanded] = useState(false);
   const t = useT();
   const pathname = usePathname();
 
@@ -68,6 +71,23 @@ export default function MobileMenu({
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // Current page label for the expanded bottom header's center slot.
+  const currentNav = nav.find((item) => isActive(item.href));
+  const currentLabel = currentNav ? t(currentNav.label) : "";
+
+  // Expand the floating nav once the viewport has scrolled past ~half the first
+  // screen (into the next section).
+  useEffect(() => {
+    const onScroll = () => setExpanded(window.scrollY > window.innerHeight * 0.5);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   // The logo now fills its column's full width (its height follows from the
   // SVG's own aspect ratio, not a fixed size), so the picture's top-padding —
@@ -313,7 +333,15 @@ export default function MobileMenu({
   };
 
   return (
-    <div ref={headerRowRef} className="flex w-full self-stretch sm:hidden">
+    <div
+      ref={headerRowRef}
+      className={`flex w-full self-stretch sm:hidden ${
+        // Home lets the header fade into the hero (see Header.tsx), so it needs
+        // no divider; every other page gets a bottom underline under the logo +
+        // header-image row to separate it from the content below.
+        pathname === "/" ? "" : "border-b border-white/15"
+      }`}
+    >
       {/* Mobile header row: the logo (left 60%) opens the drawer on tap and fills
           its column's full width at its own aspect ratio; the picture (remaining
           40%) fills the header's full height so its bottom sits flush against the
@@ -344,6 +372,48 @@ export default function MobileMenu({
         />
       </div>
 
+      {/* Floating bottom nav (mobile only). In the hero it's a gold hamburger
+          button sized to sit within the cityscape band in the bottom-right
+          corner; once the first screen is scrolled past it grows into a
+          full-width glassmorphic bottom header — logotype (left), current page
+          (center), hamburger (right). */}
+      <div
+        className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
+          expanded
+            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
+            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 rounded-full bg-gold text-navy"
+        }`}
+      >
+        <Link
+          href="/"
+          aria-label="Galvez & Partners — home"
+          className={`overflow-hidden font-display leading-none tracking-tight transition-all duration-300 ${
+            expanded ? "w-auto text-[1.7rem] opacity-100" : "pointer-events-none w-0 text-[1.7rem] opacity-0"
+          }`}
+        >
+          G+P
+        </Link>
+        <span
+          className={`min-w-0 flex-1 truncate text-center font-heading text-sm uppercase tracking-wide text-white/90 transition-opacity duration-300 ${
+            expanded ? "opacity-100" : "w-0 flex-none opacity-0"
+          }`}
+        >
+          {currentLabel}
+        </span>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={open}
+          onClick={() => {
+            setSide("right");
+            setOpen(true);
+          }}
+          className="flex shrink-0 items-center justify-center"
+        >
+          <HamburgerIcon className="h-6 w-6" />
+        </button>
+      </div>
+
       {/* Dimmed backdrop — tap to close. */}
       <div
         aria-hidden
@@ -356,5 +426,21 @@ export default function MobileMenu({
       {renderDrawer("left")}
       {renderDrawer("right")}
     </div>
+  );
+}
+
+function HamburgerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
   );
 }

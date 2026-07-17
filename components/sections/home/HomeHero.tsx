@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
-import type { Service } from "@/content/home";
+import type { HeroGradient, Service } from "@/content/home";
+import { DEFAULT_HERO_GRADIENT } from "@/content/home";
+import { heroGradientCss, heroRadialCss } from "@/lib/heroGradient";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { resolveImage } from "@/lib/adminClient";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -21,10 +23,14 @@ type Hero = {
   image: string;
   ctaLabel: string;
   ctaHref: string;
+  gradient?: HeroGradient;
 };
 
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
+/** Matches the `sm` breakpoint upward — where the carousel heading is fit to
+ * two lines (see HeroServiceSlide). */
+const DESKTOP = "(min-width: 751px)";
 
 /**
  * Homepage hero: fills the viewport below the header. On mobile everything —
@@ -42,6 +48,10 @@ export default function HomeHero({
 }) {
   const hero = useCmsValue("home.hero", serverHero);
   const services = useCmsValue("home.services", serverServices);
+  const gradient = useCmsValue<HeroGradient>(
+    "home.hero.gradient",
+    serverHero.gradient ?? DEFAULT_HERO_GRADIENT,
+  );
   const editMode = useEditMode();
   const t = useT();
   // Admins edit the English source, so translation is suppressed in edit mode.
@@ -59,7 +69,25 @@ export default function HomeHero({
   ));
 
   return (
-    <section className="hero-breathe hero-fill flex w-full flex-col overflow-hidden bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-0 pt-0 sm:overflow-visible sm:pb-4">
+    // Pinned to the top of the viewport: the header scrolls away and the
+    // sections below scroll up and over the hero, the cityscape skyline rising
+    // with them (see page.tsx). On mobile the bottom band (--cityscape-h) is
+    // left as bare gradient so the cityscape sits in the initial viewport
+    // against it; on desktop (sm+) that padding is dropped so the hero elements
+    // get the full height and the cityscape starts just below the fold. The
+    // gradient is admin-authored via the mobile header image config's color
+    // picker and affects only this section.
+    <section
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
+      style={
+        {
+          // Linear ramp on mobile, floating radial orbs on desktop (see
+          // .hero-fill in globals.css, which picks the variable per breakpoint).
+          "--hero-grad": heroGradientCss(gradient),
+          "--hero-grad-desktop": heroRadialCss(gradient),
+        } as CSSProperties
+      }
+    >
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
         <div className="hero-grid min-h-0 flex-1">
           <div className="hero-main relative min-h-0 overflow-hidden rounded-2xl [container-type:inline-size] sm:min-h-[280px]">
@@ -138,8 +166,6 @@ export default function HomeHero({
           </div>
         </div>
       </Container>
-
-      <HeroSkyline />
     </section>
   );
 }
@@ -209,6 +235,14 @@ function HeroServiceSlide({
     min: 9,
     query: MOBILE,
     deps: [service.title, service.description],
+  });
+  // Desktop: shrink the heading (only if needed) so it never exceeds two lines
+  // in its box — no clamp/ellipsis, so no text is ever hidden.
+  const { ref: headingRef } = useFitText<HTMLDivElement>({
+    max: 32,
+    min: 15,
+    query: DESKTOP,
+    deps: [service.title],
   });
 
   // Backdrop video playback state machine:
@@ -299,7 +333,7 @@ function HeroServiceSlide({
               raw={media}
               src={resolveImage(media, 700, 900)}
               alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
               playbackRate={0.75}
               autoPlayVideo={false}
               loopVideo={false}
@@ -334,12 +368,17 @@ function HeroServiceSlide({
         ref={ref}
         className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
       >
-        <EditableText
-          path={`home.services.${index}.title`}
-          value={tv(service.title)}
-          as="h3"
-          className="font-display text-[2em] leading-none text-sky-200 sm:text-[2.025rem]"
-        />
+        {/* On mobile the heading scales with the shared fit (capped so it never
+            rivals the hero headline); on desktop it's fit to two lines within
+            this box (see .hero-slide-heading in globals.css). */}
+        <div ref={headingRef} className="hero-slide-heading">
+          <EditableText
+            path={`home.services.${index}.title`}
+            value={tv(service.title)}
+            as="h3"
+            className="font-display text-[min(2em,1.55rem)] leading-none text-sky-200 sm:text-[1em] sm:leading-[1.15] sm:text-balance"
+          />
+        </div>
         <EditableText
           path={`home.services.${index}.description`}
           value={tv(service.description)}
@@ -348,57 +387,6 @@ function HeroServiceSlide({
           className="hero-slide-body mt-1 max-w-xl whitespace-pre-line font-body text-[0.92em] leading-snug text-white/80 sm:mt-3 sm:text-lg"
         />
       </div>
-    </div>
-  );
-}
-
-/**
- * Mobile-only hero footer: a downtown skyline silhouette (two depth layers)
- * over a warm sunset glow, bleeding to the full viewport width and sitting
- * flush with the bottom of the hero.
- */
-function HeroSkyline() {
-  return (
-    <div aria-hidden className="relative shrink-0 sm:hidden">
-      {/* Sunset glow the buildings sit against — ramps up into a bright cream
-          horizon behind the rooftops. */}
-      <div className="absolute inset-x-0 bottom-0 h-full bg-[linear-gradient(to_bottom,transparent_0%,rgba(243,216,176,0.18)_38%,rgba(248,232,198,0.75)_70%,#fdf2d6_100%)]" />
-      <svg
-        viewBox="0 0 800 150"
-        preserveAspectRatio="xMidYMax meet"
-        className="relative block w-full"
-      >
-        {/* Back row: taller, hazier towers. */}
-        <g fill="#4d608a" opacity="0.7">
-          <rect x="20" y="55" width="34" height="95" />
-          <rect x="95" y="30" width="28" height="120" />
-          <rect x="107" y="12" width="3" height="18" />
-          <rect x="165" y="62" width="40" height="88" />
-          <rect x="270" y="25" width="30" height="125" />
-          <rect x="283" y="8" width="3" height="17" />
-          <rect x="350" y="52" width="36" height="98" />
-          <rect x="455" y="38" width="30" height="112" />
-          <rect x="530" y="60" width="42" height="90" />
-          <rect x="635" y="30" width="32" height="120" />
-          <rect x="649" y="12" width="3" height="18" />
-          <rect x="720" y="64" width="40" height="86" />
-        </g>
-        {/* Front row: shorter, darker buildings with sunset gaps between them. */}
-        <g fill="#2c3550">
-          <rect x="0" y="92" width="52" height="58" />
-          <rect x="68" y="78" width="48" height="72" />
-          <rect x="135" y="100" width="52" height="50" />
-          <rect x="205" y="84" width="46" height="66" />
-          <rect x="280" y="104" width="58" height="46" />
-          <rect x="360" y="88" width="50" height="62" />
-          <rect x="440" y="74" width="44" height="76" />
-          <rect x="505" y="100" width="54" height="50" />
-          <rect x="580" y="84" width="48" height="66" />
-          <rect x="648" y="104" width="54" height="46" />
-          <rect x="715" y="80" width="40" height="70" />
-          <rect x="770" y="100" width="30" height="50" />
-        </g>
-      </svg>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   SERVICES_HEADING,
   type Service,
   type InstagramPost,
+  type HeroGradient,
 } from "@/content/home";
 import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
 import { WORK, WORK_HEADING, type Work } from "@/content/work";
@@ -50,6 +51,7 @@ export type HomeContent = {
     image: string;
     ctaLabel: string;
     ctaHref: string;
+    gradient: HeroGradient;
   };
   services: Service[];
   worksEyebrow: string;

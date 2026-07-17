@@ -2,12 +2,35 @@
 
 const WIX = "https://static.wixstatic.com/media";
 
+/** A single color stop on the hero background gradient: a literal CSS color and
+ * a position along the gradient axis (0–100%). Colors are literal (not theme
+ * tokens) so the hero gradient is authored independently of the site theme. */
+export type GradientStop = { color: string; position: number };
+
+/** The hero section's background gradient — an angle (in degrees) plus an
+ * ordered list of color stops. Edited via the hero image config's color picker
+ * and applied only to the hero background; the rest of the site follows the
+ * active theme. */
+export type HeroGradient = { angle: number; stops: GradientStop[] };
+
+/** Default hero gradient — mirrors the original navy→muted-blue wash so the
+ * hero looks unchanged until an admin customizes it. */
+export const DEFAULT_HERO_GRADIENT: HeroGradient = {
+  angle: 180,
+  stops: [
+    { color: "#141924", position: 0 },
+    { color: "#141924", position: 45 },
+    { color: "#31415e", position: 100 },
+  ],
+};
+
 export const HERO = {
   headline: "We Are Storytellers.",
   sub: "Our Stories drive customers. Our Stories get you results.",
   image: `${WIX}/18e608_eb9c9327bbfc4b828dfc63d5f2ea08caf000.jpg/v1/fill/w_1400,h_720,al_c,q_85,enc_auto/18e608_eb9c9327bbfc4b828dfc63d5f2ea08caf000.jpg`,
   ctaLabel: "Let's Connect",
   ctaHref: "/contact-us",
+  gradient: DEFAULT_HERO_GRADIENT,
 };
 
 /** `media` is an optional decorative backdrop for the service's carousel card
