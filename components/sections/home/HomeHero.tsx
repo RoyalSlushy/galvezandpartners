@@ -7,7 +7,8 @@ import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
-import { heroGradientCss, heroRadialCss } from "@/lib/heroGradient";
+import { heroGradientCss, heroBottomBandCss } from "@/lib/heroGradient";
+import HeroPhotoCards from "@/components/sections/home/HeroPhotoCards";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { resolveImage } from "@/lib/adminClient";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -81,13 +82,18 @@ export default function HomeHero({
       className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
       style={
         {
-          // Linear ramp on mobile, floating radial orbs on desktop (see
-          // .hero-fill in globals.css, which picks the variable per breakpoint).
+          // Linear ramp on mobile, a horizontal band across the bottom of the
+          // viewport on desktop (see .hero-fill in globals.css, which picks the
+          // variable per breakpoint).
           "--hero-grad": heroGradientCss(gradient),
-          "--hero-grad-desktop": heroRadialCss(gradient),
+          "--hero-grad-desktop": heroBottomBandCss(gradient),
         } as CSSProperties
       }
     >
+      {/* Decorative case-study "photocards" sprinkled into the side gutters,
+          away from the body content (wide desktops only, where the gutters
+          exist). */}
+      <HeroPhotoCards />
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
         <div className="hero-grid min-h-0 flex-1">
           <div className="hero-main relative min-h-0 overflow-hidden rounded-2xl [container-type:inline-size] sm:min-h-[280px]">
@@ -324,7 +330,7 @@ function HeroServiceSlide({
       {media ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10"
+          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-26%] sm:right-[-14%] sm:w-[74%]"
         >
           <div className="relative isolate h-full w-full">
             <div className="absolute inset-0 bg-navy-soft" />

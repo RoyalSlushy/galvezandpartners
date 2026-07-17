@@ -108,9 +108,18 @@
 }
 
 @media (min-width: 751px) {
-  /* Desktop swaps the linear ramp for the floating radial orbs. */
+  /* Desktop swaps the linear ramp for a horizontal band across the bottom of
+     the viewport. */
   .hero-fill {
     background-image: var(--hero-grad-desktop);
+  }
+  /* The bottom band is anchored to the bottom edge, so the vertical breathe
+     drift would slide it out of place — pin it flat on desktop instead. Both
+     classes are on the section, so this outranks the base `.hero-breathe` rule
+     regardless of source order. */
+  .hero-fill.hero-breathe {
+    background-size: 100% 100%;
+    animation: none;
   }
   /* The shell is a size container so the grid can respond to its aspect ratio. */
   .hero-shell {
