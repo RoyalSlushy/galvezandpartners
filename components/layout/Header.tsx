@@ -27,16 +27,15 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the header has no background fill of its own — instead a
-  // subtle gold glow (see .header-glow) spills down from above, so the masthead
-  // reads as soft light over the hero rather than a solid band. The header stays
-  // in normal flow (it does not overlap the hero), so the hero image never
-  // bleeds up behind it. Other pages keep the header solid.
+  // On the homepage the header has no background fill of its own at all — it is
+  // fully transparent, so only the body background shows through behind it. The
+  // header stays in normal flow (it does not overlap the hero), so the hero
+  // image never bleeds up behind it. Other pages keep the header solid.
   const isHome = usePathname() === "/";
 
   return (
     <header
-      className={`w-full ${isHome ? "header-glow" : "bg-navy"}`}
+      className={`w-full ${isHome ? "" : "bg-navy"}`}
     >
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}

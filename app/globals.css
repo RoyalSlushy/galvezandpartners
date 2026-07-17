@@ -68,17 +68,6 @@
   }
 }
 
-/* Homepage header carries no fill of its own — just a subtle gold glow spilling
-   down from above, so the masthead reads as light over the hero rather than a
-   solid band. */
-.header-glow {
-  background-image: radial-gradient(
-    120% 150% at 50% -35%,
-    rgb(var(--c-gold) / 0.1),
-    transparent 58%
-  );
-}
-
 /* Ultrawide: widen the shared site width (header + body containers, via the
    Tailwind `site` maxWidth token) by a good amount. Only kicks in on genuinely
    ultrawide viewports so normal desktops keep the 1200px column — and the side
