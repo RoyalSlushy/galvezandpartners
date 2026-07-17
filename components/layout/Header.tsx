@@ -27,18 +27,18 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the header background starts as solid navy — the exact base
-  // color the hero paints directly below it — and dissolves through a smooth
-  // three-stop ramp to fully transparent at the bottom, so the masthead melts
-  // seamlessly into the hero (and, on the dusk themes, into the fixed backdrop)
-  // with no visible band. The header stays in normal flow (it does not overlap
-  // the hero), so the hero image never bleeds up behind it. Other pages keep the
-  // header solid.
+  // On the homepage the desktop header carries no fill of its own — it shows the
+  // page surface directly, which is the same navy the hero paints just below, so
+  // the masthead reads as one continuous background with the hero body (no
+  // separate header band). Mobile keeps a soft navy→transparent fade for
+  // legibility over the hero image directly beneath it. The header stays in
+  // normal flow (it does not overlap the hero), so the hero image never bleeds
+  // up behind it. Other pages keep the header solid.
   const isHome = usePathname() === "/";
 
   return (
     <header
-      className={`w-full ${isHome ? "bg-gradient-to-b from-navy via-navy/60 to-transparent" : "bg-navy"}`}
+      className={`w-full ${isHome ? "bg-gradient-to-b from-navy via-navy/60 to-transparent sm:bg-none" : "bg-navy"}`}
     >
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}

@@ -237,9 +237,21 @@
   0% { transform: translateY(-8px); }
   100% { transform: translateY(20px); }
 }
+/* Each card also phases its opacity in and out on its own cycle, so at any
+   moment different cards in the sprinkled collection are surfacing while others
+   recede. Fall (transform) and phase (opacity) run as two independent
+   animations, each with its own per-card duration/delay set inline via CSS
+   vars, so they never fall in sync. */
+@keyframes photocard-phase {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 1; }
+}
 .photocard-fall {
-  animation: photocard-fall 13s ease-in-out infinite alternate;
-  will-change: transform;
+  animation:
+    photocard-fall var(--fall-dur, 13s) ease-in-out infinite alternate,
+    photocard-phase var(--phase-dur, 11s) ease-in-out infinite;
+  animation-delay: var(--fall-delay, 0s), var(--phase-delay, 0s);
+  will-change: transform, opacity;
 }
 
 /* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between

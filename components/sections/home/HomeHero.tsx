@@ -339,7 +339,7 @@ function HeroServiceSlide({
               raw={media}
               src={resolveImage(media, 700, 900)}
               alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain sm:object-right"
+              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
               playbackRate={0.75}
               autoPlayVideo={false}
               loopVideo={false}
