@@ -290,7 +290,7 @@ export default function Carousel({
             opacity: handlesVisible || noHover ? 1 : 0,
             pointerEvents: handlesVisible || noHover ? "auto" : "none",
           }}
-          className="absolute left-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
+          className="absolute inset-y-0 left-1 z-10 flex w-12 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
         >
           &#8249;
         </button>
@@ -302,7 +302,7 @@ export default function Carousel({
             opacity: handlesVisible || noHover ? 1 : 0,
             pointerEvents: handlesVisible || noHover ? "auto" : "none",
           }}
-          className="absolute right-1 top-1/2 z-10 flex h-20 w-12 -translate-y-1/2 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
+          className="absolute inset-y-0 right-1 z-10 flex w-12 items-center justify-center text-4xl text-white/70 transition duration-500 hover:text-sky-400"
         >
           &#8250;
         </button>

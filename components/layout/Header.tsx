@@ -27,32 +27,39 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the header background fades from 80% opacity at the top to
-  // 0% at the bottom, so it softly blends into the hero directly below it. The
+  // On the homepage the header has no background fill of its own at all — it is
+  // fully transparent, so only the body background shows through behind it. The
   // header stays in normal flow (it does not overlap the hero), so the hero
   // image never bleeds up behind it. Other pages keep the header solid.
   const isHome = usePathname() === "/";
 
   return (
     <header
-      className={`w-full ${isHome ? "bg-gradient-to-b from-navy/80 to-navy/0" : "bg-navy"}`}
+      className={`w-full ${isHome ? "" : "bg-navy"}`}
     >
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">
         {/* Desktop logo + header image cluster — on mobile the logo lives inside
-            MobileMenu (and opens the drawer), so this is hidden below sm. */}
-        <div className="hidden shrink-0 items-center gap-4 sm:flex">
+            MobileMenu (and opens the drawer), so this is hidden below sm.
+            self-stretch fills the full header height so the header image can
+            bottom-anchor to the header's bottom edge (see below). */}
+        <div className="hidden shrink-0 items-center gap-4 sm:flex sm:self-stretch">
           <Link href="/" aria-label="Galvez & Partners — home" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
           </Link>
+          {/* Header image: bottom flush with the header's bottom edge (self-end)
+              while its top stays level with the centered logo. Its height is
+              (header-h + logo-h) / 2 — i.e. header-h/2 + 3rem, since the logo
+              is sm:h-24 (6rem) — which places its top exactly at the logo's top
+              for any header height. */}
           <EditableImage
             path="site.headerImage"
             raw={headerImg}
             src={headerSrc}
             alt=""
-            className="h-14 w-auto object-contain sm:h-16"
+            className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_3rem)] sm:self-end"
           />
         </div>
 

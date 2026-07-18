@@ -63,8 +63,29 @@
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+    --header-h: 168px; /* taller, to give the logo + nav/social more room */
     --cityscape-h: 104px;
+  }
+}
+
+/* Ultrawide: widen the shared site width (header + body containers, via the
+   Tailwind `site` maxWidth token) by a good amount. Only kicks in on genuinely
+   ultrawide viewports so normal desktops keep the 1200px column — and the side
+   gutters that hold the hero photocards — untouched. Even at the widest tier the
+   viewport still leaves generous gutters for those cards. */
+@media (min-width: 1920px) {
+  :root {
+    --site-max: 1560px;
+  }
+}
+@media (min-width: 2400px) {
+  :root {
+    --site-max: 1760px;
+  }
+}
+@media (min-width: 3000px) {
+  :root {
+    --site-max: 2000px;
   }
 }
 
@@ -108,9 +129,18 @@
 }
 
 @media (min-width: 751px) {
-  /* Desktop swaps the linear ramp for the floating radial orbs. */
+  /* Desktop swaps the linear ramp for a horizontal band across the bottom of
+     the viewport. */
   .hero-fill {
     background-image: var(--hero-grad-desktop);
+  }
+  /* The bottom band is anchored to the bottom edge, so the vertical breathe
+     drift would slide it out of place — pin it flat on desktop instead. Both
+     classes are on the section, so this outranks the base `.hero-breathe` rule
+     regardless of source order. */
+  .hero-fill.hero-breathe {
+    background-size: 100% 100%;
+    animation: none;
   }
   /* The shell is a size container so the grid can respond to its aspect ratio. */
   .hero-shell {
@@ -168,7 +198,9 @@
   }
   .hero-slide-body {
     margin-top: 0;
-    max-width: none;
+    /* Cap the line length so the body copy keeps a comfortable measure instead
+       of stretching the full width of a wide (or ultrawide) card. */
+    max-width: 51rem;
     flex: 1;
   }
 }
@@ -196,6 +228,32 @@
   animation: hero-breathe 8s ease-in-out infinite;
 }
 
+/* Hero photocards drift slowly downward and back — a gentle, weighted "slow
+   fall" (the downward reach is larger than the upward one). Each card sets its
+   own duration/delay inline so they fall out of sync. The translate lives on the
+   figure (page-space vertical); the card's tilt sits on the inner element, so
+   the two transforms don't fight. */
+@keyframes photocard-fall {
+  0% { transform: translateY(-8px); }
+  100% { transform: translateY(20px); }
+}
+/* Each card also phases its opacity in and out on its own cycle, so at any
+   moment different cards in the sprinkled collection are surfacing while others
+   recede. Fall (transform) and phase (opacity) run as two independent
+   animations, each with its own per-card duration/delay set inline via CSS
+   vars, so they never fall in sync. */
+@keyframes photocard-phase {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 1; }
+}
+.photocard-fall {
+  animation:
+    photocard-fall var(--fall-dur, 13s) ease-in-out infinite alternate,
+    photocard-phase var(--phase-dur, 11s) ease-in-out infinite;
+  animation-delay: var(--fall-delay, 0s), var(--phase-delay, 0s);
+  will-change: transform, opacity;
+}
+
 /* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between
    them, held at 10% opacity. Each 24px tile carries one letter and every row
    shifts the sequence one across, so the letters read on the diagonal. The tiles
@@ -212,8 +270,14 @@
      50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
   overflow: hidden;
+  transition: opacity 500ms ease;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+}
+/* Hovering the CTA card lifts the letter grid a little more into view (partway,
+   not fully) — pairs with the drift speed-up CtaGrid runs on the same hover. */
+.hero-cta:hover .cta-grid {
+  opacity: 0.22;
 }
 
 /* Mobile drawer backdrop: the same drifting "GALVEZ" letter grid as the CTA,
@@ -325,6 +389,9 @@
     opacity: 1 !important;
   }
   .hero-breathe {
+    animation: none !important;
+  }
+  .photocard-fall {
     animation: none !important;
   }
   .wordfill-armed [data-word] {
