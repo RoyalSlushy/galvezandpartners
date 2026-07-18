@@ -305,11 +305,17 @@
   }
   /* Themed "sky": a fixed gradient painted behind all content. Themes without a
      backdrop leave --c-backdrop: none, so nothing is drawn and the flat bg-navy
-     shows through (Midnight Gold and Denim Blue stay exactly as before). */
+     shows through (Midnight Gold and Denim Blue stay exactly as before). Starts
+     below the header (rather than inset: 0) so the glow can never paint behind
+     the transparent homepage header, no matter how large its spread is — the
+     header area always shows the flat bg-navy above it instead. */
   body::before {
     content: "";
     position: fixed;
-    inset: 0;
+    top: var(--header-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: -1;
     pointer-events: none;
     background: var(--c-backdrop, none);
