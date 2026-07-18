@@ -24,7 +24,7 @@ const ES: Record<string, string> = {
   Connect: "Conéctate",
   "Let's Connect": "Conectemos",
   "Ready?": "¿List@s?",
-  "We Work Our Ads Off.": "Trabajamos Sin Descanso.",
+  "We Work Our Ads Off.": "Le echamos ganas a tus anuncios.",
 
   // --- Home hero ---
   "We Are Storytellers.": "Somos Narradores.",
