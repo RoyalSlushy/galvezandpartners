@@ -27,15 +27,18 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the header has no background fill of its own at all — it is
-  // fully transparent, so only the body background shows through behind it. The
+  // On the homepage the header is painted with the hero's top color (exposed as
+  // --hero-top-color on <body> in the layout) so the header and the hero below
+  // form one seamless surface — no visible seam at their boundary — for any
+  // theme or admin-authored hero gradient. It falls back to the theme navy. The
   // header stays in normal flow (it does not overlap the hero), so the hero
-  // image never bleeds up behind it. Other pages keep the header solid.
+  // image never bleeds up behind it. Other pages keep the header solid navy.
   const isHome = usePathname() === "/";
 
   return (
     <header
       className={`w-full ${isHome ? "" : "bg-navy"}`}
+      style={isHome ? { background: "var(--hero-top-color, rgb(var(--c-navy)))" } : undefined}
     >
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}

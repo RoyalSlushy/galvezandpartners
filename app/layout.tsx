@@ -5,8 +5,9 @@ import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
-import { getSite } from "@/lib/cms";
+import { getSite, getHome } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
+import { heroTopColor } from "@/lib/heroGradient";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,18 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const site = await getSite();
+  const [site, home] = await Promise.all([getSite(), getHome()]);
   const theme = getTheme(site.theme);
+  // The homepage header is painted with the hero's top color (see Header.tsx) so
+  // the two share one seamless surface. The hero gradient uses literal colors,
+  // so this is exposed as a variable rather than derived from the theme tokens.
+  const heroTop = heroTopColor(home.hero.gradient);
   return (
     <html lang="en" data-gp-theme={theme.id}>
-      <body className="flex min-h-screen flex-col">
+      <body
+        className="flex min-h-screen flex-col"
+        style={{ ["--hero-top-color" as string]: heroTop }}
+      >
         {/* Active theme, applied server-side so anonymous visitors never see a
             flash of the default palette. `:root:root` outranks the defaults in
             globals.css; the admin editor previews other themes by setting the
