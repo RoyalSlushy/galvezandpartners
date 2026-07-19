@@ -8,6 +8,7 @@ import type { InstagramPost } from "@/content/home";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import LinkChip from "@/components/admin/editable/LinkChipPopover";
@@ -51,6 +52,9 @@ export default function InstagramFeed({
   const ig = useCmsValue("home.instagram", serverIg);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  const tv = (s: string) => (editMode ? s : t(s));
 
   const posts = !editMode && livePosts && livePosts.length > 0 ? livePosts : ig.posts;
 
@@ -167,7 +171,7 @@ export default function InstagramFeed({
           path={`home.instagram.posts.${i}.img`}
           raw={p.img}
           src={postSrc(p)}
-          alt={p.caption || "Instagram post"}
+          alt={p.caption ? tv(p.caption) : t("Instagram post")}
           className="h-full w-full object-cover"
         />
         <div
@@ -178,7 +182,7 @@ export default function InstagramFeed({
           <svg viewBox="0 0 24 24" className="h-6 w-6 self-end fill-gold" aria-hidden="true">
             <path d={IG_GLYPH} />
           </svg>
-          <p className="font-body text-sm leading-snug text-white/90">{p.caption}</p>
+          <p className="font-body text-sm leading-snug text-white/90">{tv(p.caption)}</p>
         </div>
       </>
     );
@@ -189,7 +193,7 @@ export default function InstagramFeed({
         target="_blank"
         rel="noreferrer noopener"
         tabIndex={clone ? -1 : undefined}
-        aria-label={p.caption ? `Instagram: ${p.caption}` : "Open Instagram post"}
+        aria-label={p.caption ? `Instagram: ${tv(p.caption)}` : t("Open Instagram post")}
         className={`group relative block aspect-square w-44 shrink-0 overflow-hidden rounded-2xl bg-navy-soft shadow-lg transition-transform duration-300 hover:z-10 hover:rotate-0 hover:scale-[1.06] focus-visible:z-10 focus-visible:rotate-0 focus-visible:scale-[1.06] sm:w-56 ${
           TILTS[i % TILTS.length]
         }`}
@@ -231,13 +235,13 @@ export default function InstagramFeed({
             <div>
               <EditableText
                 path="home.instagram.eyebrow"
-                value={ig.eyebrow}
+                value={tv(ig.eyebrow)}
                 as="p"
                 className="font-display text-f6 lowercase text-gold"
               />
               <EditableText
                 path="home.instagram.heading"
-                value={ig.heading}
+                value={tv(ig.heading)}
                 as="h2"
                 className="mt-2 font-heading text-f3 leading-none text-white"
               />
@@ -325,7 +329,7 @@ export default function InstagramFeed({
             {editMode ? (
               <EditableText path="home.instagram.ctaLabel" value={ig.ctaLabel} />
             ) : (
-              ig.ctaLabel
+              t(ig.ctaLabel)
             )}
           </Button>
         </div>

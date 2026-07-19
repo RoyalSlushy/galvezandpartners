@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export default function ContactForm() {
+  const t = useT();
   const [values, setValues] = useState({ first: "", last: "", email: "", message: "" });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -45,14 +47,14 @@ export default function ContactForm() {
   if (success) {
     return (
       <div className="mt-10 max-w-2xl rounded-lg border border-gold/30 bg-navy-soft p-8 text-center">
-        <p className="text-f7 font-heading text-gold">Thank you!</p>
-        <p className="mt-2 text-ink-100">We received your message and will be in touch soon.</p>
+        <p className="text-f7 font-heading text-gold">{t("Thank you!")}</p>
+        <p className="mt-2 text-ink-100">{t("We received your message and will be in touch soon.")}</p>
         <button
           type="button"
           className="btn-outline mt-6"
           onClick={() => setSuccess(false)}
         >
-          Send another message
+          {t("Send another message")}
         </button>
       </div>
     );
@@ -61,30 +63,30 @@ export default function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-10 grid max-w-2xl gap-5" noValidate>
       <div className="grid gap-5 sm:grid-cols-2">
-        <input aria-label="First name" placeholder="First name" className={field} value={values.first} onChange={set("first")} />
-        <input aria-label="Last name" placeholder="Last name" className={field} value={values.last} onChange={set("last")} />
+        <input aria-label={t("First name")} placeholder={t("First name")} className={field} value={values.first} onChange={set("first")} />
+        <input aria-label={t("Last name")} placeholder={t("Last name")} className={field} value={values.last} onChange={set("last")} />
       </div>
       <input
-        aria-label="Email"
+        aria-label={t("Email")}
         type="email"
         required
-        placeholder="Email *"
+        placeholder={t("Email *")}
         className={field}
         value={values.email}
         onChange={set("email")}
       />
       <textarea
-        aria-label="Message"
+        aria-label={t("Message")}
         required
-        placeholder="Message *"
+        placeholder={t("Message *")}
         rows={6}
         className={field}
         value={values.message}
         onChange={set("message")}
       />
-      {error && <p className="text-sm text-gold-bright">{error}</p>}
+      {error && <p className="text-sm text-gold-bright">{t(error)}</p>}
       <button type="submit" className="btn-gold self-start" disabled={submitting}>
-        {submitting ? "Sending..." : "Submit"}
+        {submitting ? t("Sending...") : t("Submit")}
       </button>
     </form>
   );

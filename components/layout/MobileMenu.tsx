@@ -348,7 +348,7 @@ export default function MobileMenu({
           hero below. */}
       <button
         type="button"
-        aria-label="Open menu"
+        aria-label={t("Open menu")}
         aria-expanded={open}
         onClick={() => {
           setSide("right");
@@ -402,7 +402,7 @@ export default function MobileMenu({
         </span>
         <button
           type="button"
-          aria-label="Open menu"
+          aria-label={t("Open menu")}
           aria-expanded={open}
           onClick={() => {
             setSide("right");

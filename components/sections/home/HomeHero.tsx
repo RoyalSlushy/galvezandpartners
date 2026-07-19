@@ -101,7 +101,7 @@ export default function HomeHero({
               path="home.hero.image"
               raw={hero.image}
               src={hero.image.startsWith("http") ? hero.image : wixImage(hero.image, 1280, 800)}
-              alt="Galvez & Partners storytelling"
+              alt={t("Galvez & Partners storytelling")}
               className="absolute inset-0 h-full w-full object-cover"
             />
             <div
@@ -150,7 +150,7 @@ export default function HomeHero({
           </div>
 
           <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden rounded-2xl bg-navy-soft py-4 sm:py-10">
-            <Carousel slides={slides} ariaLabel="Our services" className="flex w-full flex-col justify-center" />
+            <Carousel slides={slides} ariaLabel={t("Our services")} className="flex w-full flex-col justify-center" />
           </div>
 
           <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center sm:flex">

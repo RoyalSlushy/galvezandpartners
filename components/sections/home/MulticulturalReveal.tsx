@@ -5,6 +5,7 @@ import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -32,6 +33,9 @@ export default function MulticulturalReveal({
   const multicultural = useCmsValue("home.multicultural", serverMulticultural);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  const tv = (s: string) => (editMode ? s : t(s));
   const fillRef = useRef<HTMLDivElement>(null);
 
   // Scroll-linked word fill: p=0 when the block's top enters at 90% of the
@@ -82,7 +86,9 @@ export default function MulticulturalReveal({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [editMode, reduced, multicultural.titleLines, multicultural.intro]);
+    // `t` is included so the word list is re-measured when the locale (and thus
+    // the translated word count) changes.
+  }, [editMode, reduced, multicultural.titleLines, multicultural.intro, t]);
 
   // Split into fillable word spans, preserving admin-authored newlines
   // (multiline fields render with whitespace-pre-line).
@@ -129,7 +135,7 @@ export default function MulticulturalReveal({
                     i === all.length - 1 ? "text-gold" : ""
                   }`}
                 >
-                  {splitWords(line)}
+                  {splitWords(tv(line))}
                 </span>
               ))}
             </h2>
@@ -144,7 +150,7 @@ export default function MulticulturalReveal({
             />
           ) : (
             <p className="mt-6 max-w-2xl whitespace-pre-line font-body text-f8 text-white/80">
-              {splitWords(multicultural.intro)}
+              {splitWords(tv(multicultural.intro))}
             </p>
           )}
         </div>
@@ -152,7 +158,7 @@ export default function MulticulturalReveal({
         <div className="mt-16 grid gap-8 md:grid-cols-3">
           {multicultural.cards.map((c, i) => (
             <RevealOnScroll key={i} delay={0.09 * (i + 1)} className="h-full">
-              <SpotlightCard index={i} count={multicultural.cards.length} card={c} editMode={editMode} />
+              <SpotlightCard index={i} count={multicultural.cards.length} card={c} editMode={editMode} tv={tv} />
             </RevealOnScroll>
           ))}
         </div>
@@ -172,11 +178,13 @@ function SpotlightCard({
   count,
   card,
   editMode,
+  tv,
 }: {
   index: number;
   count: number;
   card: { title: string; body: string };
   editMode: boolean;
+  tv: (s: string) => string;
 }) {
   const ref = useRef<HTMLElement>(null);
 
@@ -225,13 +233,13 @@ function SpotlightCard({
       <div className="relative">
         <EditableText
           path={`home.multicultural.cards.${index}.title`}
-          value={card.title}
+          value={tv(card.title)}
           as="h3"
           className="font-heading text-f7 lowercase text-gold"
         />
         <EditableText
           path={`home.multicultural.cards.${index}.body`}
-          value={card.body}
+          value={tv(card.body)}
           as="p"
           multiline
           className="mt-4 whitespace-pre-line font-body text-f9 text-white/75"

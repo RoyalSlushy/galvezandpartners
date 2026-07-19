@@ -17,7 +17,7 @@ export default function LanguageSwitcher({
   /** Open the menu above the trigger instead of below (e.g. near a bottom edge). */
   openUp?: boolean;
 }) {
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale, t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +43,7 @@ export default function LanguageSwitcher({
     <div ref={rootRef} className={`relative ${className}`}>
       <button
         type="button"
-        aria-label="Change language"
+        aria-label={t("Change language")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}

@@ -52,6 +52,116 @@ const ES: Record<string, string> = {
     "Nuestros diseñadores son talentosos y visionarios. Creamos diseños visualmente impactantes para todo tipo de negocios. Ya sea un logotipo, rotulación de autobús, folleto o banner, te respaldamos.",
   "We develop and refine your brand identity, messaging, and positioning to differentiate you from your competition.":
     "Desarrollamos y refinamos la identidad, el mensaje y el posicionamiento de tu marca para diferenciarte de tu competencia.",
+
+  // --- Footer / chrome ---
+  "Get in Touch": "Contáctanos",
+  Menu: "Menú",
+  "Follow Us": "Síguenos",
+  "Open menu": "Abrir menú",
+  "Change language": "Cambiar idioma",
+
+  // --- Services grid ---
+  "the works": "el trabajo",
+  "What We Can Do For YOU.": "Lo Que Podemos Hacer Por TI.",
+  "View More": "Ver Más",
+  "Our services": "Nuestros servicios",
+  "Galvez & Partners storytelling": "Narrativa de Galvez & Partners",
+
+  // --- Marquee band (English words only; the Spanish ones fall through) ---
+  storytellers: "narradores",
+  creatives: "creativos",
+  producers: "productores",
+
+  // --- Featured work ---
+  "featured work": "trabajo destacado",
+  "Stories We've Told.": "Historias Que Hemos Contado.",
+  "Campaigns, brands and films we poured ourselves into. Scroll through a few of our favorites.":
+    "Campañas, marcas y películas en las que nos volcamos. Desliza para ver algunas de nuestras favoritas.",
+  "See All Works": "Ver Todo el Trabajo",
+  "there's": "hay",
+  more: "más",
+  "Every story on one page.": "Cada historia en una sola página.",
+
+  // --- Instagram ---
+  "on the gram": "en el gram",
+  "Follow the Story.": "Sigue la Historia.",
+  "Behind the scenes": "Detrás de cámaras",
+  "On set with the crew": "En el set con el equipo",
+  "ELG Accident Attorneys — campaign day": "ELG Accident Attorneys — día de campaña",
+  "Adelante Scholars with Helios": "Adelante Scholars con Helios",
+  "Instagram post": "Publicación de Instagram",
+  "Open Instagram post": "Abrir publicación de Instagram",
+
+  // --- Multicultural manifesto ---
+  "the multi-cultural": "la agencia multicultural",
+  "Agency doing": "que hace",
+  "big things": "grandes cosas",
+  "Welcome to G+P Advertising, your go-to destination for all things marketing and advertising.":
+    "Bienvenido a G+P Advertising, tu destino ideal para todo lo relacionado con marketing y publicidad.",
+  "reach new Heights": "alcanza nuevas alturas",
+  "Dedicated experts delivering unparalleled business solutions for growth.":
+    "Expertos dedicados que ofrecen soluciones empresariales inigualables para el crecimiento.",
+  "built to last": "hecho para durar",
+  "Our extensive services establish a lasting, impactful brand image.":
+    "Nuestros amplios servicios establecen una imagen de marca duradera e impactante.",
+  "storytellers at heart": "narradores de corazón",
+  "We are passionate about delivering top-notch results for your brand's success in a competitive market.":
+    "Nos apasiona ofrecer resultados de primera para el éxito de tu marca en un mercado competitivo.",
+
+  // --- Team: heading + roles (names are left untranslated) ---
+  "Meet Our Storytellers": "Conoce a Nuestros Narradores",
+  "What we are": "Lo que somos",
+  Principal: "Director",
+  "Marketing Manager": "Gerente de Marketing",
+  "Social Media Manager": "Gerente de Redes Sociales",
+  "Social Media Specialist": "Especialista en Redes Sociales",
+  "Graphic & Web Designer": "Diseñador Gráfico y Web",
+  "Senior Creative Designer": "Diseñador Creativo Senior",
+  "Producer / Social Media": "Productor / Redes Sociales",
+  "Multimedia Specialist": "Especialista en Multimedia",
+  "Video Content Creator": "Creador de Contenido de Video",
+  "Digital Marketing": "Marketing Digital",
+
+  // --- Work index ---
+  "our work speaks for itself": "nuestro trabajo habla por sí mismo",
+
+  // --- Partners ---
+  "our partners": "nuestros socios",
+  "Where exceptional results are made.": "Donde se logran resultados excepcionales.",
+  "We partner with ambitious brands to tell stories that move people and drive results.":
+    "Nos asociamos con marcas ambiciosas para contar historias que conmueven a las personas y generan resultados.",
+
+  // --- Contact page ---
+  "Contact us": "Contáctanos",
+  "Tell us about your brand and what you want to achieve. We'll take it from there.":
+    "Cuéntanos sobre tu marca y lo que quieres lograr. Nosotros nos encargamos del resto.",
+
+  // --- Contact form ---
+  "Please add your email and a message.": "Por favor añade tu correo y un mensaje.",
+  "Something went wrong. Please try again.": "Algo salió mal. Por favor inténtalo de nuevo.",
+  "Thank you!": "¡Gracias!",
+  "We received your message and will be in touch soon.":
+    "Recibimos tu mensaje y nos pondremos en contacto pronto.",
+  "Send another message": "Enviar otro mensaje",
+  "First name": "Nombre",
+  "Last name": "Apellido",
+  Email: "Correo electrónico",
+  "Email *": "Correo electrónico *",
+  Message: "Mensaje",
+  "Message *": "Mensaje *",
+  "Sending...": "Enviando...",
+  Submit: "Enviar",
+
+  // --- Case study ---
+  Background: "Contexto",
+  "A full-service campaign for ELG Accident Attorneys — brand storytelling, media buying, and video production built to drive qualified case leads across the Phoenix market.":
+    "Una campaña integral para ELG Accident Attorneys: narrativa de marca, compra de medios y producción de video diseñada para generar prospectos de casos calificados en todo el mercado de Phoenix.",
+  "Creative and digital work for Helios Education Foundation's Adelante Scholars, amplifying access to higher education through multicultural storytelling.":
+    "Trabajo creativo y digital para Adelante Scholars de Helios Education Foundation, ampliando el acceso a la educación superior a través de narrativas multiculturales.",
+  "Brand identity, social, and video content for La Bombita — bold, flavorful creative that captures the energy of the brand.":
+    "Identidad de marca, redes sociales y contenido de video para La Bombita: creatividad audaz y llena de sabor que captura la energía de la marca.",
+  "Science-forward brand and campaign work for the Precision Aging Network, translating complex research into clear, human stories.":
+    "Trabajo de marca y campaña con enfoque científico para Precision Aging Network, traduciendo investigaciones complejas en historias claras y humanas.",
 };
 
 const TABLES: Record<Locale, Record<string, string>> = { en: {}, es: ES };
