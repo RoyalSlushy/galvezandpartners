@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
@@ -22,14 +22,32 @@ const CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(34vw,38vh)] md:w-[min(
 const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[min(24vw,34vh)]";
 
 /**
+ * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
+ * the first paint match the wide layout, correcting on mount for narrow screens.
+ */
+function useMinWidth(px: number): boolean {
+  const [match, setMatch] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${px}px)`);
+    const on = () => setMatch(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [px]);
+  return match;
+}
+
+/**
  * /our-works hero: everything fits in one viewport. The section pins while
- * vertical scroll drives the case cards sideways (same scroll-jack pattern as
- * the homepage FeaturedWork); a gold progress line tracks the journey. The site
- * header stays pinned at the top for the whole section and slides away only as
- * the gallery scrolls in (see the body[data-gp-pinned-header] rule). The heading
- * is centered and fit to a single line at any width, with the word "speaks"
- * accented in gold under a pulsing halo. A masonry-grid icon rail on the left
- * jumps to the #work-gallery section below the cases.
+ * vertical scroll drives a horizontal accordion — the leftmost case sits at a
+ * 4:5 ratio and, as you scroll down, squeezes to a 1:5 sliver while the next
+ * case widens to 4:5, and so on through the cases to a closing gallery panel; a
+ * gold progress line tracks the journey. The site header stays pinned at the
+ * top for the whole section and slides away only as the gallery scrolls in (see
+ * the body[data-gp-pinned-header] rule). The heading is centered and fit to a
+ * single line at any width, with the word "speaks" accented in gold under a
+ * pulsing halo. A masonry-grid icon rail on the left jumps to the #work-gallery
+ * section below the cases.
  *
  * Edit mode and reduced motion swap in a native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
@@ -52,10 +70,35 @@ export default function WorkShowcase({
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const rowWrapRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef<(HTMLElement | null)[]>([]);
+  const [ready, setReady] = useState(false);
 
-  const pinned = !editMode && !reduced;
+  // The accordion needs room to breathe, so it runs on tablet/desktop (>= the
+  // `sm` breakpoint); phones fall back to the native swipe row below.
+  const wideEnough = useMinWidth(751);
+  // The server and the first client paint both render the static row, so
+  // hydration can never mismatch; the scroll-jack accordion is a client-only
+  // enhancement that engages after mount (on wide enough, motion-OK screens).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const pinned = mounted && !editMode && !reduced && wideEnough;
+  // The accordion panels: every case plus the trailing gallery hand-off panel.
+  const panelCount = items.length + 1;
+  const setPanelRef = (i: number) => (el: HTMLElement | null) => {
+    panelRefs.current[i] = el;
+  };
+
+  // Accordion geometry: the active panel is 4:5 (width = 0.8·height), a fully
+  // collapsed panel is 1:5 (width = 0.2·height). Exactly one panel is active at
+  // a time; between two integers the two straddling panels share the expansion,
+  // so the row's total width stays constant (no horizontal drift — only widths
+  // breathe).
+  const COLLAPSED = 0.2;
+  const ACTIVE = 0.8;
+  const GAP = 8; // px, matches the row's gap-2
 
   useEffect(() => {
     if (!pinned) return;
@@ -63,9 +106,10 @@ export default function WorkShowcase({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const section = sectionRef.current;
     const sticky = stickyRef.current;
-    const track = trackRef.current;
+    const rowWrap = rowWrapRef.current;
+    const row = rowRef.current;
     const bar = barRef.current;
-    if (!section || !sticky || !track || !bar) return;
+    if (!section || !sticky || !rowWrap || !row || !bar) return;
 
     // Pin the site header at the top for the duration of this section (see the
     // body[data-gp-pinned-header] rule); it slides off as the gallery arrives.
@@ -73,19 +117,40 @@ export default function WorkShowcase({
     const root = document.documentElement;
     document.body.setAttribute("data-gp-pinned-header", "");
 
+    const N = panelCount;
     let scrollable = 0;
     let headerH = 0;
+    let rowH = 0;
     let raf = 0;
     let ticking = false;
 
     const measure = () => {
-      scrollable = Math.max(0, track.scrollWidth - window.innerWidth);
       headerH = header ? header.offsetHeight : 0;
-      // Total height = one pinned viewport + the horizontal distance to cover.
+      const cs = getComputedStyle(rowWrap);
+      const availW =
+        rowWrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const availH =
+        rowWrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      // Height that makes the row exactly fill the available width, capped so it
+      // also fits the available height (whichever binds).
+      const hFromWidth = (availW - GAP * (N - 1)) / (COLLAPSED * N + (ACTIVE - COLLAPSED));
+      rowH = Math.max(0, Math.min(availH, hFromWidth));
+      row.style.height = `${rowH}px`;
+      // Vertical scroll distance driving the accordion: ~0.6 screens per panel.
+      const step = Math.max(280, window.innerHeight * 0.6);
+      scrollable = (N - 1) * step;
       section.style.height = `${sticky.offsetHeight + scrollable}px`;
     };
 
-    const parallaxEls = Array.from(track.querySelectorAll<HTMLElement>("[data-parallax]"));
+    const applyWidths = (a: number) => {
+      for (let i = 0; i < N; i++) {
+        const el = panelRefs.current[i];
+        if (!el) continue;
+        const factor = Math.max(0, Math.min(1, 1 - Math.abs(a - i)));
+        el.style.width = `${rowH * (COLLAPSED + factor * (ACTIVE - COLLAPSED))}px`;
+        el.style.setProperty("--exp", factor.toFixed(3));
+      }
+    };
 
     const update = () => {
       ticking = false;
@@ -93,24 +158,13 @@ export default function WorkShowcase({
       // Header release: pinned (top:0) while the section's bottom is more than a
       // header-height below the viewport top; over the final header-height of
       // travel it slides up to -headerH so it clears the frame exactly as the
-      // gallery reaches the top. Runs regardless of horizontal scrollability.
+      // gallery reaches the top.
       const shift = Math.max(0, Math.min(headerH, headerH - rect.bottom));
       root.style.setProperty("--gp-header-top", `${-shift}px`);
 
-      if (scrollable <= 0) return;
-      const p = Math.max(0, Math.min(1, -rect.top / scrollable));
-      const x = -p * scrollable;
-      track.style.transform = `translate3d(${x}px,0,0)`;
+      const p = scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
       bar.style.transform = `scaleX(${p})`;
-
-      // Counter-parallax: shift each image against the track's travel based on
-      // how far its card sits from the viewport center.
-      const center = window.innerWidth / 2;
-      for (const el of parallaxEls) {
-        const r = el.getBoundingClientRect();
-        const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
-        el.style.transform = `translateX(${Math.max(-44, Math.min(44, ratio * 34))}px) scale(1.12)`;
-      }
+      applyWidths(p * (N - 1));
     };
     const onScroll = () => {
       if (!ticking) {
@@ -122,38 +176,47 @@ export default function WorkShowcase({
       measure();
       onScroll();
     };
-    // Keyboard users tab into links the transform has carried off-screen:
-    // undo the browser's clipped-container scroll and drive the page scroll
-    // (which maps 1:1 to horizontal travel) until the card is centered.
+    // Keyboard users tabbing into a collapsed sliver: drive the page scroll so
+    // that panel becomes the active (4:5) one, bringing it into full view.
     const onFocusIn = (e: Event) => {
-      sticky.scrollLeft = 0;
-      if (scrollable <= 0) return;
-      const target = (e.target as HTMLElement).closest("a") ?? (e.target as HTMLElement);
-      const r = target.getBoundingClientRect();
-      const delta = r.left + r.width / 2 - window.innerWidth / 2;
-      if (Math.abs(delta) > 4) window.scrollBy(0, delta);
+      const target = (e.target as HTMLElement).closest<HTMLElement>("[data-index]");
+      if (!target || scrollable <= 0) return;
+      const i = Number(target.getAttribute("data-index"));
+      if (Number.isNaN(i)) return;
+      const rect = section.getBoundingClientRect();
+      const targetTop = (-scrollable * i) / (N - 1);
+      const delta = rect.top - targetTop;
+      if (Math.abs(delta) > 4) window.scrollBy({ top: delta });
     };
 
     measure();
     update();
+    setReady(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
-    track.addEventListener("focusin", onFocusIn);
+    row.addEventListener("focusin", onFocusIn);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
-      track.removeEventListener("focusin", onFocusIn);
+      row.removeEventListener("focusin", onFocusIn);
       // The static branch may reuse these nodes — leave no stale styles behind.
       section.style.height = "";
-      track.style.transform = "";
+      row.style.height = "";
       bar.style.transform = "";
-      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
+      for (const el of panelRefs.current) {
+        if (el) {
+          el.style.width = "";
+          el.style.removeProperty("--exp");
+        }
+      }
+      setReady(false);
       // Release the header pin (and its scroll-driven offset).
       document.body.removeAttribute("data-gp-pinned-header");
       root.style.removeProperty("--gp-header-top");
     };
-  }, [pinned, items.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinned, panelCount]);
 
   const cards = items.map((w, i) => {
     const inner = (
@@ -292,12 +355,86 @@ export default function WorkShowcase({
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
+          {/* Accordion row: one panel is 4:5 (active), the rest squeeze to 1:5
+              slivers. Scroll advances which panel is active; panel widths and
+              the label cross-fade are driven imperatively (see the effect). The
+              left padding clears the absolutely-positioned gallery rail. */}
           <div
-            ref={trackRef}
-            className="gallery-pad mt-4 flex w-max items-start gap-6 pt-10 will-change-transform sm:gap-8"
+            ref={rowWrapRef}
+            className="mt-6 flex min-h-0 flex-1 items-center justify-center pl-16 pr-5 sm:pl-24 sm:pr-8"
           >
-            {cards}
-            {endCard}
+            <div
+              ref={rowRef}
+              className="flex items-stretch justify-center gap-2 transition-opacity duration-500"
+              style={{ opacity: ready ? 1 : 0 }}
+            >
+              {items.map((w, i) => (
+                <AccordionPanel
+                  key={i}
+                  refCb={setPanelRef(i)}
+                  index={i}
+                  href={w.slug ? `/case-study/${w.slug}` : undefined}
+                  label={w.title}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={
+                      w.img
+                        ? w.img.startsWith("http")
+                          ? w.img
+                          : wixImage(w.img, 700, 900)
+                        : PLACEHOLDER_IMG
+                    }
+                    alt={w.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent" />
+                  <div
+                    className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 overflow-hidden p-4 sm:p-5"
+                    style={{ opacity: "var(--exp, 0)" }}
+                  >
+                    <div className="min-w-0">
+                      <span aria-hidden className="block font-display text-f7 leading-none text-gold/70">
+                        <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-gold/70" />
+                      </span>
+                      <span className="mt-1 block truncate font-heading text-f8 leading-tight text-white">
+                        {w.title}
+                      </span>
+                    </div>
+                    {w.slug && (
+                      <span
+                        aria-hidden
+                        className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold text-navy"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                          <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
+                </AccordionPanel>
+              ))}
+              <AccordionPanel
+                refCb={setPanelRef(items.length)}
+                index={items.length}
+                href="#work-gallery"
+                label={tv("the gallery")}
+                variant="gallery"
+              >
+                <div
+                  className="absolute inset-0 flex flex-col justify-center overflow-hidden p-5 sm:p-6"
+                  style={{ opacity: "var(--exp, 0)" }}
+                >
+                  <p className="font-display text-f5 lowercase leading-[0.95] text-gold">
+                    {tv("the gallery")}
+                  </p>
+                  <p className="mt-3 font-body text-sm text-white/60">
+                    {tv("Every frame on one wall — sort it, filter it, tag it.")}
+                  </p>
+                  <span className="btn-outline mt-6 w-fit">{tv("explore")}</span>
+                </div>
+              </AccordionPanel>
+            </div>
           </div>
           <Container className="mt-6">
             <div className="h-px w-full bg-white/10">
@@ -307,6 +444,74 @@ export default function WorkShowcase({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * One accordion panel: a fixed-height column whose width is driven imperatively
+ * (--exp, 0→1) between a 1:5 sliver and a 4:5 active card. The vertical label
+ * shows while collapsed and cross-fades out as the panel expands; `children`
+ * (image + active overlay) fade in the other way. Links to its case study (or
+ * the gallery); non-slug cases render as a plain div.
+ */
+function AccordionPanel({
+  refCb,
+  index,
+  href,
+  label,
+  variant = "case",
+  children,
+}: {
+  refCb: (el: HTMLElement | null) => void;
+  index: number;
+  href?: string;
+  label: string;
+  variant?: "case" | "gallery";
+  children: React.ReactNode;
+}) {
+  const cls =
+    variant === "gallery"
+      ? "group relative h-full shrink-0 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy"
+      : "group relative h-full shrink-0 overflow-hidden rounded-2xl bg-navy-soft";
+  const inner = (
+    <>
+      {children}
+      {/* Vertical label shown while the panel is a collapsed sliver. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 flex items-center justify-center px-2"
+        style={{ opacity: "calc(1 - var(--exp, 0))" }}
+      >
+        <span
+          className={`font-heading text-sm uppercase tracking-wide ${
+            variant === "gallery" ? "text-gold" : "text-white/90"
+          }`}
+          style={{ writingMode: "vertical-rl" }}
+        >
+          {label}
+        </span>
+      </span>
+    </>
+  );
+  const style = { "--exp": 0 } as React.CSSProperties;
+  if (href?.startsWith("#")) {
+    return (
+      <a ref={refCb} data-index={index} href={href} aria-label={label} className={cls} style={style}>
+        {inner}
+      </a>
+    );
+  }
+  if (href) {
+    return (
+      <Link ref={refCb} data-index={index} href={href} aria-label={label} className={cls} style={style}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div ref={refCb} data-index={index} className={cls} style={style}>
+      {inner}
+    </div>
   );
 }
 
