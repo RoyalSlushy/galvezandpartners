@@ -4,7 +4,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { CaseStudy } from "@/content/caseStudies";
-import { wixImage } from "@/lib/wix";
+import { wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -122,9 +122,9 @@ export default function CaseStudyBody({
                 <EditableImage
                   path={`${base}.gallery.${i}`}
                   raw={id}
-                  src={id ? (id.startsWith("http") ? id : wixImage(id, 900, 620)) : PLACEHOLDER_IMG}
+                  src={id ? (id.startsWith("http") ? id : wixImageFit(id, 900, 900)) : PLACEHOLDER_IMG}
                   alt={`${cs.title} — image ${i + 1}`}
-                  className="w-full rounded-2xl object-cover"
+                  className="w-full rounded-2xl bg-navy-soft object-contain"
                 />
                 {editMode && (
                   <ListControls

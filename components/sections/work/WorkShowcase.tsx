@@ -7,7 +7,7 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImageFit } from "@/lib/wix";
+import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -29,8 +29,7 @@ const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[
  * the gallery scrolls in (see the body[data-gp-pinned-header] rule). The heading
  * is centered and fit to a single line at any width, with the word "speaks"
  * accented in gold under a pulsing halo. A masonry-grid icon rail on the left
- * jumps to the #work-gallery section below the cases. Case images are shown in
- * full (object-contain) rather than cropped.
+ * jumps to the #work-gallery section below the cases.
  *
  * Edit mode and reduced motion swap in a native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
@@ -86,6 +85,8 @@ export default function WorkShowcase({
       section.style.height = `${sticky.offsetHeight + scrollable}px`;
     };
 
+    const parallaxEls = Array.from(track.querySelectorAll<HTMLElement>("[data-parallax]"));
+
     const update = () => {
       ticking = false;
       const rect = section.getBoundingClientRect();
@@ -101,6 +102,15 @@ export default function WorkShowcase({
       const x = -p * scrollable;
       track.style.transform = `translate3d(${x}px,0,0)`;
       bar.style.transform = `scaleX(${p})`;
+
+      // Counter-parallax: shift each image against the track's travel based on
+      // how far its card sits from the viewport center.
+      const center = window.innerWidth / 2;
+      for (const el of parallaxEls) {
+        const r = el.getBoundingClientRect();
+        const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
+        el.style.transform = `translateX(${Math.max(-44, Math.min(44, ratio * 34))}px) scale(1.12)`;
+      }
     };
     const onScroll = () => {
       if (!ticking) {
@@ -138,6 +148,7 @@ export default function WorkShowcase({
       section.style.height = "";
       track.style.transform = "";
       bar.style.transform = "";
+      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
       // Release the header pin (and its scroll-driven offset).
       document.body.removeAttribute("data-gp-pinned-header");
       root.style.removeProperty("--gp-header-top");
@@ -164,19 +175,21 @@ export default function WorkShowcase({
           />
         )}
         <div className="group relative overflow-hidden rounded-2xl bg-navy-soft">
-          <EditableImage
-            path={`work.items.${i}.img`}
-            raw={w.img}
-            src={
-              w.img
-                ? w.img.startsWith("http")
-                  ? w.img
-                  : wixImageFit(w.img, 700, 875)
-                : PLACEHOLDER_IMG
-            }
-            alt={w.title}
-            className="aspect-[4/5] w-full bg-navy object-contain"
-          />
+          <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
+            <EditableImage
+              path={`work.items.${i}.img`}
+              raw={w.img}
+              src={
+                w.img
+                  ? w.img.startsWith("http")
+                    ? w.img
+                    : wixImage(w.img, 700, 875)
+                  : PLACEHOLDER_IMG
+              }
+              alt={w.title}
+              className="aspect-[4/5] w-full object-cover"
+            />
+          </div>
           <div
             className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
               editMode ? " pointer-events-none" : ""
