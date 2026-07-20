@@ -39,15 +39,17 @@ function useMinWidth(px: number): boolean {
 
 /**
  * /our-works hero: everything fits in one viewport. The section pins while
- * vertical scroll drives a horizontal accordion — the leftmost case sits at a
- * 4:5 ratio and, as you scroll down, squeezes to a 1:5 sliver while the next
- * case widens to 4:5, and so on through the cases to a closing gallery panel; a
- * gold progress line tracks the journey. The site header stays pinned at the
- * top for the whole section and slides away only as the gallery scrolls in (see
- * the body[data-gp-pinned-header] rule). The heading is centered and fit to a
- * single line at any width, with the word "speaks" accented in gold under a
- * pulsing halo. A masonry-grid icon rail on the left jumps to the #work-gallery
- * section below the cases.
+ * vertical scroll drives a left-anchored accordion — the widest case sits at a
+ * 5:4 ratio stuck to the left, with the other cases queued to its right as 1:5
+ * slivers (rounder-cornered). Scrolling down pushes the current widest case out
+ * of frame to the left, fading, as the next case widens into the left slot, on
+ * through the cases to a closing gallery panel. Scroll settles snap to whichever
+ * case is fully 5:4. A gold progress line tracks the journey. The site header
+ * stays pinned at the top for the whole section and slides away only as the
+ * gallery scrolls in (see the body[data-gp-pinned-header] rule). The heading is
+ * centered and fit to a single line at any width, with the word "speaks"
+ * accented in gold under a pulsing halo. A masonry-grid icon rail on the left
+ * jumps to the #work-gallery section below the cases.
  *
  * Edit mode and reduced motion swap in a native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
@@ -91,14 +93,17 @@ export default function WorkShowcase({
     panelRefs.current[i] = el;
   };
 
-  // Accordion geometry: the active panel is 4:5 (width = 0.8·height), a fully
-  // collapsed panel is 1:5 (width = 0.2·height). Exactly one panel is active at
-  // a time; between two integers the two straddling panels share the expansion,
-  // so the row's total width stays constant (no horizontal drift — only widths
-  // breathe).
+  // Accordion geometry: the widest (active) panel is 5:4 (width = 1.25·height)
+  // and sticks to the left; every other panel is a 1:5 sliver (width = 0.2·
+  // height) with rounder corners, queued to its right. As scroll advances the
+  // active index, the current widest slides left out of frame and fades while
+  // the next widens into the left slot. Corner radius eases from R_ACTIVE (the
+  // widest) to R_SLIVER (fully collapsed).
   const COLLAPSED = 0.2;
-  const ACTIVE = 0.8;
+  const ACTIVE = 1.25;
   const GAP = 8; // px, matches the row's gap-2
+  const R_ACTIVE = 16;
+  const R_SLIVER = 40;
 
   useEffect(() => {
     if (!pinned) return;
@@ -131,9 +136,10 @@ export default function WorkShowcase({
         rowWrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const availH =
         rowWrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-      // Height that makes the row exactly fill the available width, capped so it
-      // also fits the available height (whichever binds).
-      const hFromWidth = (availW - GAP * (N - 1)) / (COLLAPSED * N + (ACTIVE - COLLAPSED));
+      // Widest layout (active at a=0): one 5:4 panel + (N-1) slivers + gaps.
+      // Size the row height so that arrangement exactly fills the width, capped
+      // so it also fits the available height (whichever binds).
+      const hFromWidth = (availW - GAP * (N - 1)) / (ACTIVE + COLLAPSED * (N - 1));
       rowH = Math.max(0, Math.min(availH, hFromWidth));
       row.style.height = `${rowH}px`;
       // Vertical scroll distance driving the accordion: ~0.6 screens per panel.
@@ -143,12 +149,36 @@ export default function WorkShowcase({
     };
 
     const applyWidths = (a: number) => {
+      // Per-panel expansion + width.
+      const widths: number[] = new Array(N);
+      const exps: number[] = new Array(N);
+      for (let i = 0; i < N; i++) {
+        const e = Math.max(0, Math.min(1, 1 - Math.abs(a - i)));
+        exps[i] = e;
+        widths[i] = rowH * (COLLAPSED + e * (ACTIVE - COLLAPSED));
+      }
+      // Prefix left edges, then translate the whole row so the active panel's
+      // left edge sits at the row's start (x=0) — earlier panels are pushed off
+      // to the left. The front edge interpolates between neighbours mid-scroll.
+      const L: number[] = new Array(N);
+      let left = 0;
+      for (let i = 0; i < N; i++) {
+        L[i] = left;
+        left += widths[i] + GAP;
+      }
+      const k = Math.max(0, Math.min(Math.floor(a), N - 2));
+      const frontLeft = N >= 2 ? L[k] + (a - k) * (widths[k] + GAP) : 0;
+      row.style.transform = `translate3d(${-frontLeft}px,0,0)`;
+
       for (let i = 0; i < N; i++) {
         const el = panelRefs.current[i];
         if (!el) continue;
-        const factor = Math.max(0, Math.min(1, 1 - Math.abs(a - i)));
-        el.style.width = `${rowH * (COLLAPSED + factor * (ACTIVE - COLLAPSED))}px`;
-        el.style.setProperty("--exp", factor.toFixed(3));
+        el.style.width = `${widths[i]}px`;
+        el.style.setProperty("--exp", exps[i].toFixed(3));
+        // Panels left of the active one fade as they're pushed out of frame.
+        el.style.opacity = String(1 - Math.max(0, Math.min(1, a - i)));
+        // Rounder corners the more collapsed the panel is.
+        el.style.borderRadius = `${R_ACTIVE + (1 - exps[i]) * (R_SLIVER - R_ACTIVE)}px`;
       }
     };
 
@@ -166,11 +196,26 @@ export default function WorkShowcase({
       bar.style.transform = `scaleX(${p})`;
       applyWidths(p * (N - 1));
     };
+    // Snap points: after scrolling settles, ease to the nearest integer active
+    // index so a case always comes to rest fully 5:4 (never mid-squeeze). The
+    // very ends are left alone — the page-top rest and the gallery hand-off.
+    let snapTimer: ReturnType<typeof setTimeout> | undefined;
+    const snapToNearest = () => {
+      if (scrollable <= 0) return;
+      const rect = section.getBoundingClientRect();
+      const p = -rect.top / scrollable;
+      if (p <= 0.02 || p >= 0.98) return;
+      const targetP = Math.round(p * (N - 1)) / (N - 1);
+      const delta = rect.top + targetP * scrollable;
+      if (Math.abs(delta) > 2) window.scrollBy({ top: delta, behavior: "smooth" });
+    };
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
         raf = requestAnimationFrame(update);
       }
+      clearTimeout(snapTimer);
+      snapTimer = setTimeout(snapToNearest, 140);
     };
     const onResize = () => {
       measure();
@@ -197,16 +242,20 @@ export default function WorkShowcase({
     row.addEventListener("focusin", onFocusIn);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(snapTimer);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       row.removeEventListener("focusin", onFocusIn);
       // The static branch may reuse these nodes — leave no stale styles behind.
       section.style.height = "";
       row.style.height = "";
+      row.style.transform = "";
       bar.style.transform = "";
       for (const el of panelRefs.current) {
         if (el) {
           el.style.width = "";
+          el.style.opacity = "";
+          el.style.borderRadius = "";
           el.style.removeProperty("--exp");
         }
       }
@@ -355,17 +404,19 @@ export default function WorkShowcase({
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
-          {/* Accordion row: one panel is 4:5 (active), the rest squeeze to 1:5
-              slivers. Scroll advances which panel is active; panel widths and
-              the label cross-fade are driven imperatively (see the effect). The
-              left padding clears the absolutely-positioned gallery rail. */}
+          {/* Accordion row: the active panel is 5:4 and stuck to the left; the
+              rest are 1:5 slivers queued to its right. Scroll advances the active
+              index — the current widest slides left out of frame and fades as the
+              next widens in. Widths, the row's leftward translate, per-panel fade,
+              corner radius, and the label cross-fade are all driven imperatively
+              (see the effect). The left padding clears the gallery rail. */}
           <div
             ref={rowWrapRef}
-            className="mt-6 flex min-h-0 flex-1 items-center justify-center pl-16 pr-5 sm:pl-24 sm:pr-8"
+            className="mt-6 flex min-h-0 flex-1 items-center justify-start overflow-hidden pl-16 pr-5 sm:pl-24 sm:pr-8"
           >
             <div
               ref={rowRef}
-              className="flex items-stretch justify-center gap-2 transition-opacity duration-500"
+              className="flex shrink-0 items-stretch gap-2 transition-opacity duration-500 will-change-transform"
               style={{ opacity: ready ? 1 : 0 }}
             >
               {items.map((w, i) => (
@@ -382,7 +433,7 @@ export default function WorkShowcase({
                       w.img
                         ? w.img.startsWith("http")
                           ? w.img
-                          : wixImage(w.img, 700, 900)
+                          : wixImage(w.img, 900, 900)
                         : PLACEHOLDER_IMG
                     }
                     alt={w.title}
@@ -448,11 +499,12 @@ export default function WorkShowcase({
 }
 
 /**
- * One accordion panel: a fixed-height column whose width is driven imperatively
- * (--exp, 0→1) between a 1:5 sliver and a 4:5 active card. The vertical label
- * shows while collapsed and cross-fades out as the panel expands; `children`
- * (image + active overlay) fade in the other way. Links to its case study (or
- * the gallery); non-slug cases render as a plain div.
+ * One accordion panel: a fixed-height column whose width, opacity, and corner
+ * radius are driven imperatively (--exp, 0→1) between a rounder 1:5 sliver and a
+ * 5:4 active card. The vertical label shows while collapsed and cross-fades out
+ * as the panel expands; `children` (image + active overlay) fade in the other
+ * way. Links to its case study (or the gallery); non-slug cases render as a
+ * plain div.
  */
 function AccordionPanel({
   refCb,
