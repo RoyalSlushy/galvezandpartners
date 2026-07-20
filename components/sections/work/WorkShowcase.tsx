@@ -10,6 +10,7 @@ import type { Work } from "@/content/work";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -42,6 +43,10 @@ export default function WorkShowcase({
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode
+  // (matches WorkGrid). Case-study titles are brand names and stay untranslated.
+  const tv = (s: string) => (editMode ? s : t(s));
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -218,13 +223,11 @@ export default function WorkShowcase({
   const endCard = (
     <a href="#work-gallery" className={`flex ${END_CARD_W} snap-start items-center`}>
       <div className="flex aspect-[4/5] w-full flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-7">
-        <p className="font-display text-f5 lowercase leading-[0.95] text-white">
-          the <span className="text-gold">gallery</span>
-        </p>
+        <p className="font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
         <p className="mt-3 font-body text-base text-white/60">
-          Every frame on one wall — sort it, filter it, tag it.
+          {tv("Every frame on one wall — sort it, filter it, tag it.")}
         </p>
-        <span className="btn-outline mt-7">explore</span>
+        <span className="btn-outline mt-7">{tv("explore")}</span>
       </div>
     </a>
   );
@@ -232,10 +235,10 @@ export default function WorkShowcase({
   if (!pinned) {
     return (
       <section key="ws-static" className="relative w-full overflow-hidden bg-navy py-16 sm:py-20">
-        <GalleryRail />
+        <GalleryRail label={tv("gallery")} />
         <Container>
           <RevealOnScroll>
-            <ShowcaseHeading heading={heading} editMode={editMode} />
+            <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </RevealOnScroll>
         </Container>
         <div className="gallery-scroll mt-10 snap-x snap-mandatory overflow-x-auto pb-6 pt-10">
@@ -261,9 +264,9 @@ export default function WorkShowcase({
             puts the content exactly mid-way between header and viewport
             bottom — everything on screen, nothing cut. */}
         <div className="flex h-full flex-col justify-center pb-[var(--header-h)]">
-          <GalleryRail />
+          <GalleryRail label={tv("gallery")} />
           <Container>
-            <ShowcaseHeading heading={heading} editMode={editMode} />
+            <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
           <div
             ref={trackRef}
@@ -285,15 +288,25 @@ export default function WorkShowcase({
 
 /**
  * Centered heading, binary-search-fitted to exactly one line at any viewport
- * width (it never wraps). The first word containing "speak" is accented in
- * gold with a pulsing halo. Edit mode falls back to the plain editable field.
+ * width (it never wraps). The verb of the default heading is accented in gold
+ * with a pulsing halo — matched on the "speak"/"habla" stem so it lands on the
+ * right word in both the English source and its Spanish translation. Edit mode
+ * falls back to the plain editable field (bound to the untranslated source).
  */
-function ShowcaseHeading({ heading, editMode }: { heading: string; editMode: boolean }) {
+function ShowcaseHeading({
+  heading,
+  display,
+  editMode,
+}: {
+  heading: string;
+  display: string;
+  editMode: boolean;
+}) {
   const { ref } = useFitText<HTMLDivElement>({
     max: 150,
     min: 16,
     singleLine: true,
-    deps: [heading, editMode],
+    deps: [display, editMode],
   });
 
   if (editMode) {
@@ -308,8 +321,8 @@ function ShowcaseHeading({ heading, editMode }: { heading: string; editMode: boo
   }
 
   let accented = false;
-  const tokens = heading.split(/(\s+)/).map((token, i) => {
-    if (!accented && /speak/i.test(token)) {
+  const tokens = display.split(/(\s+)/).map((token, i) => {
+    if (!accented && /speak|habla/i.test(token)) {
       accented = true;
       return (
         <span key={i} className="halo-word">
@@ -336,7 +349,7 @@ function ShowcaseHeading({ heading, editMode }: { heading: string; editMode: boo
  * Left-edge rail: a masonry-grid icon (plus a vertical label on desktop) that
  * jumps to the #work-gallery wall below the cases.
  */
-function GalleryRail() {
+function GalleryRail({ label }: { label: string }) {
   return (
     <a
       href="#work-gallery"
@@ -351,7 +364,7 @@ function GalleryRail() {
         className="hidden font-heading text-[11px] uppercase tracking-[0.3em] text-white/50 transition group-hover:text-gold sm:block"
         style={{ writingMode: "vertical-rl" }}
       >
-        gallery
+        {label}
       </span>
     </a>
   );

@@ -7,6 +7,7 @@ import type { GalleryItem } from "@/content/work";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -45,6 +46,10 @@ const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 export default function WorkGallery({ gallery: serverGallery }: { gallery: GalleryContent }) {
   const gallery = useCmsValue("work.gallery", serverGallery);
   const editMode = useEditMode();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode
+  // (matches WorkGrid). Author-entered tags are CMS content and stay as-is.
+  const tv = (s: string) => (editMode ? s : t(s));
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -115,7 +120,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           <div className="flex flex-wrap items-end justify-between gap-4">
             <EditableText
               path="work.gallery.heading"
-              value={gallery.heading}
+              value={tv(gallery.heading)}
               as="h2"
               className="font-display text-f3 lowercase leading-none text-white"
             />
@@ -137,7 +142,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             {/* Search + sort row */}
             <div className="flex flex-wrap items-center gap-3">
               <label className="relative grow sm:max-w-xs">
-                <span className="sr-only">Search the gallery</span>
+                <span className="sr-only">{tv("Search the gallery")}</span>
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -154,13 +159,13 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="search the wall…"
+                  placeholder={tv("search the wall…")}
                   className="w-full rounded-full border border-white/15 bg-navy-soft/60 py-2 pl-10 pr-4 font-body text-sm text-white placeholder:text-white/35 outline-none transition focus:border-gold/70"
                 />
               </label>
               <label className="flex items-center gap-2">
                 <span className="font-din text-xs uppercase tracking-[0.2em] text-white/40">
-                  sort
+                  {tv("sort")}
                 </span>
                 <select
                   value={sort}
@@ -169,7 +174,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                 >
                   {SORTS.map((s) => (
                     <option key={s.key} value={s.key} className="bg-navy">
-                      {s.label}
+                      {tv(s.label)}
                     </option>
                   ))}
                 </select>
@@ -192,7 +197,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                           : "text-white/60 hover:text-gold"
                       }`}
                     >
-                      {mode}
+                      {tv(mode)}
                     </button>
                   ))}
                 </div>
@@ -203,7 +208,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                   onClick={clearFilters}
                   className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
                 >
-                  clear
+                  {tv("clear")}
                 </button>
               )}
             </div>
@@ -311,12 +316,12 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </div>
         ) : (
           <div className="mt-16 flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
-            <p className="font-display text-f6 lowercase text-white/80">nothing on the wall</p>
+            <p className="font-display text-f6 lowercase text-white/80">{tv("nothing on the wall")}</p>
             <p className="max-w-sm font-body text-sm text-white/50">
-              No images match that search and tag combination.
+              {tv("No images match that search and tag combination.")}
             </p>
             <button type="button" onClick={clearFilters} className="btn-outline mt-2">
-              clear filters
+              {tv("clear filters")}
             </button>
           </div>
         )}
