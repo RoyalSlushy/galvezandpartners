@@ -51,7 +51,7 @@ export default function Footer({
         </div>
 
         <div>
-          <h2 className="font-heading text-lg uppercase tracking-widest text-gold">Get in Touch</h2>
+          <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Get in Touch")}</h2>
           <EditableText
             path="site.contact.email"
             value={contact.email}
@@ -71,7 +71,7 @@ export default function Footer({
         </div>
 
         <div>
-          <h2 className="font-heading text-lg uppercase tracking-widest text-gold">Menu</h2>
+          <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Menu")}</h2>
           <ul className="mt-4 space-y-2">
             {menu.map((item, i) => (
               <li key={i}>
@@ -89,7 +89,7 @@ export default function Footer({
               </li>
             ))}
           </ul>
-          <h2 className="mt-8 font-heading text-lg uppercase tracking-widest text-gold">Follow Us</h2>
+          <h2 className="mt-8 font-heading text-lg uppercase tracking-widest text-gold">{t("Follow Us")}</h2>
           <SocialIcons socials={socials} className="mt-4" editPathBase="site.socials" />
         </div>
       </Container>

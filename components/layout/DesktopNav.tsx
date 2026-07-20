@@ -7,7 +7,7 @@ import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import EditableText from "@/components/admin/editable/EditableText";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
 /**
  * Desktop header cluster (nav + tagline/socials + language + Connect) that keeps
@@ -35,7 +35,7 @@ export default function DesktopNav({
   tagline: string;
   editMode: boolean;
 }) {
-  const t = useT();
+  const { t, locale } = useLocale();
   const active = !editMode;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -51,6 +51,12 @@ export default function DesktopNav({
     const content = contentRef.current;
     if (!container || !content) return;
 
+    // The recorded stage widths are language-specific (a stage is wider in
+    // Spanish than English, etc.), so drop them whenever the locale changes —
+    // otherwise a switch to shorter copy leaves stale, too-large widths that
+    // keep the nav collapsed even though the links would now fit again.
+    neededAt.current = [];
+
     const measure = () => {
       const avail = container.clientWidth;
       const needed = content.offsetWidth;
@@ -59,9 +65,12 @@ export default function DesktopNav({
         // Not enough room: shed the next stage of width.
         if (needed > avail + 1 && s < MAX_STAGE) return s + 1;
         // Room has returned: undo a stage once the previous (wider) layout fits.
+        // When that stage's width is unknown (e.g. right after a locale change
+        // cleared the cache) step down optimistically and re-measure — if it
+        // overflows the next pass collapses again with a fresh width recorded.
         if (s > 0) {
           const prev = neededAt.current[s - 1];
-          if (prev != null && avail >= prev) return s - 1;
+          if (prev == null || avail >= prev) return s - 1;
         }
         return s;
       });
@@ -72,7 +81,7 @@ export default function DesktopNav({
     ro.observe(container);
     ro.observe(content);
     return () => ro.disconnect();
-  }, [active]);
+  }, [active, locale]);
 
   const stage = active ? rawStage : 0;
   const hideHome = stage >= 1;

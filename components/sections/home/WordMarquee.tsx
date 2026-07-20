@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
@@ -27,6 +28,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
   const words = useCmsValue("home.marqueeWords", serverWords);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [copies, setCopies] = useState(2);
@@ -48,7 +50,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [animate, words]);
+  }, [animate, words, t]);
 
   useEffect(() => {
     if (!animate) return;
@@ -113,7 +115,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
       band?.removeEventListener("focusin", hold);
       band?.removeEventListener("focusout", release);
     };
-  }, [animate, copies, words]);
+  }, [animate, copies, words, t]);
 
   const run = (ariaHidden: boolean, key: number, wrap = false) => (
     <div
@@ -133,7 +135,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
               i % 2 === 0 ? "text-gold" : "text-stroke-gold"
             }`}
           >
-            {w}
+            {t(w)}
           </span>
           <span aria-hidden className="text-2xl text-white/20 sm:text-3xl">
             ✦
@@ -145,7 +147,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
 
   return (
     <section
-      aria-label="What we are"
+      aria-label={t("What we are")}
       className="w-full overflow-hidden border-y border-white/5 bg-gradient-to-b from-blue-muted/50 to-blue-muted/60 py-6 sm:py-8"
     >
       {editMode ? (

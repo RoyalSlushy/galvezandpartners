@@ -7,6 +7,7 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
@@ -38,6 +39,9 @@ export default function ServicesGrid({
   const eyebrow = useCmsValue("home.worksEyebrow", serverEyebrow);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  const tv = (s: string) => (editMode ? s : t(s));
   const deckRef = useRef<HTMLDivElement>(null);
 
   const stacked = !editMode && !reduced;
@@ -126,13 +130,13 @@ export default function ServicesGrid({
         <RevealOnScroll>
           <EditableText
             path="home.worksEyebrow"
-            value={eyebrow}
+            value={tv(eyebrow)}
             as="p"
             className="font-display text-f6 lowercase text-gold"
           />
           <EditableText
             path="home.servicesHeading"
-            value={heading}
+            value={tv(heading)}
             as="h2"
             className="mt-2 font-heading text-f3 leading-none text-white"
           />
@@ -173,19 +177,19 @@ export default function ServicesGrid({
                   <div className="flex flex-col items-start">
                     <EditableText
                       path={`home.services.${i}.title`}
-                      value={s.title}
+                      value={tv(s.title)}
                       as="h3"
                       className="font-heading text-f7 leading-tight text-gold"
                     />
                     <EditableText
                       path={`home.services.${i}.description`}
-                      value={s.description}
+                      value={tv(s.description)}
                       as="p"
                       multiline
                       className="mt-4 max-w-3xl whitespace-pre-line font-body text-f9 text-white/75"
                     />
                     <Button href="/contact-us" variant="outline" className="mt-8 text-sm">
-                      View More
+                      {t("View More")}
                     </Button>
                   </div>
                 </div>

@@ -90,6 +90,11 @@ export default function HomeHero({
         } as CSSProperties
       }
     >
+      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
+          a multiply shadow that continues down from the header and fades out
+          toward the bottom of the hero. `-z-10` sits it above the hero gradient
+          but behind all hero content, so it deepens the background only. */}
+      <div aria-hidden className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10" />
       {/* Decorative case-study "photocards" sprinkled into the side gutters,
           away from the body content (wide desktops only, where the gutters
           exist). */}
@@ -101,7 +106,7 @@ export default function HomeHero({
               path="home.hero.image"
               raw={hero.image}
               src={hero.image.startsWith("http") ? hero.image : wixImage(hero.image, 1280, 800)}
-              alt="Galvez & Partners storytelling"
+              alt={t("Galvez & Partners storytelling")}
               className="absolute inset-0 h-full w-full object-cover"
             />
             <div
@@ -150,7 +155,7 @@ export default function HomeHero({
           </div>
 
           <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden rounded-2xl bg-navy-soft py-4 sm:py-10">
-            <Carousel slides={slides} ariaLabel="Our services" className="flex w-full flex-col justify-center" />
+            <Carousel slides={slides} ariaLabel={t("Our services")} className="flex w-full flex-col justify-center" />
           </div>
 
           <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center sm:flex">

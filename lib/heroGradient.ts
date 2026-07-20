@@ -33,6 +33,37 @@ export function heroGradientCss(gradient: HeroGradient | null | undefined): stri
 }
 
 /**
+ * The solid color at the very top of the hero background. Both hero forms — the
+ * mobile linear ramp (its 0% end) and the desktop bottom band (its `base` fill,
+ * with the glow anchored to the bottom) — read as this lowest-position stop at
+ * the top edge. The transparent homepage header is painted with this exact
+ * color so the header and hero share one seamless surface, regardless of the
+ * active theme (the gradient uses literal colors, independent of the theme
+ * tokens, so the header can't just reuse `bg-navy`).
+ */
+export function heroTopColor(gradient: HeroGradient | null | undefined): string {
+  return resolvedStops(gradient).stops[0].color;
+}
+
+/**
+ * A horizontal gradient built from the hero gradient's stop colors, used as the
+ * animated accent stroke under the header on inner pages. The first color is
+ * repeated at the end so the image tiles seamlessly — the stroke sets
+ * `background-size: 200%` and drifts its background-position by one tile, so the
+ * colors glide sideways forever with no visible seam at the wrap point.
+ */
+export function heroBorderGradientCss(gradient: HeroGradient | null | undefined): string {
+  const { stops } = resolvedStops(gradient);
+  const colors = stops.map((s) => s.color);
+  // Loop back to the first color so tile edges meet on the same color.
+  const seq = colors.length >= 2 ? [...colors, colors[0]] : [colors[0], colors[0]];
+  const parts = seq
+    .map((c, i) => `${c} ${((i / (seq.length - 1)) * 100).toFixed(2)}%`)
+    .join(", ");
+  return `linear-gradient(90deg, ${parts})`;
+}
+
+/**
  * Render the color stops as a soft horizontal band of light glowing across the
  * bottom of the viewport, dissolving upward into the darkest stop as a base
  * fill — the desktop hero look. Each stop is painted as a wide ellipse anchored

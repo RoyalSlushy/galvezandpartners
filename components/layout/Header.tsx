@@ -27,16 +27,39 @@ export default function Header({
   const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
-  // On the homepage the header has no background fill of its own at all — it is
-  // fully transparent, so only the body background shows through behind it. The
+  // On the homepage the header is painted with the hero's top color (exposed as
+  // --hero-top-color on <body> in the layout) so the header and the hero below
+  // form one seamless surface — no visible seam at their boundary — for any
+  // theme or admin-authored hero gradient. It falls back to the theme navy. The
   // header stays in normal flow (it does not overlap the hero), so the hero
-  // image never bleeds up behind it. Other pages keep the header solid.
+  // image never bleeds up behind it. Other pages keep the header solid navy.
   const isHome = usePathname() === "/";
 
   return (
     <header
-      className={`w-full ${isHome ? "" : "bg-navy"}`}
+      // z-50 lifts the whole masthead above the page content below it so the
+      // language dropdown (and the mobile drawer) render in front of everything.
+      className={`relative isolate z-50 w-full ${isHome ? "" : "bg-navy"}`}
+      style={isHome ? { background: "var(--hero-top-color, rgb(var(--c-navy)))" } : undefined}
     >
+      {/* Top slice of the masthead scrim (see .masthead-scrim). `-z-10` keeps it
+          above the header background but behind the header content, so it
+          deepens the surface only — never the logo or nav. `isolate` on the
+          header scopes the multiply to the header's own background. The hero
+          renders the matching lower slice. */}
+      {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
+      {/* Inner pages: an animated accent stroke along the header's bottom edge,
+          colored from the hero gradient stops (see .header-accent-border). The
+          wrapper mirrors the content row's centering + padding so the stroke
+          spans the body column and ends at the site bounds, not edge to edge. */}
+      {!isHome && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto w-full max-w-site px-5 sm:px-8"
+        >
+          <div className="header-accent-border" />
+        </div>
+      )}
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">

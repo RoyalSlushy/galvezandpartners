@@ -7,6 +7,7 @@ import type { CaseStudy } from "@/content/caseStudies";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls from "@/components/admin/editable/ListControls";
@@ -25,6 +26,9 @@ export default function CaseStudyBody({
 }) {
   const editMode = useEditMode();
   const admin = useAdmin();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  const tv = (s: string) => (editMode ? s : t(s));
   const draftStudies = useCmsValue<CaseStudy[] | null>("case_studies.studies", null);
 
   // While editing, follow the draft: locate this study by slug (stable across
@@ -85,7 +89,8 @@ export default function CaseStudyBody({
       <header className="border-b border-white/10 py-20 sm:py-28">
         <Container>
           <Link href="/our-works" className="font-din text-sm uppercase tracking-widest text-gold hover:underline">
-            ← Our Work
+            {"← "}
+            {t("Our Work")}
           </Link>
           <EditableText
             path={`${base}.title`}
@@ -98,10 +103,10 @@ export default function CaseStudyBody({
 
       <section className="py-16 sm:py-20">
         <Container>
-          <h2 className="font-display text-f6 uppercase tracking-wide text-gold">Background</h2>
+          <h2 className="font-display text-f6 uppercase tracking-wide text-gold">{t("Background")}</h2>
           <EditableText
             path={`${base}.background`}
-            value={cs.background}
+            value={tv(cs.background)}
             as="p"
             multiline
             className="mt-4 max-w-3xl whitespace-pre-line font-body text-f8 text-white/80"

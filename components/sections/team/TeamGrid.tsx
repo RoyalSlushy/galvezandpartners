@@ -8,6 +8,7 @@ import type { Member } from "@/content/team";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -37,6 +38,9 @@ export default function TeamGrid({
   const members = useCmsValue("team.members", serverMembers);
   const heading = useCmsValue("team.heading", serverHeading);
   const editMode = useEditMode();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  const tv = (s: string) => (editMode ? s : t(s));
 
   return (
     <section className="w-full bg-navy py-20 sm:py-28">
@@ -44,7 +48,7 @@ export default function TeamGrid({
         <RevealOnScroll>
           <EditableText
             path="team.heading"
-            value={heading}
+            value={tv(heading)}
             as="h1"
             className="font-heading text-f3 leading-none text-white"
           />
@@ -100,7 +104,7 @@ export default function TeamGrid({
                   <div className="mt-1 flex items-center justify-center">
                     <EditableText
                       path={`team.members.${i}.role`}
-                      value={m.role}
+                      value={tv(m.role)}
                       as="span"
                       className="min-w-0 truncate font-din text-sm uppercase text-gold"
                     />

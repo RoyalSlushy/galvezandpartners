@@ -10,6 +10,7 @@ import type { Work } from "@/content/work";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -51,6 +52,10 @@ export default function FeaturedWork({
   const items = useCmsValue("work.items", serverItems);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Admins edit the English source, so translation is suppressed in edit mode.
+  // Work titles are brand names and stay untranslated.
+  const tv = (s: string) => (editMode ? s : t(s));
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -144,20 +149,20 @@ export default function FeaturedWork({
       <div>
         <EditableText
           path="home.featuredWork.eyebrow"
-          value={featured.eyebrow}
+          value={tv(featured.eyebrow)}
           as="p"
           className="font-display text-f6 lowercase text-gold"
         />
         <EditableText
           path="home.featuredWork.heading"
-          value={featured.heading}
+          value={tv(featured.heading)}
           as="h2"
           className="mt-2 font-heading text-f3 leading-none text-white"
         />
       </div>
       <EditableText
         path="home.featuredWork.blurb"
-        value={featured.blurb}
+        value={tv(featured.blurb)}
         as="p"
         multiline
         className="max-w-md whitespace-pre-line pb-2 font-body text-base leading-relaxed text-white/60 sm:text-lg"
@@ -253,11 +258,11 @@ export default function FeaturedWork({
     <div className={`flex ${END_CARD_W} snap-start items-center`}>
       <div className="flex aspect-[4/5] w-full flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
         <p className="font-display text-f5 lowercase leading-[0.95] text-white">
-          there&rsquo;s{" "}
-          <span className="text-gold">more</span>
+          {t("there's")}{" "}
+          <span className="text-gold">{t("more")}</span>
         </p>
         <p className="mt-3 font-body text-base text-white/60">
-          Every story on one page.
+          {t("Every story on one page.")}
         </p>
         <Button href={featured.ctaHref} variant="gold" className="mt-8">
           {editMode ? (
@@ -267,7 +272,7 @@ export default function FeaturedWork({
               link={{ path: "home.featuredWork.ctaHref", value: featured.ctaHref }}
             />
           ) : (
-            featured.ctaLabel
+            t(featured.ctaLabel)
           )}
         </Button>
       </div>

@@ -17,7 +17,7 @@ export default function LanguageSwitcher({
   /** Open the menu above the trigger instead of below (e.g. near a bottom edge). */
   openUp?: boolean;
 }) {
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale, t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -40,10 +40,15 @@ export default function LanguageSwitcher({
   }, [open]);
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div
+      ref={rootRef}
+      className={`relative ${className}`}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
         type="button"
-        aria-label="Change language"
+        aria-label={t("Change language")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -62,34 +67,40 @@ export default function LanguageSwitcher({
         </svg>
       </button>
 
+      {/* z-[60] sits the menu above the whole masthead; the padding (pt/pb
+          instead of a margin) keeps the gap between trigger and menu inside this
+          hover-tracked element, so the cursor can travel into the menu without
+          crossing a dead zone that would close it. */}
       <div
         role="menu"
-        className={`absolute right-0 z-50 min-w-[5rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
-          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        className={`absolute right-0 z-[60] min-w-[5rem] transition ${
+          openUp ? "bottom-full pb-2" : "top-full pt-2"
         } ${
           open
             ? "pointer-events-auto opacity-100"
             : `pointer-events-none opacity-0 ${openUp ? "translate-y-1" : "-translate-y-1"}`
         }`}
       >
-        {LOCALES.map((l) => (
-          <button
-            key={l.code}
-            type="button"
-            role="menuitemradio"
-            aria-checked={l.code === locale}
-            onClick={() => {
-              setLocale(l.code);
-              setOpen(false);
-            }}
-            className={`flex w-full items-center gap-2 px-4 py-2.5 text-left font-heading text-base tracking-wide transition hover:bg-white/5 ${
-              l.code === locale ? "text-gold-bright" : "text-white/85"
-            }`}
-          >
-            <FlagIcon code={l.code} />
-            <span>{l.short}</span>
-          </button>
-        ))}
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl">
+          {LOCALES.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              role="menuitemradio"
+              aria-checked={l.code === locale}
+              onClick={() => {
+                setLocale(l.code);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center gap-2 px-4 py-2.5 text-left font-heading text-base tracking-wide transition hover:bg-white/5 ${
+                l.code === locale ? "text-gold-bright" : "text-white/85"
+              }`}
+            >
+              <FlagIcon code={l.code} />
+              <span>{l.short}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
