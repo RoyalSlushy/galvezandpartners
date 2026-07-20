@@ -24,7 +24,7 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
     href: "https://www.instagram.com/",
     icon: "instagram",
   }),
-  "work.items": () => ({ title: "New Work", slug: null, img: "" }),
+  "work.items": () => ({ title: "New Work", slug: null, img: "", description: "Describe this work." }),
   "work.gallery.items": () => ({ title: "New Image", img: "", tags: "" }),
   "home.instagram.posts": () => ({
     img: "",
@@ -88,6 +88,7 @@ const FIELD_LABELS: Record<string, string> = {
   "work.heading": "heading",
   "work.items.*.title": "work title",
   "work.items.*.img": "work image",
+  "work.items.*.description": "work description",
   "work.gallery.heading": "gallery heading",
   "work.gallery.items.*.title": "image title",
   "work.gallery.items.*.img": "gallery image",

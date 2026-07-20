@@ -76,6 +76,7 @@ export default function WorkShowcase({
   const rowWrapRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -93,6 +94,14 @@ export default function WorkShowcase({
   const setPanelRef = (i: number) => (el: HTMLElement | null) => {
     panelRefs.current[i] = el;
   };
+  // Blurb shown under the active card, indexed like the panels. Kept in a ref so
+  // the scroll loop can read the current copy without re-subscribing.
+  const descTexts = [
+    ...items.map((w) => tv(w.description ?? "")),
+    tv("Every frame on one wall — sort it, filter it, tag it."),
+  ];
+  const descTextsRef = useRef<string[]>(descTexts);
+  descTextsRef.current = descTexts;
 
   // Accordion geometry: the widest (active) panel is 5:4 (width = 1.25·height)
   // and sticks to the body's left edge. Upcoming cases queued to its right are
@@ -131,6 +140,7 @@ export default function WorkShowcase({
     let rowH = 0;
     let raf = 0;
     let ticking = false;
+    let lastActive = -1;
 
     const measure = () => {
       headerH = header ? header.offsetHeight : 0;
@@ -197,28 +207,74 @@ export default function WorkShowcase({
 
       const p = scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
       bar.style.transform = `scaleX(${p})`;
-      applyWidths(p * (N - 1));
+      const a = p * (N - 1);
+      applyWidths(a);
+
+      // Active-card blurb: swap the text at the (hidden) handoff midpoint, and
+      // fade it in as the case settles fully open / out as it hands off.
+      const active = Math.max(0, Math.min(N - 1, Math.round(a)));
+      const settled = 1 - Math.abs(a - active); // 0.5 mid-handoff … 1 fully open
+      const desc = descRef.current;
+      if (desc) {
+        if (active !== lastActive) {
+          lastActive = active;
+          desc.textContent = descTextsRef.current[active] ?? "";
+        }
+        desc.style.opacity = String(Math.max(0, Math.min(1, (settled - 0.5) * 2)));
+      }
     };
-    // Snap points: after scrolling settles, ease to the nearest integer active
-    // index so a case always comes to rest fully 5:4 (never mid-squeeze). The
-    // very ends are left alone — the page-top rest and the gallery hand-off.
-    let snapTimer: ReturnType<typeof setTimeout> | undefined;
-    const snapToNearest = () => {
+    // Snap: once scrolling settles, ease to the nearest integer active index so a
+    // case rests fully 5:4 (never mid-squeeze). Uses a custom eased rAF animation
+    // with `behavior:"instant"` steps — never the browser's own smooth scroll —
+    // so the two can't fight (the source of the earlier jank). A user scroll
+    // mid-ease (the position diverging from what we set) cancels it. The very
+    // ends are left alone — the page-top rest and the gallery hand-off.
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let snapRaf = 0;
+    let snapProgY: number | null = null;
+    const cancelSnap = () => {
+      if (snapRaf) cancelAnimationFrame(snapRaf);
+      snapRaf = 0;
+      snapProgY = null;
+    };
+    const runSnap = () => {
       if (scrollable <= 0) return;
       const rect = section.getBoundingClientRect();
       const p = -rect.top / scrollable;
-      if (p <= 0.02 || p >= 0.98) return;
+      if (p <= 0.015 || p >= 0.985) return;
       const targetP = Math.round(p * (N - 1)) / (N - 1);
-      const delta = rect.top + targetP * scrollable;
-      if (Math.abs(delta) > 2) window.scrollBy({ top: delta, behavior: "smooth" });
+      const startY = window.scrollY;
+      const dist = rect.top + targetP * scrollable; // scroll delta to the target
+      if (Math.abs(dist) < 1.5) return;
+      const dur = Math.min(420, Math.max(200, Math.abs(dist) * 0.9));
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+      let startT: number | null = null;
+      const frame = (now: number) => {
+        if (startT === null) startT = now;
+        const t = Math.min(1, (now - startT) / dur);
+        const y = startY + dist * ease(t);
+        snapProgY = y;
+        window.scrollTo({ top: y, behavior: "instant" });
+        if (t < 1) snapRaf = requestAnimationFrame(frame);
+        else cancelSnap();
+      };
+      cancelSnap();
+      snapRaf = requestAnimationFrame(frame);
     };
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
         raf = requestAnimationFrame(update);
       }
-      clearTimeout(snapTimer);
-      snapTimer = setTimeout(snapToNearest, 140);
+      // A user scroll during the ease (position diverges from what we set)
+      // cancels the snap so the user stays in control.
+      if (snapRaf && (snapProgY === null || Math.abs(window.scrollY - snapProgY) > 3)) {
+        cancelSnap();
+      }
+      if (!snapRaf) {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(runSnap, 120);
+      }
     };
     const onResize = () => {
       measure();
@@ -245,7 +301,8 @@ export default function WorkShowcase({
     row.addEventListener("focusin", onFocusIn);
     return () => {
       cancelAnimationFrame(raf);
-      clearTimeout(snapTimer);
+      clearTimeout(idleTimer);
+      cancelSnap();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       row.removeEventListener("focusin", onFocusIn);
@@ -310,29 +367,38 @@ export default function WorkShowcase({
               editMode ? " pointer-events-none" : ""
             }`}
           />
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5">
+          <div className="absolute inset-x-0 bottom-0 p-5">
+            <div className="flex items-end justify-between gap-3">
+              <EditableText
+                path={`work.items.${i}.title`}
+                value={w.title}
+                as="h2"
+                className="font-heading text-f8 leading-tight text-white"
+                link={{
+                  path: `work.items.${i}.slug`,
+                  value: w.slug ?? "",
+                  kind: "slug",
+                  createCaseStudy: true,
+                }}
+              />
+              {w.slug && (
+                <span
+                  aria-hidden
+                  className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center rounded-full bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                    <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              )}
+            </div>
             <EditableText
-              path={`work.items.${i}.title`}
-              value={w.title}
-              as="h2"
-              className="font-heading text-f8 leading-tight text-white"
-              link={{
-                path: `work.items.${i}.slug`,
-                value: w.slug ?? "",
-                kind: "slug",
-                createCaseStudy: true,
-              }}
+              path={`work.items.${i}.description`}
+              value={w.description}
+              as="p"
+              multiline
+              className="mt-1.5 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70"
             />
-            {w.slug && (
-              <span
-                aria-hidden
-                className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center rounded-full bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                  <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -496,7 +562,17 @@ export default function WorkShowcase({
               </AccordionPanel>
             </div>
           </div>
-          <Container className="mt-6">
+          {/* Blurb for the active (widest) card — text + fade driven by the
+              effect as the accordion settles. */}
+          <Container className="mt-4">
+            <p
+              ref={descRef}
+              className="line-clamp-2 max-w-xl font-body text-sm leading-relaxed text-white/70 transition-opacity duration-300"
+            >
+              {tv(items[0]?.description ?? "")}
+            </p>
+          </Container>
+          <Container className="mt-4">
             <div className="h-px w-full bg-white/10">
               <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
             </div>
@@ -628,9 +704,10 @@ function ShowcaseHeading({
 
   return (
     // The fitted size lives on this box; the h1 inherits it (preflight sets
-    // headings to font-size: inherit). Vertical padding keeps the expanding
-    // halo inside the clip box; text-f2 is only the pre-hydration fallback.
-    <div ref={ref} className="overflow-hidden whitespace-nowrap py-[0.3em] text-center text-f2">
+    // headings to font-size: inherit). overflow-visible lets the "speaks" glow
+    // spill past the text box; the fit still measures scrollWidth (the absolute
+    // halo rings are out of flow). text-f2 is only the pre-hydration fallback.
+    <div ref={ref} className="whitespace-nowrap py-[0.3em] text-center text-f2">
       <h1 className="font-display lowercase leading-none text-white">{tokens}</h1>
     </div>
   );

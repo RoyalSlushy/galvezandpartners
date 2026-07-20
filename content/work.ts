@@ -1,5 +1,7 @@
-/** Portfolio items shown on /our-works and /case-study. slug -> detail page (null = no page). */
-export type Work = { title: string; slug: string | null; img: string };
+/** Portfolio items shown on /our-works and /case-study. slug -> detail page
+ * (null = no page). `description` is the short blurb shown under the active
+ * card in the /our-works accordion. */
+export type Work = { title: string; slug: string | null; img: string; description: string };
 
 /** One image on the /our-works masonry gallery. `tags` is a comma-separated
  * list (kept as a plain string so it stays editable inline via the CMS);
@@ -9,12 +11,12 @@ export type GalleryItem = { title: string; img: string; tags: string };
 export const WORK_HEADING = "our work speaks for itself";
 
 export const WORK: Work[] = [
-  { title: "ELG Accident Attorneys", slug: "elg-accident-attorneys", img: "18e608_ab6f541c403a4902bfaa3424f986f0d2~mv2.jpg" },
-  { title: "La Bombita", slug: "la-bombita", img: "18e608_1a7448a728304163b7049335d76fdc62~mv2.jpg" },
-  { title: "Helios – Adelante Scholars", slug: "helios-education-foundation", img: "18e608_7a5b9c6e0ac449bfaf467c8090dbebce~mv2.jpeg" },
-  { title: "Precision Aging Network", slug: "precision-aging-network", img: "18e608_be5a4102ea5645289d4e37cec9917560~mv2.jpg" },
-  { title: "Ken Garff Dealerships", slug: null, img: "18e608_40cdf2a8704b46beb47dc1742242db1a~mv2.jpg" },
-  { title: "AZ Alzheimer's Consortium", slug: null, img: "18e608_8ce2ab9a4a67425f92ce903860b6ac35~mv2.jpg" },
+  { title: "ELG Accident Attorneys", slug: "elg-accident-attorneys", img: "18e608_ab6f541c403a4902bfaa3424f986f0d2~mv2.jpg", description: "A full-service campaign — brand storytelling, media buying, and video production built to drive qualified case leads across the Phoenix market." },
+  { title: "La Bombita", slug: "la-bombita", img: "18e608_1a7448a728304163b7049335d76fdc62~mv2.jpg", description: "Brand identity, social, and video content — bold, flavorful creative that captures the energy of the brand." },
+  { title: "Helios – Adelante Scholars", slug: "helios-education-foundation", img: "18e608_7a5b9c6e0ac449bfaf467c8090dbebce~mv2.jpeg", description: "Creative and digital work amplifying access to higher education through multicultural storytelling." },
+  { title: "Precision Aging Network", slug: "precision-aging-network", img: "18e608_be5a4102ea5645289d4e37cec9917560~mv2.jpg", description: "Science-forward brand and campaign work translating complex research into clear, human stories." },
+  { title: "Ken Garff Dealerships", slug: null, img: "18e608_40cdf2a8704b46beb47dc1742242db1a~mv2.jpg", description: "Dealership marketing and content built to move inventory and earn local trust across the network." },
+  { title: "AZ Alzheimer's Consortium", slug: null, img: "18e608_8ce2ab9a4a67425f92ce903860b6ac35~mv2.jpg", description: "Cause-driven brand and awareness work for a statewide research consortium advancing care." },
 ];
 
 export const WORK_GALLERY_HEADING = "the gallery";
