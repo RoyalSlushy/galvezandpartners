@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
+import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
 import { getSite, getHome } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
 import { heroTopColor, heroBorderGradientCss } from "@/lib/heroGradient";
@@ -60,6 +61,7 @@ export default async function RootLayout({
             __html: `:root:root{${themeCssVars(theme)}}`,
           }}
         />
+        <ScrollToTopOnHome />
         <LocaleProvider>
           <AdminProvider>
             <GlyphProvider glyphs={site.glyphs}>
