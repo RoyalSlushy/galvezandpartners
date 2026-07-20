@@ -102,6 +102,31 @@
   background-image: var(--hero-grad);
 }
 
+/* Masthead scrim: a multiply-blended shadow that deepens the top of the
+   header/hero surface and fades out downward, giving the masthead depth over
+   the (otherwise flat) top of the hero gradient. It sits behind the header/hero
+   content (as their first child), so it darkens only the background surface and
+   never dims the logo, nav, or hero artwork. The gradient is sized to one
+   viewport height and each copy is offset so the header slice (0 → --header-h)
+   and the hero slice (--header-h → 100vh) join into a single continuous fade
+   across their shared boundary — keeping the seam invisible. */
+.masthead-scrim {
+  mix-blend-mode: multiply;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
+  background-size: 100% 100svh;
+}
+/* The hero copy starts where the header copy ended: shift the shared gradient up
+   by the header height so the two slices line up seamlessly. */
+.masthead-scrim--hero {
+  background-position: 0 calc(-1 * var(--header-h));
+}
+
 /* Hero layout grid holding the storefront image ("main"), the carousel card and
    the CTA. Mobile stacks them with the CTA button between the image and the
    carousel card. */

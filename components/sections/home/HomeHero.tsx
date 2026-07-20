@@ -90,6 +90,11 @@ export default function HomeHero({
         } as CSSProperties
       }
     >
+      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
+          a multiply shadow that continues down from the header and fades out
+          toward the bottom of the hero. `-z-10` sits it above the hero gradient
+          but behind all hero content, so it deepens the background only. */}
+      <div aria-hidden className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10" />
       {/* Decorative case-study "photocards" sprinkled into the side gutters,
           away from the body content (wide desktops only, where the gutters
           exist). */}

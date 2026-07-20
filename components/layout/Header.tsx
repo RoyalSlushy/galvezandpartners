@@ -37,9 +37,15 @@ export default function Header({
 
   return (
     <header
-      className={`w-full ${isHome ? "" : "bg-navy"}`}
+      className={`relative isolate w-full ${isHome ? "" : "bg-navy"}`}
       style={isHome ? { background: "var(--hero-top-color, rgb(var(--c-navy)))" } : undefined}
     >
+      {/* Top slice of the masthead scrim (see .masthead-scrim). `-z-10` keeps it
+          above the header background but behind the header content, so it
+          deepens the surface only — never the logo or nav. `isolate` on the
+          header scopes the multiply to the header's own background. The hero
+          renders the matching lower slice. */}
+      {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">
