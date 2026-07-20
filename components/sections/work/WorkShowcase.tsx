@@ -138,14 +138,19 @@ export default function WorkShowcase({
     let scrollable = 0;
     let headerH = 0;
     let rowH = 0;
+    let bodyLeftPx = 0;
     let raf = 0;
     let ticking = false;
     let lastActive = -1;
 
     const measure = () => {
       headerH = header ? header.offsetHeight : 0;
-      // rowWrap spans from the body's left edge to the viewport's right edge.
-      const availW = rowWrap.clientWidth;
+      // The row spans the full viewport (overflow-hidden clips both edges) so
+      // cards can overflow into both gutters. The active card is anchored at the
+      // body's left edge — measured from the description below it, which sits in
+      // the site column.
+      bodyLeftPx = descRef.current ? descRef.current.getBoundingClientRect().left : 0;
+      const availW = rowWrap.clientWidth - bodyLeftPx; // body-left → viewport right
       const availH = rowWrap.clientHeight;
       // Fill the available height; the upcoming slivers overflow the body to the
       // right and clip at the viewport. Cap the height only so the widest (5:4)
@@ -170,9 +175,10 @@ export default function WorkShowcase({
         const collapsed = i >= a ? RIGHT_COLLAPSED : LEFT_COLLAPSED;
         widths[i] = rowH * (collapsed + e * (ACTIVE - collapsed));
       }
-      // Prefix left edges, then translate the whole row so the active panel's
-      // left edge sits at the row's start (x=0) — earlier panels are pushed off
-      // to the left. The front edge interpolates between neighbours mid-scroll.
+      // Prefix left edges, then translate the row so the active panel's left edge
+      // sits at the body's left edge — passed panels slide off into the left
+      // gutter (faded), upcoming ones overflow into the right gutter. The front
+      // edge interpolates between neighbours mid-scroll.
       const L: number[] = new Array(N);
       let left = 0;
       for (let i = 0; i < N; i++) {
@@ -181,15 +187,16 @@ export default function WorkShowcase({
       }
       const k = Math.max(0, Math.min(Math.floor(a), N - 2));
       const frontLeft = N >= 2 ? L[k] + (a - k) * (widths[k] + GAP) : 0;
-      row.style.transform = `translate3d(${-frontLeft}px,0,0)`;
+      row.style.transform = `translate3d(${bodyLeftPx - frontLeft}px,0,0)`;
 
       for (let i = 0; i < N; i++) {
         const el = panelRefs.current[i];
         if (!el) continue;
         el.style.width = `${widths[i]}px`;
         el.style.setProperty("--exp", exps[i].toFixed(3));
-        // Panels left of the active one fade as they're pushed out of frame.
-        el.style.opacity = String(1 - Math.max(0, Math.min(1, a - i)));
+        // Passed panels fade as they overflow into the left gutter (gentle so a
+        // faded trail lingers rather than cutting out at once).
+        el.style.opacity = String(1 - Math.max(0, Math.min(1, (a - i) / 1.5)));
         // Rounder corners the more collapsed the panel is.
         el.style.borderRadius = `${R_ACTIVE + (1 - exps[i]) * (R_SLIVER - R_ACTIVE)}px`;
       }
@@ -293,12 +300,54 @@ export default function WorkShowcase({
       if (Math.abs(delta) > 4) window.scrollBy({ top: delta });
     };
 
+    // Horizontal input also scrolls through the cases: a horizontally-dominant
+    // trackpad/wheel gesture (or a horizontal drag) is mapped onto the vertical
+    // scroll that drives the accordion.
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && e.deltaX !== 0) {
+        e.preventDefault();
+        cancelSnap();
+        window.scrollBy({ top: e.deltaX, behavior: "instant" });
+      }
+    };
+    let touchX = 0;
+    let touchY = 0;
+    let touchAxis: "" | "x" | "y" = "";
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      touchX = e.touches[0].clientX;
+      touchY = e.touches[0].clientY;
+      touchAxis = "";
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const x = e.touches[0].clientX;
+      const y = e.touches[0].clientY;
+      const dx = x - touchX;
+      const dy = y - touchY;
+      if (touchAxis === "") {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        touchAxis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (touchAxis === "x") {
+        // Drag left → advance forward (scroll down).
+        e.preventDefault();
+        cancelSnap();
+        window.scrollBy({ top: -dx, behavior: "instant" });
+      }
+      touchX = x;
+      touchY = y;
+    };
+
     measure();
     update();
     setReady(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     row.addEventListener("focusin", onFocusIn);
+    section.addEventListener("wheel", onWheel, { passive: false });
+    section.addEventListener("touchstart", onTouchStart, { passive: true });
+    section.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(idleTimer);
@@ -306,6 +355,9 @@ export default function WorkShowcase({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       row.removeEventListener("focusin", onFocusIn);
+      section.removeEventListener("wheel", onWheel);
+      section.removeEventListener("touchstart", onTouchStart);
+      section.removeEventListener("touchmove", onTouchMove);
       // The static branch may reuse these nodes — leave no stale styles behind.
       section.style.height = "";
       row.style.height = "";
@@ -468,26 +520,21 @@ export default function WorkShowcase({
         className="sticky top-[var(--header-h)] overflow-hidden"
         style={{ height: "calc(100svh - var(--header-h))" }}
       >
-        <div className="flex h-full flex-col justify-center">
+        <div className="flex h-full flex-col justify-center pt-2 pb-6">
           <GalleryRail label={tv("gallery")} />
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
-          {/* Accordion row: the active panel is 5:4 and stuck to the body's left
-              edge (aligned with the heading and the gallery below); the upcoming
-              cases queue to its right as 2:5 slivers and are free to overflow the
-              body to the right, clipping at the viewport edge. Passed cases exit
-              left and clip at the body edge. The box's left margin is the body's
-              left edge and it stretches to the viewport right, so overflow-hidden
-              clips the left at the body edge and the right at the viewport.
-              Widths, the row's translate, per-panel fade, corner radius, and the
-              label cross-fade are all driven imperatively (see the effect). */}
+          {/* Accordion row: the active panel is 5:4 and anchored to the body's
+              left edge (aligned with the heading and the gallery below). The row
+              spans the full viewport (overflow-hidden), so upcoming cases overflow
+              into the right gutter and passed cases overflow into the left gutter,
+              faded — both clipping at the viewport edges. Widths, the row's
+              translate, per-panel fade, corner radius, and the label cross-fade
+              are all driven imperatively (see the effect). */}
           <div
             ref={rowWrapRef}
-            className="mt-6 flex min-h-0 flex-1 items-center overflow-hidden"
-            style={{
-              marginLeft: "calc((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem)",
-            }}
+            className="mt-6 flex min-h-0 w-full flex-1 items-center overflow-hidden"
           >
             <div
               ref={rowRef}
