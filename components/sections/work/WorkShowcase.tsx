@@ -40,11 +40,12 @@ function useMinWidth(px: number): boolean {
 /**
  * /our-works hero: everything fits in one viewport. The section pins while
  * vertical scroll drives a left-anchored accordion — the widest case sits at a
- * 5:4 ratio stuck to the left, with the other cases queued to its right as 1:5
- * slivers (rounder-cornered). Scrolling down pushes the current widest case out
- * of frame to the left, fading, as the next case widens into the left slot, on
- * through the cases to a closing gallery panel. Scroll settles snap to whichever
- * case is fully 5:4. A gold progress line tracks the journey. The site header
+ * 5:4 ratio stuck to the body's left edge, with upcoming cases queued to its
+ * right as 2:5 slivers and passed cases collapsing to narrower 1:5 slivers on
+ * the left, fading out of frame (all rounder-cornered). Scrolling down pushes
+ * the current widest case out to the left as the next widens into the left slot,
+ * on through the cases to a closing gallery panel. Scroll settles snap to
+ * whichever case is fully 5:4. A gold progress line tracks the journey. The site header
  * stays pinned at the top for the whole section and slides away only as the
  * gallery scrolls in (see the body[data-gp-pinned-header] rule). The heading is
  * centered and fit to a single line at any width, with the word "speaks"
@@ -94,13 +95,15 @@ export default function WorkShowcase({
   };
 
   // Accordion geometry: the widest (active) panel is 5:4 (width = 1.25·height)
-  // and sticks to the left; every other panel is a 1:5 sliver (width = 0.2·
-  // height) with rounder corners, queued to its right. As scroll advances the
-  // active index, the current widest slides left out of frame and fades while
-  // the next widens into the left slot. Corner radius eases from R_ACTIVE (the
-  // widest) to R_SLIVER (fully collapsed).
-  const COLLAPSED = 0.2;
-  const ACTIVE = 1.25;
+  // and sticks to the body's left edge. Upcoming cases queued to its right are
+  // 2:5 slivers (0.4·height); cases that have passed to the left collapse to
+  // narrower 1:5 slivers (0.2·height) and fade out of frame. As scroll advances
+  // the active index, the widest slides left, shrinking + fading, while the next
+  // widens in from the right. Corner radius eases from R_ACTIVE (widest) to
+  // R_SLIVER (fully collapsed).
+  const ACTIVE = 1.25; // 5:4
+  const RIGHT_COLLAPSED = 0.4; // 2:5, upcoming cases (right of the widest)
+  const LEFT_COLLAPSED = 0.2; // 1:5, passed cases (left of the widest), faded
   const GAP = 8; // px, matches the row's gap-2
   const R_ACTIVE = 16;
   const R_SLIVER = 40;
@@ -136,10 +139,10 @@ export default function WorkShowcase({
         rowWrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const availH =
         rowWrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-      // Widest layout (active at a=0): one 5:4 panel + (N-1) slivers + gaps.
-      // Size the row height so that arrangement exactly fills the width, capped
-      // so it also fits the available height (whichever binds).
-      const hFromWidth = (availW - GAP * (N - 1)) / (ACTIVE + COLLAPSED * (N - 1));
+      // Widest layout (active at a=0): one 5:4 panel + (N-1) upcoming 2:5
+      // slivers + gaps. Size the row height so that arrangement exactly fills the
+      // width, capped so it also fits the available height (whichever binds).
+      const hFromWidth = (availW - GAP * (N - 1)) / (ACTIVE + RIGHT_COLLAPSED * (N - 1));
       rowH = Math.max(0, Math.min(availH, hFromWidth));
       row.style.height = `${rowH}px`;
       // Vertical scroll distance driving the accordion: ~0.6 screens per panel.
@@ -155,7 +158,10 @@ export default function WorkShowcase({
       for (let i = 0; i < N; i++) {
         const e = Math.max(0, Math.min(1, 1 - Math.abs(a - i)));
         exps[i] = e;
-        widths[i] = rowH * (COLLAPSED + e * (ACTIVE - COLLAPSED));
+        // Upcoming cases (right of the active index) collapse to a wider 2:5
+        // sliver; passed cases (left) collapse to a narrower 1:5 and fade.
+        const collapsed = i >= a ? RIGHT_COLLAPSED : LEFT_COLLAPSED;
+        widths[i] = rowH * (collapsed + e * (ACTIVE - collapsed));
       }
       // Prefix left edges, then translate the whole row so the active panel's
       // left edge sits at the row's start (x=0) — earlier panels are pushed off
@@ -503,8 +509,9 @@ export default function WorkShowcase({
 
 /**
  * One accordion panel: a fixed-height column whose width, opacity, and corner
- * radius are driven imperatively (--exp, 0→1) between a rounder 1:5 sliver and a
- * 5:4 active card. The vertical label shows while collapsed and cross-fades out
+ * radius are driven imperatively (--exp, 0→1) between a rounder sliver (2:5 when
+ * upcoming, 1:5 once passed) and a 5:4 active card. The vertical label shows
+ * while collapsed and cross-fades out
  * as the panel expands; `children` (image + active overlay) fade in the other
  * way. Links to its case study (or the gallery); non-slug cases render as a
  * plain div.
@@ -630,17 +637,22 @@ function ShowcaseHeading({
 }
 
 /**
- * Rail in the gutter just left of the site column: a masonry-grid icon (plus a
- * vertical label on desktop) that jumps to the #work-gallery wall. Its left is
- * pinned to sit just outside the body column (which is where the widest case is
- * anchored), clamped to the viewport edge when the gutter runs out.
+ * Rail centered in the "handle" — the gutter to the left of the site column
+ * (which is where the widest case is anchored). A masonry-grid icon plus a
+ * vertical label that jump to the #work-gallery wall. Horizontally centered in
+ * the space between the viewport edge and the body's left edge; clamped to the
+ * viewport edge on narrow screens where the handle runs out.
  */
 function GalleryRail({ label }: { label: string }) {
   return (
     <a
       href="#work-gallery"
       aria-label="Jump to the gallery"
-      style={{ left: "max(0.5rem, calc((100vw - 1200px) / 2 - 2rem))" }}
+      // Body left edge = outer gutter + the column's 2rem padding; centre of the
+      // handle is half that, minus half the icon's width (1.5rem).
+      style={{
+        left: "max(0.25rem, calc(((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem) / 2 - 1.5rem))",
+      }}
       className="group absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3"
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
