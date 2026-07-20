@@ -142,6 +142,7 @@ export default function WorkShowcase({
     let raf = 0;
     let ticking = false;
     let lastActive = -1;
+    let lastSettled = 0; // the card the accordion last came to rest on
 
     const measure = () => {
       headerH = header ? header.offsetHeight : 0;
@@ -202,6 +203,12 @@ export default function WorkShowcase({
       }
     };
 
+    // Scroll progress 0→1 across the pinned section. Offset by the header height
+    // so the accordion is at a=0 the moment the section pins under the header —
+    // no dead zone where scrolling doesn't yet advance a card.
+    const progressAt = (rectTop: number) =>
+      scrollable > 0 ? Math.max(0, Math.min(1, (headerH - rectTop) / scrollable)) : 0;
+
     const update = () => {
       ticking = false;
       const rect = section.getBoundingClientRect();
@@ -212,7 +219,7 @@ export default function WorkShowcase({
       const shift = Math.max(0, Math.min(headerH, headerH - rect.bottom));
       root.style.setProperty("--gp-header-top", `${-shift}px`);
 
-      const p = scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
+      const p = progressAt(rect.top);
       bar.style.transform = `scaleX(${p})`;
       const a = p * (N - 1);
       applyWidths(a);
@@ -244,16 +251,17 @@ export default function WorkShowcase({
       snapRaf = 0;
       snapProgY = null;
     };
-    const runSnap = () => {
+    // Ease the page scroll so the accordion lands on card index `targetA`.
+    const easeToA = (targetA: number) => {
+      const clamped = Math.max(0, Math.min(N - 1, targetA));
+      lastSettled = Math.round(clamped);
       if (scrollable <= 0) return;
       const rect = section.getBoundingClientRect();
-      const p = -rect.top / scrollable;
-      if (p <= 0.015 || p >= 0.985) return;
-      const targetP = Math.round(p * (N - 1)) / (N - 1);
       const startY = window.scrollY;
-      const dist = rect.top + targetP * scrollable; // scroll delta to the target
+      // scroll delta so progressAt(rect.top) reaches clamped/(N-1)
+      const dist = rect.top - headerH + (clamped / (N - 1)) * scrollable;
       if (Math.abs(dist) < 1.5) return;
-      const dur = Math.min(420, Math.max(200, Math.abs(dist) * 0.9));
+      const dur = Math.min(460, Math.max(200, Math.abs(dist) * 0.9));
       const ease = (t: number) => 1 - Math.pow(1 - t, 3);
       let startT: number | null = null;
       const frame = (now: number) => {
@@ -268,6 +276,23 @@ export default function WorkShowcase({
       cancelSnap();
       snapRaf = requestAnimationFrame(frame);
     };
+    // Detent snap: once scrolling settles, a nudge in either direction advances a
+    // whole card that way (a small scroll means "go to the next card"); a larger
+    // move lands on the nearest. The very ends are left alone — the page-top rest
+    // and the gallery hand-off.
+    const runSnap = () => {
+      if (scrollable <= 0) return;
+      const rect = section.getBoundingClientRect();
+      const p = progressAt(rect.top);
+      if (p <= 0.015 || p >= 0.985) return;
+      const currentA = p * (N - 1);
+      const d = currentA - lastSettled;
+      let target: number;
+      if (Math.abs(d) < 0.05) target = lastSettled; // barely moved → stay put
+      else if (Math.abs(d) <= 1) target = lastSettled + Math.sign(d); // nudge → next/prev
+      else target = Math.round(currentA); // larger move → nearest card
+      easeToA(target);
+    };
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
@@ -280,24 +305,34 @@ export default function WorkShowcase({
       }
       if (!snapRaf) {
         clearTimeout(idleTimer);
-        idleTimer = setTimeout(runSnap, 120);
+        idleTimer = setTimeout(runSnap, 110);
       }
     };
     const onResize = () => {
       measure();
       onScroll();
     };
-    // Keyboard users tabbing into a collapsed sliver: drive the page scroll so
-    // that panel becomes the active (4:5) one, bringing it into full view.
+    // Keyboard users tabbing into a sliver, or clicking a non-widest card: ease
+    // that card into the active (5:4) slot instead of navigating.
     const onFocusIn = (e: Event) => {
+      const target = (e.target as HTMLElement).closest<HTMLElement>("[data-index]");
+      if (!target || scrollable <= 0) return;
+      const i = Number(target.getAttribute("data-index"));
+      if (!Number.isNaN(i)) easeToA(i);
+    };
+    const onClickCapture = (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest<HTMLElement>("[data-index]");
       if (!target || scrollable <= 0) return;
       const i = Number(target.getAttribute("data-index"));
       if (Number.isNaN(i)) return;
       const rect = section.getBoundingClientRect();
-      const targetTop = (-scrollable * i) / (N - 1);
-      const delta = rect.top - targetTop;
-      if (Math.abs(delta) > 4) window.scrollBy({ top: delta });
+      const active = Math.round((N - 1) * progressAt(rect.top));
+      // Tapping a card that isn't the widest snaps to it rather than opening it.
+      if (i !== active) {
+        e.preventDefault();
+        e.stopPropagation();
+        easeToA(i);
+      }
     };
 
     // Horizontal input also scrolls through the cases: a horizontally-dominant
@@ -341,10 +376,12 @@ export default function WorkShowcase({
 
     measure();
     update();
+    lastSettled = Math.round((N - 1) * progressAt(section.getBoundingClientRect().top));
     setReady(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     row.addEventListener("focusin", onFocusIn);
+    row.addEventListener("click", onClickCapture, true);
     section.addEventListener("wheel", onWheel, { passive: false });
     section.addEventListener("touchstart", onTouchStart, { passive: true });
     section.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -355,6 +392,7 @@ export default function WorkShowcase({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       row.removeEventListener("focusin", onFocusIn);
+      row.removeEventListener("click", onClickCapture, true);
       section.removeEventListener("wheel", onWheel);
       section.removeEventListener("touchstart", onTouchStart);
       section.removeEventListener("touchmove", onTouchMove);
@@ -444,15 +482,17 @@ export default function WorkShowcase({
                 </span>
               )}
             </div>
-            <EditableText
-              path={`work.items.${i}.description`}
-              value={w.description}
-              as="p"
-              multiline
-              className="mt-1.5 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70"
-            />
           </div>
         </div>
+        {/* Description sits under the card (out of the image), matching the
+            desktop accordion's blurb. */}
+        <EditableText
+          path={`work.items.${i}.description`}
+          value={w.description}
+          as="p"
+          multiline
+          className="mt-3 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70"
+        />
       </div>
     );
     const offset = i % 2 === 1 ? "sm:mt-6" : "";
