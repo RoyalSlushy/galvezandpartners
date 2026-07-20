@@ -37,7 +37,9 @@ export default function Header({
 
   return (
     <header
-      className={`relative isolate w-full ${isHome ? "" : "bg-navy"}`}
+      // z-50 lifts the whole masthead above the page content below it so the
+      // language dropdown (and the mobile drawer) render in front of everything.
+      className={`relative isolate z-50 w-full ${isHome ? "" : "bg-navy"}`}
       style={isHome ? { background: "var(--hero-top-color, rgb(var(--c-navy)))" } : undefined}
     >
       {/* Top slice of the masthead scrim (see .masthead-scrim). `-z-10` keeps it
@@ -46,6 +48,12 @@ export default function Header({
           header scopes the multiply to the header's own background. The hero
           renders the matching lower slice. */}
       {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
+      {/* Inner pages: an animated accent stroke along the header's bottom edge,
+          colored from the hero gradient stops and blended on `overlay` (see
+          .header-accent-border). */}
+      {!isHome && (
+        <div aria-hidden className="header-accent-border pointer-events-none absolute inset-x-0 bottom-0" />
+      )}
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
       <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">

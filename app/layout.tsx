@@ -7,7 +7,7 @@ import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
 import { getSite, getHome } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
-import { heroTopColor } from "@/lib/heroGradient";
+import { heroTopColor, heroBorderGradientCss } from "@/lib/heroGradient";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +38,18 @@ export default async function RootLayout({
   // the two share one seamless surface. The hero gradient uses literal colors,
   // so this is exposed as a variable rather than derived from the theme tokens.
   const heroTop = heroTopColor(home.hero.gradient);
+  // The inner-page header's animated accent stroke draws from the same hero
+  // gradient stops (the mobile header image's color picker), exposed as a
+  // variable so the header (rendered here in the layout) can use it.
+  const headerBorderGrad = heroBorderGradientCss(home.hero.gradient);
   return (
     <html lang="en" data-gp-theme={theme.id}>
       <body
         className="flex min-h-screen flex-col"
-        style={{ ["--hero-top-color" as string]: heroTop }}
+        style={{
+          ["--hero-top-color" as string]: heroTop,
+          ["--header-border-grad" as string]: headerBorderGrad,
+        }}
       >
         {/* Active theme, applied server-side so anonymous visitors never see a
             flash of the default palette. `:root:root` outranks the defaults in
