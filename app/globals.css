@@ -129,19 +129,25 @@
 
 /* Inner-page header accent: a thin bottom stroke whose colors are the hero
    gradient stops (the mobile header image's color picker, via
-   --header-border-grad). It blends with the header on `overlay` and drifts
-   sideways forever — the gradient loops back to its first color and is twice the
-   element width, so shifting the background-position by one full tile wraps with
-   no visible seam. */
+   --header-border-grad). The gradient paints at full strength (no dimming blend)
+   so the colors read boldly on the dark header, and it drifts sideways forever —
+   the gradient loops back to its first color and is twice the element width, so
+   shifting the background-position by one full tile wraps with no visible seam.
+   The element is constrained to the site column width by its wrapper in
+   Header.tsx, so it ends at the body bounds rather than bleeding edge to edge. */
 .header-accent-border {
   height: 3px;
+  border-radius: 9999px;
   background-image: var(
     --header-border-grad,
     linear-gradient(90deg, rgb(var(--c-gold)), rgb(var(--c-gold-dark)), rgb(var(--c-gold)))
   );
   background-size: 200% 100%;
   background-repeat: repeat;
-  mix-blend-mode: overlay;
+  /* Punch up the stops so the stroke reads boldly even when the source gradient
+     is dark/desaturated (its darkest stops otherwise vanish into the navy
+     header). */
+  filter: brightness(1.7) saturate(1.5);
   animation: header-border-drift 18s linear infinite;
 }
 @keyframes header-border-drift {

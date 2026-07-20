@@ -49,10 +49,16 @@ export default function Header({
           renders the matching lower slice. */}
       {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
       {/* Inner pages: an animated accent stroke along the header's bottom edge,
-          colored from the hero gradient stops and blended on `overlay` (see
-          .header-accent-border). */}
+          colored from the hero gradient stops (see .header-accent-border). The
+          wrapper mirrors the content row's centering + padding so the stroke
+          spans the body column and ends at the site bounds, not edge to edge. */}
       {!isHome && (
-        <div aria-hidden className="header-accent-border pointer-events-none absolute inset-x-0 bottom-0" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto w-full max-w-site px-5 sm:px-8"
+        >
+          <div className="header-accent-border" />
+        </div>
       )}
       {/* items-stretch on mobile lets the header picture fill the full height and
           sit flush against the hero; the desktop cluster re-centers at sm+. */}
