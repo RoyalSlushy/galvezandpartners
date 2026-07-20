@@ -134,16 +134,13 @@ export default function WorkShowcase({
 
     const measure = () => {
       headerH = header ? header.offsetHeight : 0;
-      const cs = getComputedStyle(rowWrap);
-      const availW =
-        rowWrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      const availH =
-        rowWrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-      // Widest layout (active at a=0): one 5:4 panel + (N-1) upcoming 2:5
-      // slivers + gaps. Size the row height so that arrangement exactly fills the
-      // width, capped so it also fits the available height (whichever binds).
-      const hFromWidth = (availW - GAP * (N - 1)) / (ACTIVE + RIGHT_COLLAPSED * (N - 1));
-      rowH = Math.max(0, Math.min(availH, hFromWidth));
+      // rowWrap spans from the body's left edge to the viewport's right edge.
+      const availW = rowWrap.clientWidth;
+      const availH = rowWrap.clientHeight;
+      // Fill the available height; the upcoming slivers overflow the body to the
+      // right and clip at the viewport. Cap the height only so the widest (5:4)
+      // card itself still fits within that visible right span (never cut off).
+      rowH = Math.max(0, Math.min(availH, availW / ACTIVE));
       row.style.height = `${rowH}px`;
       // Vertical scroll distance driving the accordion: ~0.6 screens per panel.
       const step = Math.max(280, window.innerHeight * 0.6);
@@ -410,18 +407,21 @@ export default function WorkShowcase({
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
-          {/* Accordion row: the active panel is 5:4 and stuck to the left edge
-              of the site column (aligned with the heading and the gallery below,
-              not the page edge); the rest are 1:5 slivers queued to its right.
-              Scroll advances the active index — the current widest slides left
-              out of the column and fades as the next widens in. Widths, the row's
-              leftward translate, per-panel fade, corner radius, and the label
-              cross-fade are all driven imperatively (see the effect). The box is
-              the same max-w-site column as Container, so it clips the exit at the
-              body's left edge. */}
+          {/* Accordion row: the active panel is 5:4 and stuck to the body's left
+              edge (aligned with the heading and the gallery below); the upcoming
+              cases queue to its right as 2:5 slivers and are free to overflow the
+              body to the right, clipping at the viewport edge. Passed cases exit
+              left and clip at the body edge. The box's left margin is the body's
+              left edge and it stretches to the viewport right, so overflow-hidden
+              clips the left at the body edge and the right at the viewport.
+              Widths, the row's translate, per-panel fade, corner radius, and the
+              label cross-fade are all driven imperatively (see the effect). */}
           <div
             ref={rowWrapRef}
-            className="mx-auto mt-6 flex min-h-0 w-full max-w-site flex-1 items-center overflow-hidden px-5 sm:px-8"
+            className="mt-6 flex min-h-0 flex-1 items-center overflow-hidden"
+            style={{
+              marginLeft: "calc((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem)",
+            }}
           >
             <div
               ref={rowRef}
