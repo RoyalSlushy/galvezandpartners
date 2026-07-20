@@ -7,7 +7,7 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
+import { wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -24,10 +24,13 @@ const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[
 /**
  * /our-works hero: everything fits in one viewport. The section pins while
  * vertical scroll drives the case cards sideways (same scroll-jack pattern as
- * the homepage FeaturedWork); a gold progress line tracks the journey. The
- * heading is centered and fit to a single line at any width, with the word
- * "speaks" accented in gold under a pulsing halo. A masonry-grid icon rail on
- * the left jumps to the #work-gallery section below the cases.
+ * the homepage FeaturedWork); a gold progress line tracks the journey. The site
+ * header stays pinned at the top for the whole section and slides away only as
+ * the gallery scrolls in (see the body[data-gp-pinned-header] rule). The heading
+ * is centered and fit to a single line at any width, with the word "speaks"
+ * accented in gold under a pulsing halo. A masonry-grid icon rail on the left
+ * jumps to the #work-gallery section below the cases. Case images are shown in
+ * full (object-contain) rather than cropped.
  *
  * Edit mode and reduced motion swap in a native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
@@ -65,35 +68,39 @@ export default function WorkShowcase({
     const bar = barRef.current;
     if (!section || !sticky || !track || !bar) return;
 
+    // Pin the site header at the top for the duration of this section (see the
+    // body[data-gp-pinned-header] rule); it slides off as the gallery arrives.
+    const header = document.querySelector<HTMLElement>("header");
+    const root = document.documentElement;
+    document.body.setAttribute("data-gp-pinned-header", "");
+
     let scrollable = 0;
+    let headerH = 0;
     let raf = 0;
     let ticking = false;
 
     const measure = () => {
       scrollable = Math.max(0, track.scrollWidth - window.innerWidth);
+      headerH = header ? header.offsetHeight : 0;
       // Total height = one pinned viewport + the horizontal distance to cover.
       section.style.height = `${sticky.offsetHeight + scrollable}px`;
     };
 
-    const parallaxEls = Array.from(track.querySelectorAll<HTMLElement>("[data-parallax]"));
-
     const update = () => {
       ticking = false;
-      if (scrollable <= 0) return;
       const rect = section.getBoundingClientRect();
+      // Header release: pinned (top:0) while the section's bottom is more than a
+      // header-height below the viewport top; over the final header-height of
+      // travel it slides up to -headerH so it clears the frame exactly as the
+      // gallery reaches the top. Runs regardless of horizontal scrollability.
+      const shift = Math.max(0, Math.min(headerH, headerH - rect.bottom));
+      root.style.setProperty("--gp-header-top", `${-shift}px`);
+
+      if (scrollable <= 0) return;
       const p = Math.max(0, Math.min(1, -rect.top / scrollable));
       const x = -p * scrollable;
       track.style.transform = `translate3d(${x}px,0,0)`;
       bar.style.transform = `scaleX(${p})`;
-
-      // Counter-parallax: shift each image against the track's travel based on
-      // how far its card sits from the viewport center.
-      const center = window.innerWidth / 2;
-      for (const el of parallaxEls) {
-        const r = el.getBoundingClientRect();
-        const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
-        el.style.transform = `translateX(${Math.max(-44, Math.min(44, ratio * 34))}px) scale(1.12)`;
-      }
     };
     const onScroll = () => {
       if (!ticking) {
@@ -131,7 +138,9 @@ export default function WorkShowcase({
       section.style.height = "";
       track.style.transform = "";
       bar.style.transform = "";
-      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
+      // Release the header pin (and its scroll-driven offset).
+      document.body.removeAttribute("data-gp-pinned-header");
+      root.style.removeProperty("--gp-header-top");
     };
   }, [pinned, items.length]);
 
@@ -155,21 +164,19 @@ export default function WorkShowcase({
           />
         )}
         <div className="group relative overflow-hidden rounded-2xl bg-navy-soft">
-          <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
-            <EditableImage
-              path={`work.items.${i}.img`}
-              raw={w.img}
-              src={
-                w.img
-                  ? w.img.startsWith("http")
-                    ? w.img
-                    : wixImage(w.img, 700, 875)
-                  : PLACEHOLDER_IMG
-              }
-              alt={w.title}
-              className="aspect-[4/5] w-full object-cover"
-            />
-          </div>
+          <EditableImage
+            path={`work.items.${i}.img`}
+            raw={w.img}
+            src={
+              w.img
+                ? w.img.startsWith("http")
+                  ? w.img
+                  : wixImageFit(w.img, 700, 875)
+                : PLACEHOLDER_IMG
+            }
+            alt={w.title}
+            className="aspect-[4/5] w-full bg-navy object-contain"
+          />
           <div
             className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
               editMode ? " pointer-events-none" : ""
@@ -258,12 +265,16 @@ export default function WorkShowcase({
 
   return (
     <section key="ws-pinned" ref={sectionRef} className="relative w-full bg-navy">
-      <div ref={stickyRef} className="h-viewport sticky top-0 overflow-hidden">
-        {/* pb = header height: at page load the sticky box's top sits right
-            under the (in-flow) header, so centering inside (100vh − header)
-            puts the content exactly mid-way between header and viewport
-            bottom — everything on screen, nothing cut. */}
-        <div className="flex h-full flex-col justify-center pb-[var(--header-h)]">
+      {/* Pinned below the sticky site header (top = --header-h) and sized to the
+          remaining viewport, so the header and this content together fill the
+          screen with nothing cut off. The header slides away as the section
+          ends (see the effect). */}
+      <div
+        ref={stickyRef}
+        className="sticky top-[var(--header-h)] overflow-hidden"
+        style={{ height: "calc(100svh - var(--header-h))" }}
+      >
+        <div className="flex h-full flex-col justify-center">
           <GalleryRail label={tv("gallery")} />
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />

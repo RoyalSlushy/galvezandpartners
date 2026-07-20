@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { GalleryItem } from "@/content/work";
-import { wixImage } from "@/lib/wix";
+import { wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
@@ -31,9 +31,10 @@ function parseTags(tags: string): string[] {
     .filter(Boolean);
 }
 
-// Wix crops cycle through varied aspect ratios (keyed by curated index, so a
-// card keeps its shape under sort/filter) to give the masonry its rhythm.
-// Full-URL uploads render at their natural aspect instead.
+// Per-card fit bounds cycle through varied heights (keyed by curated index, so a
+// card keeps its bound under sort/filter). Images are fit (not cropped) within
+// 640×bound and shown object-contain, so each renders whole at its true aspect;
+// the varied bounds plus real aspect ratios give the masonry its rhythm.
 const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 
 /**
@@ -82,7 +83,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
     setMatchAll(false);
   };
 
-  // Pair each item with its curated index so CMS paths (and crop shapes) stay
+  // Pair each item with its curated index so CMS paths (and fit bounds) stay
   // stable no matter how the visitor sorts or filters the wall.
   const visible = useMemo(() => {
     let pairs = items.map((item, idx) => ({ item, idx, tags: parseTags(item.tags) }));
@@ -240,7 +241,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </div>
         )}
 
-        {/* Masonry wall — CSS columns; cards keep their curated crop shape. */}
+        {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
         {visible.length > 0 ? (
           <div className="mt-10 columns-2 gap-4 sm:columns-3 lg:columns-4">
             {visible.map(({ item, idx, tags }) => (
@@ -264,11 +265,11 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     item.img
                       ? item.img.startsWith("http")
                         ? item.img
-                        : wixImage(item.img, 640, CROP_HEIGHTS[idx % CROP_HEIGHTS.length])
+                        : wixImageFit(item.img, 640, CROP_HEIGHTS[idx % CROP_HEIGHTS.length])
                       : PLACEHOLDER_IMG
                   }
                   alt={item.title}
-                  className="w-full object-cover transition duration-500 group-hover:scale-105"
+                  className="w-full bg-navy-soft object-contain transition duration-500 group-hover:scale-105"
                 />
                 {editMode ? (
                   <figcaption className="space-y-1 p-3">
