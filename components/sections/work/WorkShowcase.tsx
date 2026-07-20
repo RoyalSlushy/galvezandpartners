@@ -404,15 +404,18 @@ export default function WorkShowcase({
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </Container>
-          {/* Accordion row: the active panel is 5:4 and stuck to the left; the
-              rest are 1:5 slivers queued to its right. Scroll advances the active
-              index — the current widest slides left out of frame and fades as the
-              next widens in. Widths, the row's leftward translate, per-panel fade,
-              corner radius, and the label cross-fade are all driven imperatively
-              (see the effect). The left padding clears the gallery rail. */}
+          {/* Accordion row: the active panel is 5:4 and stuck to the left edge
+              of the site column (aligned with the heading and the gallery below,
+              not the page edge); the rest are 1:5 slivers queued to its right.
+              Scroll advances the active index — the current widest slides left
+              out of the column and fades as the next widens in. Widths, the row's
+              leftward translate, per-panel fade, corner radius, and the label
+              cross-fade are all driven imperatively (see the effect). The box is
+              the same max-w-site column as Container, so it clips the exit at the
+              body's left edge. */}
           <div
             ref={rowWrapRef}
-            className="mt-6 flex min-h-0 flex-1 items-center justify-start overflow-hidden pl-16 pr-5 sm:pl-24 sm:pr-8"
+            className="mx-auto mt-6 flex min-h-0 w-full max-w-site flex-1 items-center overflow-hidden px-5 sm:px-8"
           >
             <div
               ref={rowRef}
@@ -627,15 +630,18 @@ function ShowcaseHeading({
 }
 
 /**
- * Left-edge rail: a masonry-grid icon (plus a vertical label on desktop) that
- * jumps to the #work-gallery wall below the cases.
+ * Rail in the gutter just left of the site column: a masonry-grid icon (plus a
+ * vertical label on desktop) that jumps to the #work-gallery wall. Its left is
+ * pinned to sit just outside the body column (which is where the widest case is
+ * anchored), clamped to the viewport edge when the gutter runs out.
  */
 function GalleryRail({ label }: { label: string }) {
   return (
     <a
       href="#work-gallery"
       aria-label="Jump to the gallery"
-      className="group absolute left-2 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3 sm:left-5"
+      style={{ left: "max(0.5rem, calc((100vw - 1200px) / 2 - 2rem))" }}
+      className="group absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3"
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
         <MasonryIcon className="h-5 w-5" />
