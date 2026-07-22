@@ -361,6 +361,13 @@
   html {
     overscroll-behavior-x: none;
   }
+  /* In-page anchors (the Our Works gallery rail) glide instead of jumping —
+     scrolling through the pinned cases section plays its horizontal travel. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
   body {
     @apply bg-navy font-body text-white antialiased;
     overscroll-behavior-x: none;
@@ -429,6 +436,52 @@
   height: 100svh;
 }
 
+/* Our Works: the site header stays pinned at the top while the cases
+   scroll-jack plays, then slides up out of view as the gallery scrolls in.
+   Scoped to the attribute WorkShowcase sets on <body>, so no other route is
+   touched. The pin AND the release both use `top` (never `transform`), so the
+   header never becomes a containing block for the mobile drawer's fixed
+   descendants. WorkShowcase drives --gp-header-top from 0 → -header-h across the
+   final stretch of the cases section. */
+body[data-gp-pinned-header] header {
+  position: sticky;
+  top: var(--gp-header-top, 0px);
+  z-index: 50;
+}
+
+/* Accented word in the Our Works heading ("speaks"): gold type with a soft
+   glow, plus two staggered halo rings that pulse outward from the word. Insets
+   and radii are in em so the halo scales with the fitted heading size. */
+.halo-word {
+  position: relative;
+  display: inline-block;
+  color: rgb(var(--c-gold));
+  text-shadow: 0 0 0.4em rgb(var(--c-gold) / 0.35);
+}
+@keyframes halo-pulse {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  80%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.halo-ring {
+  position: absolute;
+  inset: -0.18em -0.35em;
+  border-radius: 9999px;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgb(var(--c-gold) / 0.55);
+  background: radial-gradient(closest-side, rgb(var(--c-gold) / 0.14), transparent 78%);
+  animation: halo-pulse 3s ease-out infinite;
+}
+.halo-ring-late {
+  animation-delay: 1.5s;
+}
+
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
    the 1200px site width kicks in, then center. .gallery-scroll mirrors the
    same inset as scroll-padding so snap points don't swallow the gutter. */
@@ -465,6 +518,12 @@
   .wordfill-armed [data-word] {
     opacity: 1 !important;
     transition: none;
+  }
+  /* The halo settles into a static, faint ring instead of pulsing. */
+  .halo-ring {
+    animation: none !important;
+    transform: none;
+    opacity: 0.25;
   }
 }
 

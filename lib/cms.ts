@@ -27,7 +27,14 @@ import {
   type HeroGradient,
 } from "@/content/home";
 import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
-import { WORK, WORK_HEADING, type Work } from "@/content/work";
+import {
+  WORK,
+  WORK_HEADING,
+  WORK_GALLERY,
+  WORK_GALLERY_HEADING,
+  type Work,
+  type GalleryItem,
+} from "@/content/work";
 import { CASE_STUDIES, type CaseStudy } from "@/content/caseStudies";
 import { PARTNERS, type PartnersContent } from "@/content/partners";
 import { CONTACT_PAGE, type ContactPageContent } from "@/content/contact";
@@ -80,7 +87,11 @@ export type HomeContent = {
 };
 
 export type TeamContent = { heading: string; members: Member[] };
-export type WorkContent = { heading: string; items: Work[] };
+export type WorkContent = {
+  heading: string;
+  items: Work[];
+  gallery: { heading: string; items: GalleryItem[] };
+};
 export type CaseStudiesContent = { studies: CaseStudy[] };
 export type { PartnersContent, ContactPageContent };
 
@@ -122,6 +133,10 @@ export const DEFAULT_TEAM: TeamContent = {
 export const DEFAULT_WORK: WorkContent = {
   heading: WORK_HEADING,
   items: WORK.map((w) => ({ ...w })),
+  gallery: {
+    heading: WORK_GALLERY_HEADING,
+    items: WORK_GALLERY.map((g) => ({ ...g })),
+  },
 };
 
 export const DEFAULT_CASE_STUDIES: CaseStudiesContent = {

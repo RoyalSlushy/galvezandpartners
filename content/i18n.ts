@@ -125,6 +125,27 @@ const ES: Record<string, string> = {
   // --- Work index ---
   "our work speaks for itself": "nuestro trabajo habla por sí mismo",
 
+  // --- Work showcase / gallery (Our Works page) ---
+  "the gallery": "la galería",
+  gallery: "galería",
+  "Every frame on one wall — sort it, filter it, tag it.":
+    "Cada imagen en un solo muro: ordénala, fíltrala, etiquétala.",
+  explore: "explorar",
+  "Search the gallery": "Busca en la galería",
+  "search the wall…": "busca en el muro…",
+  sort: "ordenar",
+  "curated order": "orden curado",
+  "recently added": "añadido recientemente",
+  "title a → z": "título a → z",
+  "title z → a": "título z → a",
+  any: "cualquiera",
+  all: "todas",
+  clear: "limpiar",
+  "nothing on the wall": "no hay nada en el muro",
+  "No images match that search and tag combination.":
+    "Ninguna imagen coincide con esa búsqueda y combinación de etiquetas.",
+  "clear filters": "limpiar filtros",
+
   // --- Partners ---
   "our partners": "nuestros socios",
   "Where exceptional results are made.": "Donde se logran resultados excepcionales.",
