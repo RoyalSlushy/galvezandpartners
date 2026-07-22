@@ -18,8 +18,16 @@ import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 // Card width doubly capped by viewport height (cards are 4:5) so heading +
 // track + progress line always fit inside one viewport under the header.
+// CARD_W/END_CARD_W are the edit-mode sizes (width-driven at every breakpoint);
+// visitors get CARD_FIT/END_CARD_FIT, where the phone card instead derives its
+// width from the row height (still 4:5) so header + heading + card + blurb all
+// fit inside one viewport.
 const CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(34vw,38vh)] md:w-[min(27vw,38vh)]";
 const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[min(24vw,34vh)]";
+const CARD_FIT =
+  "h-full w-auto shrink-0 sm:h-auto sm:w-[min(34vw,38vh)] sm:max-w-[420px] md:w-[min(27vw,38vh)]";
+const END_CARD_FIT =
+  "h-full w-auto shrink-0 sm:h-auto sm:w-[min(30vw,34vh)] sm:max-w-[420px] md:w-[min(24vw,34vh)]";
 
 /**
  * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
@@ -417,9 +425,62 @@ export default function WorkShowcase({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinned, panelCount]);
 
+  // Phone (static row): the cards carry no blurb — a single shared blurb under
+  // the row swaps to whichever card sits on the snap anchor, fading between
+  // texts (mirrors the pinned accordion's active-card blurb).
+  const scrollRowRef = useRef<HTMLDivElement>(null);
+  const mobileDescRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!mounted || editMode || wideEnough) return;
+    const scroller = scrollRowRef.current;
+    const desc = mobileDescRef.current;
+    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
+    if (!scroller || !desc || !track) return;
+    let last = 0;
+    let raf = 0;
+    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
+    const pick = () => {
+      raf = 0;
+      const kids = Array.from(track.children) as HTMLElement[];
+      if (!kids.length) return;
+      // Snap anchor = the scroller's left edge inset by the row's gutter
+      // (.gallery-scroll mirrors the same inset as scroll-padding-left).
+      const anchor =
+        scroller.getBoundingClientRect().left +
+        (parseFloat(getComputedStyle(track).paddingLeft) || 0);
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < kids.length; i++) {
+        const d = Math.abs(kids[i].getBoundingClientRect().left - anchor);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      if (best === last) return;
+      last = best;
+      desc.style.opacity = "0";
+      clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(() => {
+        desc.textContent = descTextsRef.current[last] ?? "";
+        desc.style.opacity = "1";
+      }, 160);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(pick);
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      clearTimeout(fadeTimer);
+      desc.style.opacity = "";
+    };
+  }, [mounted, editMode, wideEnough]);
+
   const cards = items.map((w, i) => {
     const inner = (
-      <div className="relative">
+      <div className={editMode ? "relative" : "relative h-full sm:h-auto"}>
         {/* Outlined index overlapping the card */}
         <span
           aria-hidden
@@ -436,8 +497,16 @@ export default function WorkShowcase({
             className="right-2 top-2"
           />
         )}
-        <div className="group relative overflow-hidden rounded-2xl bg-navy-soft">
-          <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
+        <div
+          className={`group relative overflow-hidden rounded-2xl bg-navy-soft${
+            editMode ? "" : " aspect-[4/5] h-full max-w-[85vw] sm:h-auto sm:max-w-none"
+          }`}
+        >
+          <div
+            data-parallax
+            className={`will-change-transform${editMode ? "" : " h-full"}`}
+            style={{ transform: "scale(1.12)" }}
+          >
             <EditableImage
               path={`work.items.${i}.img`}
               raw={w.img}
@@ -449,7 +518,7 @@ export default function WorkShowcase({
                   : PLACEHOLDER_IMG
               }
               alt={w.title}
-              className="aspect-[4/5] w-full object-cover"
+              className={editMode ? "aspect-[4/5] w-full object-cover" : "h-full w-full object-cover"}
             />
           </div>
           <div
@@ -485,28 +554,33 @@ export default function WorkShowcase({
           </div>
         </div>
         {/* Description sits under the card (out of the image), matching the
-            desktop accordion's blurb. */}
+            desktop accordion's blurb. Phones move it out of the row entirely —
+            into the shared blurb under the track — so it hides here (edit mode
+            keeps it in place so each case stays editable). */}
         <EditableText
           path={`work.items.${i}.description`}
           value={w.description}
           as="p"
           multiline
-          className="mt-3 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70"
+          className={`mt-3 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70${
+            editMode ? "" : " hidden sm:block"
+          }`}
         />
       </div>
     );
+    const rootW = editMode ? CARD_W : CARD_FIT;
     const offset = i % 2 === 1 ? "sm:mt-6" : "";
     return w.slug && !editMode ? (
       <Link
         key={i}
         href={`/case-study/${w.slug}`}
         aria-label={w.title}
-        className={`${CARD_W} ${offset} snap-start`}
+        className={`${rootW} ${offset} snap-start`}
       >
         {inner}
       </Link>
     ) : (
-      <div key={i} className={`${CARD_W} ${offset} snap-start`}>
+      <div key={i} className={`${rootW} ${offset} snap-start`}>
         {inner}
       </div>
     );
@@ -514,32 +588,70 @@ export default function WorkShowcase({
 
   // Closing card carries the hand-off to the gallery wall below.
   const endCard = (
-    <a href="#work-gallery" className={`flex ${END_CARD_W} snap-start items-center`}>
-      <div className="flex aspect-[4/5] w-full flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-7">
+    <a
+      href="#work-gallery"
+      className={`flex ${editMode ? END_CARD_W : END_CARD_FIT} snap-start items-center`}
+    >
+      <div
+        className={`flex aspect-[4/5] flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
+          editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
+        }`}
+      >
         <p className="font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
-        <p className="mt-3 font-body text-base text-white/60">
+        <p className="mt-2 font-body text-base text-white/60 sm:mt-3">
           {tv("Every frame on one wall — sort it, filter it, tag it.")}
         </p>
-        <span className="btn-outline mt-7">{tv("explore")}</span>
+        <span className="btn-outline mt-5 sm:mt-7">{tv("explore")}</span>
       </div>
     </a>
   );
 
   if (!pinned) {
+    // Visitors' phones get a one-viewport layout: the section fills the screen
+    // under the site header as a column — heading, then the card row (which
+    // flexes and sizes the 4:5 cards from its height), then the shared blurb —
+    // so header + heading + case + description all fit with no vertical scroll.
+    // sm+ (edit mode, reduced motion) keeps the width-driven static row.
     return (
-      <section key="ws-static" className="relative w-full overflow-hidden bg-navy py-16 sm:py-20">
+      <section
+        key="ws-static"
+        className={`relative w-full overflow-hidden bg-navy ${
+          editMode
+            ? "py-16 sm:py-20"
+            : "flex h-[calc(100svh-var(--header-h))] flex-col pb-4 pt-3 sm:block sm:h-auto sm:py-20"
+        }`}
+      >
         <GalleryRail label={tv("gallery")} />
         <Container>
           <RevealOnScroll>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
           </RevealOnScroll>
         </Container>
-        <div className="gallery-scroll mt-10 snap-x snap-mandatory overflow-x-auto pb-6 pt-10">
-          <div className="gallery-pad flex w-max items-start gap-6 sm:gap-8">
+        <div
+          ref={scrollRowRef}
+          className={`gallery-scroll snap-x snap-mandatory overflow-x-auto ${
+            editMode ? "mt-10 pb-6 pt-10" : "mt-2 min-h-0 flex-1 pb-2 pt-8 sm:mt-10 sm:flex-none sm:pb-6 sm:pt-10"
+          }`}
+        >
+          <div
+            className={`gallery-pad flex w-max items-start gap-6 sm:gap-8 ${
+              editMode ? "" : "h-full sm:h-auto"
+            }`}
+          >
             {cards}
             {endCard}
           </div>
         </div>
+        {!editMode && (
+          <Container className="mt-3 sm:hidden">
+            <p
+              ref={mobileDescRef}
+              className="line-clamp-3 h-[4.3rem] font-body text-sm leading-relaxed text-white/70 transition-opacity duration-300"
+            >
+              {descTexts[0]}
+            </p>
+          </Container>
+        )}
         {editMode && (
           <Container className="mt-6">
             <AddChip listPath="work.items" label="work item" />
@@ -741,11 +853,19 @@ function AccordionPanel({
 }
 
 /**
- * Centered heading, binary-search-fitted to exactly one line at any viewport
- * width (it never wraps). The verb of the default heading is accented in gold
- * with a pulsing halo — matched on the "speak"/"habla" stem so it lands on the
- * right word in both the English source and its Spanish translation. Edit mode
- * falls back to the plain editable field (bound to the untranslated source).
+ * The showcase heading, in two responsive treatments (both skip wrapping and
+ * binary-search-fit their type to the container width):
+ *
+ * - sm+: one centered line. The verb of the default heading is accented in
+ *   gold with a pulsing halo — matched on the "speak"/"habla" stem so it lands
+ *   on the right word in both the English source and its Spanish translation.
+ * - Phones: three stepped lines split around that accent word — "our work"
+ *   ranged left, "speaks" centered at 1.5× the size (keeping its halo), "for
+ *   itself" ranged right — set on tightened leading. Headings without an
+ *   accent word keep the single-line treatment everywhere.
+ *
+ * Edit mode falls back to the plain editable field (bound to the untranslated
+ * source).
  */
 function ShowcaseHeading({
   heading,
@@ -762,6 +882,15 @@ function ShowcaseHeading({
     singleLine: true,
     deps: [display, editMode],
   });
+  // Separate fit for the phone treatment: singleLine only constrains width, so
+  // with each line kept nowrap it sizes the block until the widest of the three
+  // lines spans the container.
+  const { ref: mobileRef } = useFitText<HTMLDivElement>({
+    max: 110,
+    min: 14,
+    singleLine: true,
+    deps: [display, editMode],
+  });
 
   if (editMode) {
     return (
@@ -774,29 +903,58 @@ function ShowcaseHeading({
     );
   }
 
+  const halo = (word: string) => (
+    <span className="halo-word">
+      <span aria-hidden className="halo-ring" />
+      <span aria-hidden className="halo-ring halo-ring-late" />
+      <span className="relative">{word}</span>
+    </span>
+  );
+
+  const words = display.split(/\s+/).filter(Boolean);
+  const accentIdx = words.findIndex((w) => /speak|habla/i.test(w));
+
   let accented = false;
   const tokens = display.split(/(\s+)/).map((token, i) => {
     if (!accented && /speak|habla/i.test(token)) {
       accented = true;
-      return (
-        <span key={i} className="halo-word">
-          <span aria-hidden className="halo-ring" />
-          <span aria-hidden className="halo-ring halo-ring-late" />
-          <span className="relative">{token}</span>
-        </span>
-      );
+      return <span key={i}>{halo(token)}</span>;
     }
     return token;
   });
 
-  return (
+  const singleLine = (
     // The fitted size lives on this box; the h1 inherits it (preflight sets
     // headings to font-size: inherit). overflow-visible lets the "speaks" glow
     // spill past the text box; the fit still measures scrollWidth (the absolute
     // halo rings are out of flow). text-f2 is only the pre-hydration fallback.
-    <div ref={ref} className="whitespace-nowrap py-[0.3em] text-center text-f2">
+    <div
+      ref={ref}
+      className={`whitespace-nowrap py-[0.3em] text-center text-f2${
+        accentIdx < 0 ? "" : " hidden sm:block"
+      }`}
+    >
       <h1 className="font-display lowercase leading-none text-white">{tokens}</h1>
     </div>
+  );
+
+  if (accentIdx < 0) return singleLine;
+
+  const pre = words.slice(0, accentIdx).join(" ");
+  const accent = words[accentIdx];
+  const post = words.slice(accentIdx + 1).join(" ");
+
+  return (
+    <>
+      <div ref={mobileRef} className="whitespace-nowrap py-[0.3em] text-f2 sm:hidden">
+        <h1 className="font-display lowercase leading-[0.85] text-white">
+          {pre && <span className="block text-left">{pre}</span>}
+          <span className="block text-center text-[1.5em]">{halo(accent)}</span>
+          {post && <span className="block text-right">{post}</span>}
+        </h1>
+      </div>
+      {singleLine}
+    </>
   );
 }
 
