@@ -511,6 +511,55 @@ body[data-gp-pinned-header] header {
   }
 }
 
+/* Case-study mobile masthead (CaseStudyHero). The gallery ring revolves while
+   each frame counter-spins on the same period to stay upright; the lead frame
+   drifts (Ken Burns); the scroll cue bobs. All are stilled under reduced motion
+   below — the ring then rests as a static upright arrangement. */
+.cs-orbit-ring {
+  animation: cs-orbit 64s linear infinite;
+  will-change: transform;
+}
+.cs-orbit-face {
+  animation: cs-orbit-rev 64s linear infinite;
+  will-change: transform;
+}
+@keyframes cs-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cs-orbit-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+.cs-kenburns {
+  animation: cs-kenburns 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes cs-kenburns {
+  from {
+    transform: scale(1.06) translate(1%, 1%);
+  }
+  to {
+    transform: scale(1.2) translate(-2%, -3%);
+  }
+}
+.cs-scroll-cue {
+  animation: cs-scroll-cue 1.8s ease-in-out infinite;
+}
+@keyframes cs-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
    the 1200px site width kicks in, then center. .gallery-scroll mirrors the
    same inset as scroll-padding so snap points don't swallow the gutter. */
@@ -547,6 +596,18 @@ body[data-gp-pinned-header] header {
   /* The loader mark settles to a static, fully-visible icon. */
   .gp-veil-breathe {
     animation: none !important;
+    transform: none;
+    opacity: 1;
+  }
+  /* Case-study masthead: freeze the orbit (frames rest upright), the lead
+     frame's drift, and the scroll cue. */
+  .cs-orbit-ring,
+  .cs-orbit-face,
+  .cs-kenburns,
+  .cs-scroll-cue {
+    animation: none !important;
+  }
+  .cs-scroll-cue {
     transform: none;
     opacity: 1;
   }

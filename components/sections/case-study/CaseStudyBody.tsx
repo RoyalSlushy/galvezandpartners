@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CaseStudyHero from "@/components/sections/case-study/CaseStudyHero";
 import type { CaseStudy } from "@/content/caseStudies";
 import { wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -86,7 +87,25 @@ export default function CaseStudyBody({
         </div>
       )}
 
-      <header className="border-b border-white/10 py-20 sm:py-28">
+      {/* Phones get a full-viewport revolving-gallery masthead (visitors only);
+          tablet/desktop — and edit mode, so the title stays editable — keep the
+          classic header. */}
+      {!editMode && (
+        <CaseStudyHero
+          className="sm:hidden"
+          title={cs.title}
+          indexLabel={String(index + 1).padStart(2, "0")}
+          gallery={cs.gallery}
+          backHref="/our-works"
+          backLabel={t("Our Work")}
+          eyebrow={t("Case Study")}
+          scrollLabel={t("Background")}
+        />
+      )}
+
+      <header
+        className={`border-b border-white/10 py-20 sm:py-28 ${editMode ? "" : "hidden sm:block"}`}
+      >
         <Container>
           <Link href="/our-works" className="font-din text-sm uppercase tracking-widest text-gold hover:underline">
             {"← "}
@@ -101,7 +120,7 @@ export default function CaseStudyBody({
         </Container>
       </header>
 
-      <section className="py-16 sm:py-20">
+      <section id="case-study-read" className="scroll-mt-[var(--header-h)] py-16 sm:py-20">
         <Container>
           <h2 className="font-display text-f6 uppercase tracking-wide text-gold">{t("Background")}</h2>
           <EditableText
