@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import useFitText from "@/components/ui/useFitText";
 import { GlyphNumber } from "@/components/ui/Glyph";
-import { wixImage } from "@/lib/wix";
+import { focusPosition, wixImage } from "@/lib/wix";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 /** How long each slide is held before crossfading to the next. */
@@ -80,6 +80,9 @@ export default function CaseStudyHero({
             src={wixImage(id, 900, 1200)}
             alt=""
             loading={i === 0 ? "eager" : "lazy"}
+            // The CMS focal point keeps the important part of the frame in view
+            // under this very tall crop (defaults to centre when unset).
+            style={{ objectPosition: focusPosition(id) }}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
               i % 2 ? "cs-kenburns-alt" : "cs-kenburns"
             } ${i === active ? "opacity-100" : "opacity-0"}`}

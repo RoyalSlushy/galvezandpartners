@@ -1,5 +1,5 @@
 import type { ContentKey } from "@/lib/cms";
-import { wixImage } from "@/lib/wix";
+import { stripFocus, wixImage } from "@/lib/wix";
 
 // NOTE: keep this module free of `@/lib/supabase` / `@/lib/cms` value imports —
 // it is statically bundled into every page via AdminProvider, and those pull
@@ -155,8 +155,10 @@ export function isVideoUrl(raw: string): boolean {
  * server-side crop at the requested size. */
 export function resolveImage(raw: string, w = 400, h = 300): string {
   if (!raw) return PLACEHOLDER_IMG;
-  if (isVideoUrl(raw)) return raw;
-  return raw.startsWith("http") ? raw : wixImage(raw, w, h);
+  // Drop any focal-point suffix before turning the value into a URL.
+  const src = stripFocus(raw);
+  if (isVideoUrl(src)) return src;
+  return src.startsWith("http") ? src : wixImage(src, w, h);
 }
 
 /** Every distinct image currently referenced across the site content. */
@@ -176,9 +178,12 @@ export function collectImages(sections: Partial<Record<ContentKey, unknown>>): I
   const site = sections.site as { glyphs?: { svg?: string }[] } | undefined;
   for (const g of site?.glyphs ?? []) if (g?.svg) raws.push(g.svg);
 
+  // Dedup by the media itself (ignoring any focal-point suffix), and surface the
+  // plain media in the picker gallery — focus is set per placement, not here.
   const seen = new Set<string>();
   const out: ImageRef[] = [];
-  for (const raw of raws) {
+  for (const rawWithFocus of raws) {
+    const raw = stripFocus(rawWithFocus);
     if (seen.has(raw)) continue;
     seen.add(raw);
     out.push({ raw, previewUrl: resolveImage(raw) });

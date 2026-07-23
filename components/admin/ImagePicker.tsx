@@ -12,13 +12,19 @@ import {
   uploadImage,
 } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
+import { stripFocus } from "@/lib/wix";
 import { DEFAULT_HERO_GRADIENT, type HeroGradient } from "@/content/home";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
 import HeroGradientPicker from "./HeroGradientPicker";
+import FocusPicker from "./FocusPicker";
 
 /** Configs whose picker also edits the hero background gradient. */
 const GRADIENT_PATH = "home.hero.gradient";
 const GRADIENT_HOST_PATHS = new Set(["site.headerImage"]);
+
+/** Case-study gallery slots — these frames feed the very tall mobile hero, so
+ * their picker also offers a focal point for that crop. */
+const CASE_GALLERY_PATH = /^case_studies\.studies\.\d+\.gallery\.\d+$/;
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -123,6 +129,10 @@ export default function ImagePicker() {
   const imageChanged = selected !== picker.raw && selected.trim().length > 0;
   const changed = imageChanged || gradientChanged;
 
+  // Case-study frames feed the tall phone hero, so offer a focal point for that
+  // crop (images only — object-position is meaningless for the video element).
+  const showsFocus = CASE_GALLERY_PATH.test(picker.path) && !!selected && !isVideoUrl(selected);
+
   const applyChanges = () => {
     if (imageChanged) admin.setValue(picker.path, selected.trim());
     if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
@@ -196,9 +206,12 @@ export default function ImagePicker() {
           </div>
           <div className="flex items-center justify-between border-t border-white/10 px-3 py-1.5 text-[11px] text-white/40">
             <span>{imageChanged ? "New image (applies when you press Apply)" : "Current image"}</span>
-            <span className="max-w-[50%] truncate">{selected}</span>
+            <span className="max-w-[50%] truncate">{stripFocus(selected)}</span>
           </div>
         </div>
+
+        {/* Focal point for case-study frames (the tall phone hero crop). */}
+        {showsFocus && <FocusPicker raw={selected} onChange={setSelected} />}
 
         {/* Upload */}
         <div
