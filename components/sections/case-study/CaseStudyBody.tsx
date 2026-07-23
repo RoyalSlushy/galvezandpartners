@@ -94,11 +94,9 @@ export default function CaseStudyBody({
         <CaseStudyHero
           className="sm:hidden"
           title={cs.title}
-          indexLabel={String(index + 1).padStart(2, "0")}
           gallery={cs.gallery}
           backHref="/our-works"
           backLabel={t("Our Work")}
-          eyebrow={t("Case Study")}
           scrollLabel={t("Background")}
         />
       )}

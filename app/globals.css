@@ -511,38 +511,32 @@ body[data-gp-pinned-header] header {
   }
 }
 
-/* Case-study mobile masthead (CaseStudyHero). The gallery ring revolves while
-   each frame counter-spins on the same period to stay upright; the lead frame
-   drifts (Ken Burns); the scroll cue bobs. All are stilled under reduced motion
-   below — the ring then rests as a static upright arrangement. */
-.cs-orbit-ring {
-  animation: cs-orbit 64s linear infinite;
-  will-change: transform;
-}
-.cs-orbit-face {
-  animation: cs-orbit-rev 64s linear infinite;
-  will-change: transform;
-}
-@keyframes cs-orbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes cs-orbit-rev {
-  to {
-    transform: rotate(-360deg);
-  }
-}
+/* Case-study mobile masthead (CaseStudyHero): a revolving slideshow of the
+   study's frames, each drifting (Ken Burns) in an alternating direction while
+   the active one crossfades in; the scroll cue bobs. All are stilled under
+   reduced motion below — the first frame then simply holds. */
 .cs-kenburns {
-  animation: cs-kenburns 26s ease-in-out infinite alternate;
+  animation: cs-kenburns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.cs-kenburns-alt {
+  animation: cs-kenburns-alt 26s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes cs-kenburns {
   from {
-    transform: scale(1.06) translate(1%, 1%);
+    transform: scale(1.06) translate(1.5%, 1.5%);
   }
   to {
-    transform: scale(1.2) translate(-2%, -3%);
+    transform: scale(1.22) translate(-3%, -2%);
+  }
+}
+@keyframes cs-kenburns-alt {
+  from {
+    transform: scale(1.2) translate(-2.5%, 2%);
+  }
+  to {
+    transform: scale(1.05) translate(2%, -2.5%);
   }
 }
 .cs-scroll-cue {
@@ -599,11 +593,10 @@ body[data-gp-pinned-header] header {
     transform: none;
     opacity: 1;
   }
-  /* Case-study masthead: freeze the orbit (frames rest upright), the lead
-     frame's drift, and the scroll cue. */
-  .cs-orbit-ring,
-  .cs-orbit-face,
+  /* Case-study masthead: freeze the slideshow drift and the scroll cue (the
+     first frame holds; auto-advance is already suppressed in the component). */
   .cs-kenburns,
+  .cs-kenburns-alt,
   .cs-scroll-cue {
     animation: none !important;
   }
