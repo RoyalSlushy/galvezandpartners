@@ -509,10 +509,35 @@ body[data-gp-pinned-header] header {
   }
 }
 
-/* Case-study mobile masthead (CaseStudyHero): a revolving slideshow of the
-   study's frames, each drifting (Ken Burns) in an alternating direction while
-   the active one crossfades in. Stilled under reduced motion below — the first
-   frame then simply holds. */
+/* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
+   frames, each drifting (Ken Burns) in an alternating direction while the
+   active one crossfades in. Stilled under reduced motion below — the first
+   frame then simply holds.
+
+   The slideshow band adapts per breakpoint: on phones it spans the top 60% of
+   the hero with its top/bottom edges mask-faded into the navy; on sm+ it docks
+   to the right at full hero height (about three fifths wide) and fades out
+   toward the LEFT, so the left-anchored copy sits on clean navy. */
+.cs-band {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 60%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+}
+@media (min-width: 751px) {
+  .cs-band {
+    left: auto;
+    bottom: 0;
+    height: 100%;
+    width: 62%;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+  }
+}
 .cs-kenburns {
   animation: cs-kenburns 22s ease-in-out infinite alternate;
   will-change: transform;

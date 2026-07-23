@@ -87,12 +87,12 @@ export default function CaseStudyBody({
         </div>
       )}
 
-      {/* Phones get a full-viewport revolving-gallery masthead (visitors only);
-          tablet/desktop — and edit mode, so the title stays editable — keep the
-          classic header. */}
+      {/* Visitors get the full-viewport revolving-gallery masthead at every
+          width (the band + layout adapt per breakpoint inside the component);
+          edit mode keeps the classic header + write-up below so the title and
+          background stay editable. */}
       {!editMode && (
         <CaseStudyHero
-          className="sm:hidden"
           title={cs.title}
           background={t(cs.background)}
           gallery={cs.gallery}
@@ -102,44 +102,47 @@ export default function CaseStudyBody({
         />
       )}
 
-      <header
-        className={`border-b border-white/10 py-20 sm:py-28 ${editMode ? "" : "hidden sm:block"}`}
-      >
-        <Container>
-          <Link href="/our-works" className="font-din text-sm uppercase tracking-widest text-gold hover:underline">
-            {"← "}
-            {t("Our Work")}
-          </Link>
-          <EditableText
-            path={`${base}.title`}
-            value={cs.title}
-            as="h1"
-            className="mt-4 font-heading text-f2 leading-none text-white"
-          />
-        </Container>
-      </header>
+      {editMode && (
+        <header className="border-b border-white/10 py-20 sm:py-28">
+          <Container>
+            <Link href="/our-works" className="font-din text-sm uppercase tracking-widest text-gold hover:underline">
+              {"← "}
+              {t("Our Work")}
+            </Link>
+            <EditableText
+              path={`${base}.title`}
+              value={cs.title}
+              as="h1"
+              className="mt-4 font-heading text-f2 leading-none text-white"
+            />
+          </Container>
+        </header>
+      )}
 
-      {/* On phones the write-up already lives in the hero, so this repeat is
-          hidden there (visitors); desktop and edit mode keep it. */}
+      {/* Visitors read the write-up inside the hero, so this section is
+          edit-mode-only. */}
+      {editMode && (
+        <section className="py-16 sm:py-20">
+          <Container>
+            <h2 className="font-display text-f6 uppercase tracking-wide text-gold">{t("Background")}</h2>
+            <EditableText
+              path={`${base}.background`}
+              value={tv(cs.background)}
+              as="p"
+              multiline
+              className="mt-4 max-w-3xl whitespace-pre-line font-body text-f8 text-white/80"
+            />
+          </Container>
+        </section>
+      )}
+
+      {/* The hero's "gallery" cue lands here. For visitors nothing sits between
+          the hero and the wall, so it pads its own top (edit mode gets spacing
+          from the sections above). */}
       <section
-        className={`py-16 sm:py-20 ${editMode ? "" : "hidden sm:block"}`}
+        id="case-study-gallery"
+        className={`scroll-mt-[var(--header-h)] pb-24 ${editMode ? "pt-10 sm:pt-0" : "pt-10 sm:pt-16"}`}
       >
-        <Container>
-          <h2 className="font-display text-f6 uppercase tracking-wide text-gold">{t("Background")}</h2>
-          <EditableText
-            path={`${base}.background`}
-            value={tv(cs.background)}
-            as="p"
-            multiline
-            className="mt-4 max-w-3xl whitespace-pre-line font-body text-f8 text-white/80"
-          />
-        </Container>
-      </section>
-
-      {/* The mobile hero's "gallery" cue lands here. On phones the (hidden)
-          Background section above provides no spacing, so the wall pads its own
-          top there. */}
-      <section id="case-study-gallery" className="scroll-mt-[var(--header-h)] pb-24 pt-10 sm:pt-0">
         <Container>
           <div className="grid gap-6 sm:grid-cols-2">
             {cs.gallery.map((id, i) => (
