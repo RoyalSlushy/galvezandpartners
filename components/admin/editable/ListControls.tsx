@@ -36,7 +36,7 @@ export default function ListControls({
 
   return (
     <div
-      className={`absolute z-20 flex items-center gap-0.5 rounded-full border border-white/15 bg-navy-soft/95 p-0.5 shadow-lg backdrop-blur ${className}`}
+      className={`absolute z-20 flex items-center gap-0.5 border border-white/15 bg-navy-soft/95 p-0.5 shadow-lg backdrop-blur ${className}`}
       onClick={(e) => {
         // Catch clicks on the bar itself (buttons stop their own) so a
         // wrapping <Link> card never navigates.
@@ -105,7 +105,7 @@ function ControlButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-6 w-6 items-center justify-center rounded-full transition ${
+      className={`flex h-6 w-6 items-center justify-center transition ${
         danger ? "text-red-400 hover:bg-red-400/15" : "text-white/75 hover:bg-white/10 hover:text-gold"
       } disabled:opacity-30`}
     >
@@ -135,7 +135,7 @@ export function AddChip({
         e.stopPropagation();
         admin.listOp(listPath, { type: "insert", index: Number.MAX_SAFE_INTEGER, item: templateFor(listPath) });
       }}
-      className={`rounded-xl border border-dashed border-gold/50 px-4 py-2 font-heading text-sm text-gold transition hover:border-gold hover:bg-gold/10 ${className}`}
+      className={`border border-dashed border-gold/50 px-4 py-2 font-heading text-sm text-gold transition hover:border-gold hover:bg-gold/10 ${className}`}
     >
       + Add {label}
     </button>

@@ -317,7 +317,7 @@ export default function Carousel({
               aria-label={`Show slide ${i + 1}`}
               aria-current={i === current}
               onClick={() => go(i)}
-              className={`h-2 w-2 rounded-full transition ${
+              className={`h-2 w-2 transition ${
                 i === current ? "scale-125 bg-gold-bright" : "bg-white/40 hover:bg-white/70"
               }`}
             />

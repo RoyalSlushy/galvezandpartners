@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
+import PageReveal from "@/components/ui/PageReveal";
 import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
 import { getSite, getHome } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
@@ -20,6 +21,10 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${site.site.name}`,
     },
     description: site.site.description,
+    // Brand favicon — a gold "&" tile (public/favicon.svg). The page-load veil
+    // (PageReveal) breathes this same mark while a page's first-viewport assets
+    // load, so the loader and the browser tab share one icon.
+    icons: { icon: "/favicon.svg" },
   };
 }
 
@@ -61,6 +66,13 @@ export default async function RootLayout({
             __html: `:root:root{${themeCssVars(theme)}}`,
           }}
         />
+        {/* Pages reveal only once their first-viewport images have loaded (the
+            veil ships covering the page). Without JS the veil could never
+            clear, so noscript visitors skip it entirely. */}
+        <noscript>
+          <style>{`[data-gp-veil]{display:none}`}</style>
+        </noscript>
+        <PageReveal />
         <ScrollToTopOnHome />
         <LocaleProvider>
           <AdminProvider>

@@ -66,14 +66,14 @@ export default function HeroPhotoCards() {
             }
           >
             <div
-              className="rounded-md bg-white/95 p-2 opacity-90 shadow-2xl shadow-black/40 ring-1 ring-black/10"
+              className="bg-white/95 p-2 opacity-90 shadow-2xl shadow-black/40 ring-1 ring-black/10"
               style={{ transform: `rotate(${card.rot})` }}
             >
               <img
                 src={wixImage(id, 300, 375)}
                 alt=""
                 loading="lazy"
-                className="block aspect-[4/5] w-full rounded-sm object-cover"
+                className="block aspect-[4/5] w-full object-cover"
               />
             </div>
           </figure>

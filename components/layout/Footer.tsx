@@ -34,23 +34,36 @@ export default function Footer({
   const t = useT();
 
   const menu: NavItem[] = [...nav, { label: "Connect With Us", href: "/contact-us" }];
+  // Map query follows the CMS address ("734 W Polk St, Phoenix, AZ 85007" by
+  // default), so an address edit re-aims the embed too.
+  const mapQuery = contact.addressLines.join(", ");
   return (
     // Extra bottom padding on mobile clears the floating bottom nav (h-16) so
     // the credit line and admin gear are never hidden behind it.
-    <footer className="w-full bg-navy pt-16 pb-28 text-white sm:pb-8">
-      <Container className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div>
+    <footer className="w-full bg-navy pb-28 text-white sm:pb-8">
+      {/* The header's animated accent stroke, mirrored along the footer's top
+          edge (same site-column constraint as the header's wrapper). */}
+      <div aria-hidden className="pointer-events-none mx-auto w-full max-w-site px-5 sm:px-8">
+        <div className="header-accent-border" />
+      </div>
+      {/* Columns pack to the left on desktop (auto-width, gapped) rather than
+          stretching across the full width. */}
+      <Container className="flex flex-col gap-12 pt-16 md:flex-row md:flex-wrap md:justify-start md:gap-x-20">
+        {/* The logo scales to the exact width of the tagline beneath it: the
+            column shrinks to the tagline's single-line width (w-fit) and the
+            logo fills it (w-full). */}
+        <div className="w-fit">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
+          <img src="/logo.svg" alt="Galvez & Partners" className="block h-auto w-full" />
           <EditableText
             path="site.tagline"
             value={editMode ? tagline : t(tagline)}
             as="p"
-            className="mt-5 font-heading text-2xl text-cream"
+            className="mt-5 whitespace-nowrap font-heading text-2xl text-cream"
           />
         </div>
 
-        <div>
+        <div className="md:w-72">
           <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Get in Touch")}</h2>
           <EditableText
             path="site.contact.email"
@@ -68,9 +81,33 @@ export default function Footer({
             lineClassName={() => "block"}
             label="address"
           />
+          {/* Office map, aimed at the address above. The keyless Google embed
+              geocodes the query itself; the invert/hue filter re-tints the map
+              into the site's navy so it doesn't glare in the dark footer. */}
+          <div className="mt-5 overflow-hidden border border-white/10">
+            <iframe
+              title={t("Map to our office")}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block h-44 w-full"
+              style={{
+                border: 0,
+                filter: "invert(0.88) hue-rotate(185deg) saturate(0.55) brightness(0.95)",
+              }}
+            />
+          </div>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block font-din text-xs uppercase tracking-[0.2em] text-gold transition hover:text-gold-bright"
+          >
+            {t("get directions")} ↗
+          </a>
         </div>
 
-        <div>
+        <div className="md:w-56">
           <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Menu")}</h2>
           <ul className="mt-4 space-y-2">
             {menu.map((item, i) => (

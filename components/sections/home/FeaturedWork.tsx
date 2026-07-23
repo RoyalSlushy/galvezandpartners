@@ -5,10 +5,11 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { focusPosition } from "@/lib/wix";
+import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -189,18 +190,13 @@ export default function FeaturedWork({
             className="right-2 top-2"
           />
         )}
-        <div className="group relative overflow-hidden rounded-2xl bg-navy-soft">
+        <div className="group relative overflow-hidden bg-navy-soft">
           <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
             <EditableImage
               path={`work.items.${i}.img`}
               raw={w.img}
-              src={
-                w.img
-                  ? w.img.startsWith("http")
-                    ? w.img
-                    : wixImage(w.img, 700, 875)
-                  : PLACEHOLDER_IMG
-              }
+              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
+              style={{ objectPosition: focusPosition(w.img) }}
               alt={w.title}
               className="aspect-[4/5] w-full object-cover"
             />
@@ -226,7 +222,7 @@ export default function FeaturedWork({
             {w.slug && (
               <span
                 aria-hidden
-                className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center rounded-full bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+                className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
                   <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -256,15 +252,16 @@ export default function FeaturedWork({
 
   const endCard = (
     <div className={`flex ${END_CARD_W} snap-start items-center`}>
-      <div className="flex aspect-[4/5] w-full flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
-        <p className="font-display text-f5 lowercase leading-[0.95] text-white">
+      <div className="relative flex aspect-[4/5] w-full flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
+        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <p className="relative font-display text-f5 lowercase leading-[0.95] text-white">
           {t("there's")}{" "}
           <span className="text-gold">{t("more")}</span>
         </p>
-        <p className="mt-3 font-body text-base text-white/60">
+        <p className="relative mt-3 font-body text-base text-white/60">
           {t("Every story on one page.")}
         </p>
-        <Button href={featured.ctaHref} variant="gold" className="mt-8">
+        <Button href={featured.ctaHref} variant="gold" className="relative mt-8">
           {editMode ? (
             <EditableText
               path="home.featuredWork.ctaLabel"

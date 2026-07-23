@@ -111,6 +111,69 @@ export default function MobileMenu({
     return () => ro.disconnect();
   }, []);
 
+  // Keep the drawer's nav links from growing tall enough to collide with the
+  // logo at the top of the drawer: when the links (which wrap on narrow phones
+  // or in longer locales) would overflow the room left below the logo, shrink
+  // the link type via a `--gp-nav-scale` custom property the spans size against.
+  // Both drawers are measured; only their roots + logo blocks are observed
+  // (never the nav), so applying the scale can't feed back into a re-measure.
+  const navSig = nav.map((n) => t(n.label)).join("");
+  useEffect(() => {
+    const root = headerRowRef.current;
+    if (!root) return;
+    const drawers = Array.from(root.querySelectorAll<HTMLElement>("[data-gp-drawer]"));
+    if (!drawers.length) return;
+    const MIN = 0.55; // never shrink the links below this fraction
+    const GAP = 24; // breathing room to keep between the logo and the links
+    const fit = () => {
+      for (const drawer of drawers) {
+        const head = drawer.querySelector<HTMLElement>("[data-gp-drawer-head]");
+        const nav = drawer.querySelector<HTMLElement>("[data-gp-drawer-nav]");
+        if (!head || !nav) continue;
+        drawer.style.setProperty("--gp-nav-scale", "1");
+        const avail = drawer.clientHeight - head.offsetHeight - GAP;
+        if (avail <= 0) continue;
+        // Shrink the type until the block fits (fixed-point iteration: the nav
+        // height falls as the scale does, so a few passes converge).
+        let scale = 1;
+        for (let i = 0; i < 8 && nav.scrollHeight > avail && scale > MIN; i++) {
+          scale = Math.max(MIN, scale * (avail / nav.scrollHeight));
+          drawer.style.setProperty("--gp-nav-scale", scale.toFixed(3));
+        }
+        // With the final type size settled, size each active underline to the
+        // label's bottom visual line (a Range yields one rect per line), so a
+        // wrapped label underlines only its last line at that line's width.
+        const spans = nav.querySelectorAll<HTMLElement>("[data-gp-nav-span]");
+        spans.forEach((span) => {
+          const range = document.createRange();
+          range.selectNodeContents(span);
+          const rects = range.getClientRects();
+          if (!rects.length) return;
+          const last = rects[rects.length - 1];
+          const box = span.getBoundingClientRect();
+          // Relative to the span's own left edge, so any drawer/rise transform
+          // cancels out.
+          span.style.setProperty("--ul-x", `${last.left - box.left}px`);
+          span.style.setProperty("--ul-w", `${last.width}px`);
+        });
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    for (const drawer of drawers) {
+      ro.observe(drawer);
+      const head = drawer.querySelector<HTMLElement>("[data-gp-drawer-head]");
+      if (head) ro.observe(head);
+    }
+    window.addEventListener("resize", fit);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navSig, open]);
+
   // Lock body scroll while the drawer is open. Using `position: fixed` with a
   // preserved offset (rather than just `overflow: hidden`) keeps iOS Safari from
   // scrolling behind the drawer, and restoring the offset on close avoids the
@@ -235,6 +298,8 @@ export default function MobileMenu({
     return (
       <div
         key={drawerSide}
+        data-gp-drawer=""
+        style={{ ["--gp-nav-scale" as string]: 1 }}
         className={`fixed inset-y-0 z-50 flex w-4/5 flex-col bg-gradient-to-b from-navy to-navy-soft shadow-2xl transition-transform duration-300 ease-out ${
           alignRight ? "right-0" : "left-0"
         } ${
@@ -256,7 +321,7 @@ export default function MobileMenu({
           scale={1.5}
         />
 
-        <div className="relative z-10 px-10 py-10">
+        <div data-gp-drawer-head="" className="relative z-10 px-10 py-10">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -269,6 +334,7 @@ export default function MobileMenu({
         </div>
 
         <nav
+          data-gp-drawer-nav=""
           aria-label="Site"
           className={`relative z-10 mt-auto flex flex-col gap-6 px-8 pb-12 ${
             alignRight ? "items-end text-right" : "items-start text-left"
@@ -285,19 +351,27 @@ export default function MobileMenu({
                 className="block overflow-hidden pb-2"
               >
                 {/* The link text rises into view from behind this clipped edge
-                    (masked shift-up, staggered by index). The active item's gold
-                    underline scales in from its center — the same treatment the
-                    desktop nav uses. */}
+                    (masked shift-up, staggered by index). Its size scales with
+                    --gp-nav-scale so it never crowds the logo (see the fit
+                    effect). The active item's gold underline scales in from its
+                    center — its geometry (--ul-x / --ul-w) is measured to the
+                    label's bottom line, so a wrapped label underlines just that
+                    line (not the full width of the widest line above it). */}
                 <span
+                  data-gp-nav-span
                   style={
                     {
                       transitionDelay: shown ? `${120 + i * 70}ms` : "0ms",
                       // The underline grows in a beat after the text has risen,
                       // so the center-out scale reads as its own gesture.
                       "--ul-delay": shown ? `${260 + i * 70}ms` : "0ms",
+                      // Defaults (whole box) until the bottom line is measured.
+                      "--ul-x": "0px",
+                      "--ul-w": "100%",
+                      fontSize: "calc(1.875rem * var(--gp-nav-scale, 1))",
                     } as React.CSSProperties
                   }
-                  className={`relative inline-block font-heading text-3xl uppercase tracking-wide transition-transform duration-500 ease-out hover:text-gold after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 after:[transition-delay:var(--ul-delay)] ${
+                  className={`relative inline-block font-heading uppercase leading-[1.1] tracking-wide transition-transform duration-500 ease-out hover:text-gold after:absolute after:-bottom-1 after:left-[var(--ul-x)] after:h-0.5 after:w-[var(--ul-w)] after:origin-center after:bg-gold after:transition-transform after:duration-300 after:[transition-delay:var(--ul-delay)] ${
                     shown ? "translate-y-0" : "translate-y-full"
                   } ${active ? "text-white" : "text-white/90"} ${
                     shown && active ? "after:scale-x-100" : "after:scale-x-0"
@@ -324,7 +398,7 @@ export default function MobileMenu({
               shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
-            <LanguageSwitcher openUp />
+            <LanguageSwitcher />
             <SocialIcons socials={socials} />
           </div>
         </nav>
@@ -380,8 +454,8 @@ export default function MobileMenu({
       <div
         className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
           expanded
-            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
-            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 rounded-full bg-gold text-navy"
+            ? "bottom-0 right-0 h-16 w-screen gap-3 border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
+            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 bg-gold text-navy"
         }`}
       >
         <Link

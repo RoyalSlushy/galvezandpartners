@@ -140,7 +140,7 @@ function MoreMenu({ items, active }: { items: NavItem[]; active: boolean }) {
           open ? "pointer-events-auto opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
         }`}
       >
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl">
+        <div className="overflow-hidden border border-white/10 bg-navy-soft shadow-xl">
         {items.map((item) => {
           const itemActive = pathname.startsWith(item.href);
           return (

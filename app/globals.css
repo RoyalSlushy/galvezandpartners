@@ -137,7 +137,6 @@
    Header.tsx, so it ends at the body bounds rather than bleeding edge to edge. */
 .header-accent-border {
   height: 3px;
-  border-radius: 9999px;
   background-image: var(
     --header-border-grad,
     linear-gradient(90deg, rgb(var(--c-gold)), rgb(var(--c-gold-dark)), rgb(var(--c-gold)))
@@ -354,6 +353,16 @@
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
 }
 
+/* Card backdrop: the same drifting "GALVEZ" letter grid, held faint and fading
+   out toward the LEFT so the card's left-anchored copy stays clean — used on the
+   "gallery / explore" hand-off card and the home "there's more" card. */
+.glyph-grid-fade-left {
+  opacity: 0.12;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
+}
+
 @layer base {
   /* Custom horizontal swipe gestures (card carousel, mobile nav drawer) must not
      be hijacked by the browser's back/forward overscroll navigation. Set on the
@@ -397,7 +406,7 @@
 @layer components {
   /* Gold pill CTA — the site's primary button style ("Connect", "Let's Connect") */
   .btn {
-    @apply inline-flex items-center justify-center rounded-full px-7 py-3 font-heading uppercase tracking-wide transition;
+    @apply inline-flex items-center justify-center px-7 py-3 font-heading uppercase tracking-wide transition;
   }
   .btn-gold {
     @apply btn bg-gold text-navy hover:bg-gold-bright;
@@ -450,8 +459,8 @@ body[data-gp-pinned-header] header {
 }
 
 /* Accented word in the Our Works heading ("speaks"): gold type with a soft
-   glow, plus two staggered halo rings that pulse outward from the word. Insets
-   and radii are in em so the halo scales with the fitted heading size. */
+   glow, plus two staggered square halo frames that pulse outward from the word.
+   Insets are in em so the halo scales with the fitted heading size. */
 .halo-word {
   position: relative;
   display: inline-block;
@@ -472,7 +481,6 @@ body[data-gp-pinned-header] header {
 .halo-ring {
   position: absolute;
   inset: -0.18em -0.35em;
-  border-radius: 9999px;
   pointer-events: none;
   box-shadow: 0 0 0 2px rgb(var(--c-gold) / 0.55);
   background: radial-gradient(closest-side, rgb(var(--c-gold) / 0.14), transparent 78%);
@@ -480,6 +488,111 @@ body[data-gp-pinned-header] header {
 }
 .halo-ring-late {
   animation-delay: 1.5s;
+}
+
+/* Page-load veil (PageReveal in the layout): covers the page until the images
+   in the first viewport have loaded, then fades away. The mark fades in on a
+   delay so instant (cached) loads never flash it, then breathes (scale +
+   opacity) — both are pure CSS, so the veil animates even before hydration. */
+.gp-veil-spinner {
+  opacity: 0;
+  animation: gp-veil-spinner-in 400ms ease 250ms forwards;
+}
+@keyframes gp-veil-spinner-in {
+  to {
+    opacity: 1;
+  }
+}
+.gp-veil-breathe {
+  animation: gp-veil-breathe 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes gp-veil-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* Case-study page: the hero and the gallery wall are gentle scroll-snap stops
+   (proximity — never mandatory — so free scrolling deep inside the gallery is
+   not hijacked). Scoped to the attribute CaseStudyHero sets on <html> while
+   mounted, so no other route is touched. */
+html[data-gp-case-snap] {
+  scroll-snap-type: y proximity;
+}
+
+/* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
+   frames, each drifting (Ken Burns) in an alternating direction while the
+   active one crossfades in. Stilled under reduced motion below — the first
+   frame then simply holds.
+
+   The slideshow band adapts per breakpoint: on phones it spans the top 60% of
+   the hero with its top/bottom edges mask-faded into the navy; on sm+ it docks
+   to the right at full hero height (about three fifths wide) and fades out
+   toward the LEFT, so the left-anchored copy sits on clean navy. */
+.cs-band {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 60%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+}
+@media (min-width: 751px) {
+  .cs-band {
+    left: auto;
+    bottom: 0;
+    height: 100%;
+    width: 62%;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+  }
+}
+.cs-kenburns {
+  animation: cs-kenburns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.cs-kenburns-alt {
+  animation: cs-kenburns-alt 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes cs-kenburns {
+  from {
+    transform: scale(1.06) translate(1.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.22) translate(-3%, -2%);
+  }
+}
+@keyframes cs-kenburns-alt {
+  from {
+    transform: scale(1.2) translate(-2.5%, 2%);
+  }
+  to {
+    transform: scale(1.05) translate(2%, -2.5%);
+  }
+}
+.cs-scroll-cue {
+  animation: cs-scroll-cue 1.8s ease-in-out infinite;
+}
+@keyframes cs-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
 }
 
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
@@ -515,6 +628,27 @@ body[data-gp-pinned-header] header {
   .photocard-fall {
     animation: none !important;
   }
+  /* The loader mark settles to a static, fully-visible icon. */
+  .gp-veil-breathe {
+    animation: none !important;
+    transform: none;
+    opacity: 1;
+  }
+  /* Case-study masthead: freeze the slideshow drift (the first frame holds;
+     auto-advance is already suppressed in the component) and the scroll cue. */
+  .cs-kenburns,
+  .cs-kenburns-alt,
+  .cs-scroll-cue {
+    animation: none !important;
+  }
+  .cs-scroll-cue {
+    transform: none;
+    opacity: 1;
+  }
+  .cs-scroll-cue {
+    transform: none;
+    opacity: 1;
+  }
   .wordfill-armed [data-word] {
     opacity: 1 !important;
     transition: none;
@@ -538,7 +672,6 @@ body[data-gp-edit-mode] [data-gp-editable] {
   cursor: pointer;
   outline: 1px dashed rgba(230, 179, 103, 0.35);
   outline-offset: 3px;
-  border-radius: 2px;
   transition: outline-color 150ms ease, background-color 150ms ease;
 }
 body[data-gp-edit-mode] [data-gp-editable]:hover {
@@ -568,7 +701,6 @@ body[data-gp-edit-mode] [data-gp-editing]:focus {
   right: 0;
   z-index: 30;
   white-space: nowrap;
-  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #232a3d;
   padding: 4px 10px;

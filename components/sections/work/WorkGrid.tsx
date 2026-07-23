@@ -4,8 +4,8 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { focusPosition } from "@/lib/wix";
+import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -43,7 +43,7 @@ export default function WorkGrid({
         <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((w, i) => {
             const card = (
-              <article className="group relative overflow-hidden rounded-2xl bg-navy-soft">
+              <article className="group relative overflow-hidden bg-navy-soft">
                 {editMode && (
                   <ListControls
                     listPath="work.items"
@@ -56,13 +56,8 @@ export default function WorkGrid({
                 <EditableImage
                   path={`work.items.${i}.img`}
                   raw={w.img}
-                  src={
-                    w.img
-                      ? w.img.startsWith("http")
-                        ? w.img
-                        : wixImage(w.img, 700, 480)
-                      : PLACEHOLDER_IMG
-                  }
+                  src={w.img ? resolveImage(w.img, 700, 480) : PLACEHOLDER_IMG}
+                  style={{ objectPosition: focusPosition(w.img) }}
                   alt={w.title}
                   className="aspect-[7/5] w-full object-cover transition duration-500 group-hover:scale-105"
                 />

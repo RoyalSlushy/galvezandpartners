@@ -39,7 +39,7 @@ export default function SiteMetaPopover({ onClose }: { onClose: () => void }) {
       ref={cardRef}
       role="dialog"
       aria-label="Site name and description"
-      className="absolute bottom-full right-0 mb-3 w-80 rounded-2xl border border-white/10 bg-navy-soft p-5 shadow-2xl"
+      className="absolute bottom-full right-0 mb-3 w-80 border border-white/10 bg-navy-soft p-5 shadow-2xl"
     >
       <p className="font-heading text-xs uppercase tracking-widest text-white/50">
         Site name &amp; description

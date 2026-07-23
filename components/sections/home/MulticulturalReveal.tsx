@@ -108,7 +108,7 @@ export default function MulticulturalReveal({
       {/* Soft gold glow anchoring the manifesto */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-40 top-10 h-[480px] w-[480px] rounded-full bg-gold/[0.07] blur-3xl"
+        className="pointer-events-none absolute -left-40 top-10 h-[480px] w-[480px] bg-gold/[0.07] blur-3xl"
       />
       <Container className="relative">
         <div ref={fillRef} className="wordfill">
@@ -200,7 +200,7 @@ function SpotlightCard({
     <article
       ref={ref}
       onMouseMove={onMouseMove}
-      className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-navy-soft/60 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold/40"
+      className="group relative h-full overflow-hidden border border-white/10 bg-navy-soft/60 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold/40"
     >
       {/* Cursor spotlight */}
       <div

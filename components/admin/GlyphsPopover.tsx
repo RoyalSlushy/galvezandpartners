@@ -42,7 +42,7 @@ export default function GlyphsPopover({ onClose }: { onClose: () => void }) {
       ref={cardRef}
       role="dialog"
       aria-label="Letters"
-      className="absolute bottom-full right-0 mb-3 w-[21rem] rounded-2xl border border-white/10 bg-navy-soft p-5 shadow-2xl"
+      className="absolute bottom-full right-0 mb-3 w-[21rem] border border-white/10 bg-navy-soft p-5 shadow-2xl"
     >
       <p className="font-heading text-xs uppercase tracking-widest text-white/50">
         Letters
@@ -93,7 +93,7 @@ function GlyphSlot({
         onClick={onPick}
         aria-label={`Letter ${char}${svg ? " (edit)" : " (upload)"}`}
         title={`Letter ${char}`}
-        className={`flex aspect-square w-full items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+        className={`flex aspect-square w-full items-center justify-center border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
           svg
             ? "border-gold/50 bg-navy"
             : "border-white/10 bg-navy hover:border-white/30"
@@ -127,7 +127,7 @@ function GlyphSlot({
           onClick={onClear}
           aria-label={`Clear letter ${char}`}
           title="Clear"
-          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-white/15 bg-navy text-white/70 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center border border-white/15 bg-navy text-white/70 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
           <XIcon className="h-2.5 w-2.5" />
         </button>

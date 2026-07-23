@@ -117,7 +117,7 @@ export default function HeroGradientPicker({
 
       {/* Live preview of the exact gradient the hero will render. */}
       <div
-        className="mt-3 h-20 w-full rounded-xl border border-white/10"
+        className="mt-3 h-20 w-full border border-white/10"
         style={{ backgroundImage: preview }}
         aria-hidden
       />
@@ -138,7 +138,7 @@ export default function HeroGradientPicker({
                 type="button"
                 onClick={() => setAngle(d.angle)}
                 aria-pressed={Math.round(gradient.angle) === d.angle}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg border text-sm transition ${
+                className={`flex h-8 w-8 items-center justify-center border text-sm transition ${
                   Math.round(gradient.angle) === d.angle
                     ? "border-gold bg-gold/10 text-gold"
                     : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
@@ -168,9 +168,9 @@ export default function HeroGradientPicker({
         {stops.map((stop, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-lg border border-white/10 bg-navy px-2.5 py-2"
+            className="flex items-center gap-3 border border-white/10 bg-navy px-2.5 py-2"
           >
-            <label className="relative h-7 w-7 shrink-0 overflow-hidden rounded-md border border-white/15">
+            <label className="relative h-7 w-7 shrink-0 overflow-hidden border border-white/15">
               <span className="block h-full w-full" style={{ backgroundColor: stop.color }} />
               <input
                 type="color"
@@ -197,7 +197,7 @@ export default function HeroGradientPicker({
               onClick={() => removeStop(i)}
               disabled={stops.length <= 2}
               aria-label={`Remove stop ${i + 1}`}
-              className="shrink-0 rounded p-1 text-white/40 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+              className="shrink-0 p-1 text-white/40 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
             >
               <XIcon className="h-3.5 w-3.5" />
             </button>
@@ -208,7 +208,7 @@ export default function HeroGradientPicker({
             <button
               type="button"
               onClick={() => addStop()}
-              className="flex-1 rounded-lg border border-dashed border-white/15 py-2 font-heading text-xs uppercase tracking-widest text-white/50 transition hover:border-gold/60 hover:text-gold"
+              className="flex-1 border border-dashed border-white/15 py-2 font-heading text-xs uppercase tracking-widest text-white/50 transition hover:border-gold/60 hover:text-gold"
             >
               + Add color
             </button>
@@ -217,7 +217,7 @@ export default function HeroGradientPicker({
               onClick={pickWithEyeDropper}
               title="Eyedropper — sample a color from the mobile header image"
               aria-label="Add color with the eyedropper"
-              className="flex w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
+              className="flex w-11 shrink-0 items-center justify-center border border-dashed border-white/15 text-white/50 transition hover:border-gold/60 hover:text-gold"
             >
               <EyeDropperIcon className="h-4 w-4" />
             </button>

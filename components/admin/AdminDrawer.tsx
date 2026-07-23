@@ -67,7 +67,7 @@ export default function AdminDrawer() {
           onClick={() => setOpen(true)}
           aria-label="Open site editor"
           title="Open site editor"
-          className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-navy-soft text-gold shadow-xl transition hover:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="relative flex h-12 w-12 items-center justify-center border border-white/10 bg-navy-soft text-gold shadow-xl transition hover:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
           <PencilIcon className="h-5 w-5" />
           {dirty > 0 && <Badge count={dirty} />}
@@ -81,7 +81,7 @@ export default function AdminDrawer() {
       {metaOpen && <SiteMetaPopover onClose={() => setMetaOpen(false)} />}
       {themeOpen && <ThemePopover onClose={() => setThemeOpen(false)} />}
       {glyphsOpen && <GlyphsPopover onClose={() => setGlyphsOpen(false)} />}
-      <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-navy-soft p-1.5 shadow-xl">
+      <div className="flex items-center gap-1 border border-white/10 bg-navy-soft p-1.5 shadow-xl">
         <DrawerButton
           label={admin.editMode ? "Preview site (edit mode off)" : "Edit site content"}
           active={admin.editMode}
@@ -196,7 +196,7 @@ function DrawerButton({
       aria-label={label}
       data-tip={label}
       aria-pressed={active}
-      className={`gp-tip relative flex h-10 w-10 items-center justify-center rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+      className={`gp-tip relative flex h-10 w-10 items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
         active ? "bg-gold/20 text-gold" : "text-white/75 hover:bg-white/10 hover:text-white"
       } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >
@@ -207,7 +207,7 @@ function DrawerButton({
 
 function Badge({ count }: { count: number }) {
   return (
-    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 font-heading text-[10px] leading-none text-navy">
+    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-gold px-1 font-heading text-[10px] leading-none text-navy">
       {count > 99 ? "99+" : count}
     </span>
   );

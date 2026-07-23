@@ -2,8 +2,8 @@ import type { Locale } from "@/content/i18n";
 
 /**
  * Small flat (simplified) flag icons for the language selector. Drawn as inline
- * SVG rather than emoji so they render identically across platforms. The corner
- * rounding comes from the wrapper's `overflow-hidden rounded`.
+ * SVG rather than emoji so they render identically across platforms; the
+ * wrapper's `overflow-hidden` keeps them cleanly clipped.
  */
 
 const STRIPE = 14 / 13; // one US stripe, height 14 split into 13 stripes
@@ -52,7 +52,7 @@ export default function FlagIcon({
   return (
     <span
       aria-hidden
-      className={`inline-block shrink-0 overflow-hidden rounded-[3px] ring-1 ring-black/10 ${className}`}
+      className={`inline-block shrink-0 overflow-hidden ring-1 ring-black/10 ${className}`}
       style={{ width: 21, height: 14 }}
     >
       {code === "es" ? <Mexico /> : <UnitedStates />}

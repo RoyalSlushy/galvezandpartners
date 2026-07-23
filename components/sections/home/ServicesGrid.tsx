@@ -151,7 +151,7 @@ export default function ServicesGrid({
             >
               <article
                 style={stacked ? { transformOrigin: "top center" } : undefined}
-                className="relative overflow-hidden rounded-3xl border border-white/10 bg-navy-soft p-8 sm:p-12"
+                className="relative overflow-hidden border border-white/10 bg-navy-soft p-8 sm:p-12"
               >
                 {/* Faint sheen so stacked cards read as separate layers */}
                 <div
