@@ -483,15 +483,30 @@ body[data-gp-pinned-header] header {
 }
 
 /* Page-load veil (PageReveal in the layout): covers the page until the images
-   in the first viewport have loaded, then fades away. The spinner fades in on
-   a delay so instant (cached) loads never flash it; both the fade-in and the
-   Tailwind spin are pure CSS, so the veil animates even before hydration. */
+   in the first viewport have loaded, then fades away. The mark fades in on a
+   delay so instant (cached) loads never flash it, then breathes (scale +
+   opacity) — both are pure CSS, so the veil animates even before hydration. */
 .gp-veil-spinner {
   opacity: 0;
   animation: gp-veil-spinner-in 400ms ease 250ms forwards;
 }
 @keyframes gp-veil-spinner-in {
   to {
+    opacity: 1;
+  }
+}
+.gp-veil-breathe {
+  animation: gp-veil-breathe 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes gp-veil-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
     opacity: 1;
   }
 }
@@ -528,6 +543,12 @@ body[data-gp-pinned-header] header {
   }
   .photocard-fall {
     animation: none !important;
+  }
+  /* The loader mark settles to a static, fully-visible icon. */
+  .gp-veil-breathe {
+    animation: none !important;
+    transform: none;
+    opacity: 1;
   }
   .wordfill-armed [data-word] {
     opacity: 1 !important;

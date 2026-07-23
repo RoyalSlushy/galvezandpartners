@@ -96,9 +96,11 @@ export default function PageReveal() {
         veiled ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
-      {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash it. */}
+      {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash it;
+          the brand favicon gently "breathes" (scale + opacity) while loading. */}
       <span className="gp-veil-spinner">
-        <span className="block h-9 w-9 animate-spin rounded-full border-2 border-gold/20 border-t-gold" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/favicon.svg" alt="" className="gp-veil-breathe h-16 w-16" />
       </span>
     </div>
   );

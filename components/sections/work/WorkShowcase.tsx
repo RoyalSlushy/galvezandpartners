@@ -643,14 +643,18 @@ export default function WorkShowcase({
           </div>
         </div>
         {!editMode && (
-          <Container className="mt-3 sm:hidden">
+          // Left-aligned to the site gutter (matching the cards/heading) but its
+          // right edge stops short of the floating nav icon at the bottom-right
+          // (a w-12 / 3rem circle inset right-4 / 1rem — see MobileMenu), so the
+          // blurb never runs underneath it. Width ≈ 100vw − that icon column.
+          <div className="mt-3 pl-5 pr-[4.75rem] sm:hidden">
             <p
               ref={mobileDescRef}
               className="line-clamp-3 h-[4.3rem] font-body text-sm leading-relaxed text-white/70 transition-opacity duration-300"
             >
               {descTexts[0]}
             </p>
-          </Container>
+          </div>
         )}
         {editMode && (
           <Container className="mt-6">

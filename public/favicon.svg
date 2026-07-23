@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Galvez &amp; Partners">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#232a3d"/>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="13.25" fill="none" stroke="#e6b367" stroke-opacity="0.4" stroke-width="1.5"/>
+  <text x="32" y="34" text-anchor="middle" dominant-baseline="central" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="42" fill="#e6b367">&amp;</text>
+</svg>

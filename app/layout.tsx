@@ -21,6 +21,10 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${site.site.name}`,
     },
     description: site.site.description,
+    // Brand favicon — a gold "&" tile (public/favicon.svg). The page-load veil
+    // (PageReveal) breathes this same mark while a page's first-viewport assets
+    // load, so the loader and the browser tab share one icon.
+    icons: { icon: "/favicon.svg" },
   };
 }
 
