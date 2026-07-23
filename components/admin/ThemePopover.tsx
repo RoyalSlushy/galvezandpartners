@@ -36,7 +36,7 @@ export default function ThemePopover({ onClose }: { onClose: () => void }) {
       ref={cardRef}
       role="dialog"
       aria-label="Site theme"
-      className="absolute bottom-full right-0 mb-3 w-80 rounded-2xl border border-white/10 bg-navy-soft p-5 shadow-2xl"
+      className="absolute bottom-full right-0 mb-3 w-80 border border-white/10 bg-navy-soft p-5 shadow-2xl"
     >
       <p className="font-heading text-xs uppercase tracking-widest text-white/50">
         Site theme
@@ -59,14 +59,14 @@ export default function ThemePopover({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => admin.setValue("site.theme", theme.id)}
                 aria-pressed={selected}
-                className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                className={`flex w-full items-center gap-3 border p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
                   selected
                     ? "border-gold bg-gold/10"
                     : "border-white/10 hover:border-white/25 hover:bg-white/5"
                 }`}
               >
                 <span
-                  className="flex h-9 w-9 shrink-0 flex-wrap overflow-hidden rounded-lg border border-white/10"
+                  className="flex h-9 w-9 shrink-0 flex-wrap overflow-hidden border border-white/10"
                   aria-hidden
                 >
                   {theme.swatches.map((rgb, i) => (

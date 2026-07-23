@@ -454,8 +454,8 @@ export default function MobileMenu({
       <div
         className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
           expanded
-            ? "bottom-0 right-0 h-16 w-screen gap-3 rounded-t-2xl border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
-            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 rounded-full bg-gold text-navy"
+            ? "bottom-0 right-0 h-16 w-screen gap-3 border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
+            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 bg-gold text-navy"
         }`}
       >
         <Link

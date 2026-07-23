@@ -150,7 +150,7 @@ export default function ImagePicker() {
       aria-modal="true"
       aria-label={`Change ${labelFor(picker.path)}`}
     >
-      <div className="mx-auto my-8 w-[min(42rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-navy-soft p-6 shadow-2xl">
+      <div className="mx-auto my-8 w-[min(42rem,calc(100vw-2rem))] border border-white/10 bg-navy-soft p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-heading text-xl text-white">
@@ -164,14 +164,14 @@ export default function ImagePicker() {
             type="button"
             onClick={admin.closeImagePicker}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
+            className="p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
           >
             <XIcon className="h-5 w-5" />
           </button>
         </div>
 
         {/* Preview */}
-        <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-navy">
+        <div className="mt-5 overflow-hidden border border-white/10 bg-navy">
           <div className="relative flex max-h-64 min-h-40 items-center justify-center">
             {selected ? (
               isVideoUrl(selected) ? (
@@ -225,7 +225,7 @@ export default function ImagePicker() {
             setDragOver(false);
             void handleFiles(e.dataTransfer.files);
           }}
-          className={`mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+          className={`mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed px-4 py-6 text-center transition ${
             dragOver ? "border-gold bg-gold/10" : "border-white/15 hover:border-gold/60"
           }`}
           onClick={() => fileInputRef.current?.click()}
@@ -273,7 +273,7 @@ export default function ImagePicker() {
                     setSelected(img.raw);
                     setPreviewError(false);
                   }}
-                  className={`group relative aspect-[4/3] overflow-hidden rounded-lg border transition ${
+                  className={`group relative aspect-[4/3] overflow-hidden border transition ${
                     selected === img.raw
                       ? "border-gold ring-2 ring-gold"
                       : "border-white/10 hover:border-white/40"
@@ -288,7 +288,7 @@ export default function ImagePicker() {
                         preload="metadata"
                         className="h-full w-full object-cover transition group-hover:scale-105"
                       />
-                      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-navy/80 px-1 text-[9px] font-heading uppercase tracking-wide text-gold">
+                      <span className="pointer-events-none absolute bottom-1 right-1 bg-navy/80 px-1 text-[9px] font-heading uppercase tracking-wide text-gold">
                         Video
                       </span>
                     </>
@@ -316,7 +316,7 @@ export default function ImagePicker() {
             value={urlText}
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder="https://… (or a Wix media id)"
-            className="mt-2 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
+            className="mt-2 w-full border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
           />
         </div>
 
@@ -331,7 +331,7 @@ export default function ImagePicker() {
           <button
             type="button"
             onClick={admin.closeImagePicker}
-            className="rounded-lg px-4 py-2 text-sm text-white/60 transition hover:text-white"
+            className="px-4 py-2 text-sm text-white/60 transition hover:text-white"
           >
             Cancel
           </button>
@@ -339,7 +339,7 @@ export default function ImagePicker() {
             type="button"
             disabled={!changed}
             onClick={applyChanges}
-            className="rounded-lg bg-gold px-5 py-2 font-heading text-sm text-navy transition hover:bg-cream disabled:opacity-40"
+            className="bg-gold px-5 py-2 font-heading text-sm text-navy transition hover:bg-cream disabled:opacity-40"
           >
             Apply
           </button>

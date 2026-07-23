@@ -78,7 +78,7 @@ export default function CaseStudyBody({
                   admin.listOp("case_studies.studies", { type: "remove", index });
                 }
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-red-400/40 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-400/10"
+              className="flex items-center gap-1.5 border border-red-400/40 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-400/10"
             >
               <TrashIcon className="h-3.5 w-3.5" />
               Delete this case study
@@ -149,7 +149,7 @@ export default function CaseStudyBody({
                   raw={id}
                   src={id ? (id.startsWith("http") ? id : wixImageFit(id, 900, 900)) : PLACEHOLDER_IMG}
                   alt={`${cs.title} — image ${i + 1}`}
-                  className="w-full rounded-2xl bg-navy-soft object-contain"
+                  className="w-full bg-navy-soft object-contain"
                 />
                 {editMode && (
                   <ListControls
@@ -171,7 +171,7 @@ export default function CaseStudyBody({
                     raw: "",
                   })
                 }
-                className="flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
+                className="flex min-h-40 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
               >
                 <ImageIcon className="h-6 w-6" />
                 <span className="font-heading text-sm">Add gallery image</span>

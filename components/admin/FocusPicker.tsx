@@ -83,7 +83,7 @@ export default function FocusPicker({
             dragging.current = false;
           }}
           style={{ aspectRatio: aspect }}
-          className="relative min-w-0 flex-1 cursor-crosshair touch-none select-none overflow-hidden rounded-lg border border-white/10 bg-navy"
+          className="relative min-w-0 flex-1 cursor-crosshair touch-none select-none overflow-hidden border border-white/10 bg-navy"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -97,15 +97,15 @@ export default function FocusPicker({
           <span
             aria-hidden
             style={{ left: `${focus.x}%`, top: `${focus.y}%` }}
-            className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold bg-gold/20 shadow-[0_0_0_2px_rgba(20,25,36,0.6)]"
+            className="pointer-events-none absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 border-2 border-gold bg-gold/20 shadow-[0_0_0_2px_rgba(20,25,36,0.6)]"
           >
-            <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
+            <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 bg-gold" />
           </span>
         </div>
 
         {/* Live thin-crop preview (roughly a phone hero's proportions). */}
         <div className="shrink-0">
-          <div className="h-40 w-[4.75rem] overflow-hidden rounded-md border border-white/10 bg-navy">
+          <div className="h-40 w-[4.75rem] overflow-hidden border border-white/10 bg-navy">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}

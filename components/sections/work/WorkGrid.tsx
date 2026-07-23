@@ -43,7 +43,7 @@ export default function WorkGrid({
         <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((w, i) => {
             const card = (
-              <article className="group relative overflow-hidden rounded-2xl bg-navy-soft">
+              <article className="group relative overflow-hidden bg-navy-soft">
                 {editMode && (
                   <ListControls
                     listPath="work.items"

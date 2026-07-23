@@ -81,7 +81,7 @@ export default function LanguageSwitcher({
             : `pointer-events-none opacity-0 ${openUp ? "translate-y-1" : "-translate-y-1"}`
         }`}
       >
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl">
+        <div className="overflow-hidden border border-white/10 bg-navy-soft shadow-xl">
           {LOCALES.map((l) => (
             <button
               key={l.code}

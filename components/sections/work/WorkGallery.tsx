@@ -161,7 +161,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={tv("search the wall…")}
-                  className="w-full rounded-full border border-white/15 bg-navy-soft/60 py-2 pl-10 pr-4 font-body text-sm text-white placeholder:text-white/35 outline-none transition focus:border-gold/70"
+                  className="w-full border border-white/15 bg-navy-soft/60 py-2 pl-10 pr-4 font-body text-sm text-white placeholder:text-white/35 outline-none transition focus:border-gold/70"
                 />
               </label>
               <label className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="cursor-pointer rounded-full border border-white/15 bg-navy-soft/60 px-4 py-2 font-body text-sm text-white outline-none transition focus:border-gold/70"
+                  className="cursor-pointer border border-white/15 bg-navy-soft/60 px-4 py-2 font-body text-sm text-white outline-none transition focus:border-gold/70"
                 >
                   {SORTS.map((s) => (
                     <option key={s.key} value={s.key} className="bg-navy">
@@ -182,7 +182,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
               </label>
               {selected.size > 1 && (
                 <div
-                  className="flex overflow-hidden rounded-full border border-white/15"
+                  className="flex overflow-hidden border border-white/15"
                   role="group"
                   aria-label="Tag match mode"
                 >
@@ -224,7 +224,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     type="button"
                     aria-pressed={active}
                     onClick={() => toggleTag(tag)}
-                    className={`rounded-full border px-3.5 py-1.5 font-heading text-xs uppercase tracking-wide transition ${
+                    className={`border px-3.5 py-1.5 font-heading text-xs uppercase tracking-wide transition ${
                       active
                         ? "border-gold bg-gold text-navy"
                         : "border-white/15 text-white/65 hover:border-gold/60 hover:text-gold"
@@ -247,7 +247,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             {visible.map(({ item, idx, tags }) => (
               <figure
                 key={idx}
-                className="group relative mb-4 break-inside-avoid overflow-hidden rounded-xl bg-navy-soft"
+                className="group relative mb-4 break-inside-avoid overflow-hidden bg-navy-soft"
               >
                 {editMode && (
                   <ListControls
@@ -300,7 +300,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                           type="button"
                           aria-pressed={selected.has(tag)}
                           onClick={() => toggleTag(tag)}
-                          className={`rounded-full border px-2.5 py-0.5 font-din text-[11px] transition ${
+                          className={`border px-2.5 py-0.5 font-din text-[11px] transition ${
                             selected.has(tag)
                               ? "border-gold bg-gold text-navy"
                               : "border-white/25 text-white/75 hover:border-gold hover:text-gold"
@@ -316,7 +316,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             ))}
           </div>
         ) : (
-          <div className="mt-16 flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
+          <div className="mt-16 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
             <p className="font-display text-f6 lowercase text-white/80">{tv("nothing on the wall")}</p>
             <p className="max-w-sm font-body text-sm text-white/50">
               {tv("No images match that search and tag combination.")}

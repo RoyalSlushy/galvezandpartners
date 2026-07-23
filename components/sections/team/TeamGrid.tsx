@@ -66,7 +66,7 @@ export default function TeamGrid({
                     label="team member"
                   />
                 )}
-                <div className="relative overflow-hidden rounded-t-2xl border-b-4 border-gold bg-white">
+                <div className="relative overflow-hidden border-b-4 border-gold bg-white">
                   {/* Decorative last-name initial in the member's custom glyph —
                       a low-opacity mark in the site's background color, sitting on
                       the white card but behind the (cutout) photo. Only shows once
@@ -137,7 +137,7 @@ export default function TeamGrid({
             </RevealOnScroll>
           ))}
           {editMode && (
-            <div className="flex aspect-[5/6] items-center justify-center rounded-2xl border border-dashed border-white/15">
+            <div className="flex aspect-[5/6] items-center justify-center border border-dashed border-white/15">
               <AddChip listPath="team.members" label="member" />
             </div>
           )}

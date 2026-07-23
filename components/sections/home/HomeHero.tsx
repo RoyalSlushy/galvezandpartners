@@ -101,7 +101,7 @@ export default function HomeHero({
       <HeroPhotoCards />
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
         <div className="hero-grid min-h-0 flex-1">
-          <div className="hero-main relative min-h-0 overflow-hidden rounded-2xl [container-type:inline-size] sm:min-h-[280px]">
+          <div className="hero-main relative min-h-0 overflow-hidden [container-type:inline-size] sm:min-h-[280px]">
             <EditableImage
               path="home.hero.image"
               raw={hero.image}
@@ -154,11 +154,11 @@ export default function HomeHero({
             </Button>
           </div>
 
-          <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden rounded-2xl bg-navy-soft py-4 sm:py-10">
+          <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden bg-navy-soft py-4 sm:py-10">
             <Carousel slides={slides} ariaLabel={t("Our services")} className="flex w-full flex-col justify-center" />
           </div>
 
-          <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center sm:flex">
+          <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden bg-gold p-6 text-center sm:flex">
             <CtaGrid />
             <div className="relative z-10">
               <p className="font-display text-f6 leading-none text-navy">{t("Ready?")}</p>
@@ -330,7 +330,7 @@ function HeroServiceSlide({
           wrapper's transform isolates this subtree — so the media screens
           against a local stand-in painted in the card's exact color, which
           composites identically. The rotated layer intentionally bleeds past
-          the slide's edges — the card container's rounded overflow-hidden
+          the slide's edges — the card container's overflow-hidden
           masks it. */}
       {media ? (
         <div
@@ -369,7 +369,7 @@ function HeroServiceSlide({
             onClick={() =>
               admin.openImagePicker({ path: `home.services.${index}.media`, raw: media })
             }
-            className="absolute left-8 top-2 z-20 rounded-full border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
+            className="absolute left-8 top-2 z-20 border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
           >
             {media ? "backdrop" : "add backdrop"}
           </button>

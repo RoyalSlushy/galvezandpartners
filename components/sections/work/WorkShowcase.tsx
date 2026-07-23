@@ -50,7 +50,7 @@ function useMinWidth(px: number): boolean {
  * vertical scroll drives a left-anchored accordion — the widest case sits at a
  * 5:4 ratio stuck to the body's left edge, with upcoming cases queued to its
  * right as 2:5 slivers and passed cases collapsing to narrower 1:5 slivers on
- * the left, fading out of frame (all rounder-cornered). Scrolling down pushes
+ * the left, fading out of frame. Scrolling down pushes
  * the current widest case out to the left as the next widens into the left slot,
  * on through the cases to a closing gallery panel. Scroll settles snap to
  * whichever case is fully 5:4. A gold progress line tracks the journey. The site header
@@ -116,14 +116,11 @@ export default function WorkShowcase({
   // 2:5 slivers (0.4·height); cases that have passed to the left collapse to
   // narrower 1:5 slivers (0.2·height) and fade out of frame. As scroll advances
   // the active index, the widest slides left, shrinking + fading, while the next
-  // widens in from the right. Corner radius eases from R_ACTIVE (widest) to
-  // R_SLIVER (fully collapsed).
+  // widens in from the right.
   const ACTIVE = 1.25; // 5:4
   const RIGHT_COLLAPSED = 0.4; // 2:5, upcoming cases (right of the widest)
   const LEFT_COLLAPSED = 0.2; // 1:5, passed cases (left of the widest), faded
   const GAP = 8; // px, matches the row's gap-2
-  const R_ACTIVE = 16;
-  const R_SLIVER = 40;
 
   useEffect(() => {
     if (!pinned) return;
@@ -206,8 +203,6 @@ export default function WorkShowcase({
         // Passed panels fade as they overflow into the left gutter (gentle so a
         // faded trail lingers rather than cutting out at once).
         el.style.opacity = String(1 - Math.max(0, Math.min(1, (a - i) / 1.5)));
-        // Rounder corners the more collapsed the panel is.
-        el.style.borderRadius = `${R_ACTIVE + (1 - exps[i]) * (R_SLIVER - R_ACTIVE)}px`;
       }
     };
 
@@ -413,7 +408,6 @@ export default function WorkShowcase({
         if (el) {
           el.style.width = "";
           el.style.opacity = "";
-          el.style.borderRadius = "";
           el.style.removeProperty("--exp");
         }
       }
@@ -498,7 +492,7 @@ export default function WorkShowcase({
           />
         )}
         <div
-          className={`group relative overflow-hidden rounded-2xl bg-navy-soft${
+          className={`group relative overflow-hidden bg-navy-soft${
             editMode ? "" : " aspect-[4/5] h-full max-w-[85vw] sm:h-auto sm:max-w-none"
           }`}
         >
@@ -543,7 +537,7 @@ export default function WorkShowcase({
               {w.slug && (
                 <span
                   aria-hidden
-                  className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center rounded-full bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+                  className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
                     <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -593,7 +587,7 @@ export default function WorkShowcase({
       className={`flex ${editMode ? END_CARD_W : END_CARD_FIT} snap-start items-center`}
     >
       <div
-        className={`flex aspect-[4/5] flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
+        className={`flex aspect-[4/5] flex-col items-start justify-center border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
           editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
         }`}
       >
@@ -733,7 +727,7 @@ export default function WorkShowcase({
                     {w.slug && (
                       <span
                         aria-hidden
-                        className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold text-navy"
+                        className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center bg-gold text-navy"
                       >
                         <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
                           <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -788,8 +782,8 @@ export default function WorkShowcase({
 
 /**
  * One accordion panel: a fixed-height column whose width, opacity, and corner
- * radius are driven imperatively (--exp, 0→1) between a rounder sliver (2:5 when
- * upcoming, 1:5 once passed) and a 5:4 active card. The vertical label shows
+ * are driven imperatively (--exp, 0→1) between a sliver (2:5 when upcoming,
+ * 1:5 once passed) and a 5:4 active card. The vertical label shows
  * while collapsed and cross-fades out
  * as the panel expands; `children` (image + active overlay) fade in the other
  * way. Links to its case study (or the gallery); non-slug cases render as a
@@ -812,8 +806,8 @@ function AccordionPanel({
 }) {
   const cls =
     variant === "gallery"
-      ? "group relative h-full shrink-0 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy"
-      : "group relative h-full shrink-0 overflow-hidden rounded-2xl bg-navy-soft";
+      ? "group relative h-full shrink-0 overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy"
+      : "group relative h-full shrink-0 overflow-hidden bg-navy-soft";
   const inner = (
     <>
       {children}
@@ -981,7 +975,7 @@ function GalleryRail({ label }: { label: string }) {
       }}
       className="group absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3"
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
+      <span className="flex h-11 w-11 items-center justify-center border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
         <MasonryIcon className="h-5 w-5" />
       </span>
       <span

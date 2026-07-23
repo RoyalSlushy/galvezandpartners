@@ -139,7 +139,7 @@ export type ImageRef = { raw: string; previewUrl: string };
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#232a3d'/><g fill='none' stroke='#e6b367' stroke-width='6' opacity='0.8'><rect x='140' y='96' width='120' height='90' rx='10'/><circle cx='178' cy='128' r='11'/><path d='M150 178l32-30 24 22 20-16 34 24'/></g></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#232a3d'/><g fill='none' stroke='#e6b367' stroke-width='6' opacity='0.8'><rect x='140' y='96' width='120' height='90'/><circle cx='178' cy='128' r='11'/><path d='M150 178l32-30 24 22 20-16 34 24'/></g></svg>`,
   );
 
 /** Video file extensions we treat as playable media rather than images. */

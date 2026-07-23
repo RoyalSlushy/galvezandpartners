@@ -42,11 +42,11 @@ export default function ContactForm() {
   };
 
   const field =
-    "w-full rounded-lg border border-white/15 bg-navy-soft px-4 py-3 text-white placeholder-white/40 outline-none focus:border-gold";
+    "w-full border border-white/15 bg-navy-soft px-4 py-3 text-white placeholder-white/40 outline-none focus:border-gold";
 
   if (success) {
     return (
-      <div className="mt-10 max-w-2xl rounded-lg border border-gold/30 bg-navy-soft p-8 text-center">
+      <div className="mt-10 max-w-2xl border border-gold/30 bg-navy-soft p-8 text-center">
         <p className="text-f7 font-heading text-gold">{t("Thank you!")}</p>
         <p className="mt-2 text-ink-100">{t("We received your message and will be in touch soon.")}</p>
         <button

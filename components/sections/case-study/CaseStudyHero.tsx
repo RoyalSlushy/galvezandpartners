@@ -123,7 +123,7 @@ export default function CaseStudyHero({
           <h1 className="max-w-md font-heading text-[2rem] leading-[1.1] text-white [text-wrap:balance]">
             {title}
           </h1>
-          <span aria-hidden className="mt-3 block h-1 w-12 rounded-full bg-gold" />
+          <span aria-hidden className="mt-3 block h-1 w-12 bg-gold" />
           {/* Kept clear of the floating nav icon (a w-12 / 3rem circle inset
               right-4 / 1rem — see MobileMenu) via the right padding, and
               clamped so it can never overrun the hero. */}

@@ -137,7 +137,6 @@
    Header.tsx, so it ends at the body bounds rather than bleeding edge to edge. */
 .header-accent-border {
   height: 3px;
-  border-radius: 9999px;
   background-image: var(
     --header-border-grad,
     linear-gradient(90deg, rgb(var(--c-gold)), rgb(var(--c-gold-dark)), rgb(var(--c-gold)))
@@ -397,7 +396,7 @@
 @layer components {
   /* Gold pill CTA — the site's primary button style ("Connect", "Let's Connect") */
   .btn {
-    @apply inline-flex items-center justify-center rounded-full px-7 py-3 font-heading uppercase tracking-wide transition;
+    @apply inline-flex items-center justify-center px-7 py-3 font-heading uppercase tracking-wide transition;
   }
   .btn-gold {
     @apply btn bg-gold text-navy hover:bg-gold-bright;
@@ -450,8 +449,8 @@ body[data-gp-pinned-header] header {
 }
 
 /* Accented word in the Our Works heading ("speaks"): gold type with a soft
-   glow, plus two staggered halo rings that pulse outward from the word. Insets
-   and radii are in em so the halo scales with the fitted heading size. */
+   glow, plus two staggered square halo frames that pulse outward from the word.
+   Insets are in em so the halo scales with the fitted heading size. */
 .halo-word {
   position: relative;
   display: inline-block;
@@ -472,7 +471,6 @@ body[data-gp-pinned-header] header {
 .halo-ring {
   position: absolute;
   inset: -0.18em -0.35em;
-  border-radius: 9999px;
   pointer-events: none;
   box-shadow: 0 0 0 2px rgb(var(--c-gold) / 0.55);
   background: radial-gradient(closest-side, rgb(var(--c-gold) / 0.14), transparent 78%);
@@ -631,7 +629,6 @@ body[data-gp-edit-mode] [data-gp-editable] {
   cursor: pointer;
   outline: 1px dashed rgba(230, 179, 103, 0.35);
   outline-offset: 3px;
-  border-radius: 2px;
   transition: outline-color 150ms ease, background-color 150ms ease;
 }
 body[data-gp-edit-mode] [data-gp-editable]:hover {
@@ -661,7 +658,6 @@ body[data-gp-edit-mode] [data-gp-editing]:focus {
   right: 0;
   z-index: 30;
   white-space: nowrap;
-  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #232a3d;
   padding: 4px 10px;
