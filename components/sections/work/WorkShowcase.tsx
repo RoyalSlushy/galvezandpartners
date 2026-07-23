@@ -7,8 +7,8 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { focusPosition } from "@/lib/wix";
+import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -377,6 +377,42 @@ export default function WorkShowcase({
       touchY = y;
     };
 
+    // Mouse users can grab the row and drag through the cases the same way —
+    // a horizontal pointer drag maps onto the vertical scroll driving the
+    // accordion. A real drag (past the threshold) swallows the click on
+    // release so the card under the cursor doesn't open.
+    let mouseDown = false;
+    let mouseDragged = false;
+    let mouseX = 0;
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      mouseDown = true;
+      mouseDragged = false;
+      mouseX = e.clientX;
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!mouseDown) return;
+      const dx = e.clientX - mouseX;
+      if (!mouseDragged && Math.abs(dx) < 4) return;
+      mouseDragged = true;
+      mouseX = e.clientX;
+      cancelSnap();
+      window.scrollBy({ top: -dx, behavior: "instant" });
+    };
+    const onPointerUp = () => {
+      mouseDown = false;
+    };
+    // Ancestor capture fires before the row's own click handler, so a drag
+    // release never opens a card or snap-focuses a sliver.
+    const onDragClick = (e: MouseEvent) => {
+      if (!mouseDragged) return;
+      mouseDragged = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    // Native image drag would hijack the gesture mid-pull.
+    const onDragStart = (e: Event) => e.preventDefault();
+
     measure();
     update();
     lastSettled = Math.round((N - 1) * progressAt(section.getBoundingClientRect().top));
@@ -388,6 +424,11 @@ export default function WorkShowcase({
     section.addEventListener("wheel", onWheel, { passive: false });
     section.addEventListener("touchstart", onTouchStart, { passive: true });
     section.addEventListener("touchmove", onTouchMove, { passive: false });
+    rowWrap.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    rowWrap.addEventListener("click", onDragClick, true);
+    rowWrap.addEventListener("dragstart", onDragStart);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(idleTimer);
@@ -399,6 +440,11 @@ export default function WorkShowcase({
       section.removeEventListener("wheel", onWheel);
       section.removeEventListener("touchstart", onTouchStart);
       section.removeEventListener("touchmove", onTouchMove);
+      rowWrap.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      rowWrap.removeEventListener("click", onDragClick, true);
+      rowWrap.removeEventListener("dragstart", onDragStart);
       // The static branch may reuse these nodes — leave no stale styles behind.
       section.style.height = "";
       row.style.height = "";
@@ -419,10 +465,62 @@ export default function WorkShowcase({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinned, panelCount]);
 
+  // Static row: mouse users can grab the row and drag it sideways (touch
+  // already scrolls natively). Scroll snap is parked during the drag so the
+  // row follows the cursor instead of fighting the detents, and a real drag
+  // swallows the release click so the card under the cursor doesn't open.
+  const scrollRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (pinned) return;
+    const scroller = scrollRowRef.current;
+    if (!scroller) return;
+    let down = false;
+    let dragged = false;
+    let lastX = 0;
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      down = true;
+      dragged = false;
+      lastX = e.clientX;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!down) return;
+      const dx = e.clientX - lastX;
+      if (!dragged && Math.abs(dx) < 4) return;
+      if (!dragged) scroller.style.scrollSnapType = "none";
+      dragged = true;
+      lastX = e.clientX;
+      scroller.scrollLeft -= dx;
+    };
+    const onUp = () => {
+      down = false;
+      if (dragged) scroller.style.scrollSnapType = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    const onDragStart = (e: Event) => e.preventDefault();
+    scroller.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    scroller.addEventListener("click", onClick, true);
+    scroller.addEventListener("dragstart", onDragStart);
+    return () => {
+      scroller.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      scroller.removeEventListener("click", onClick, true);
+      scroller.removeEventListener("dragstart", onDragStart);
+      scroller.style.scrollSnapType = "";
+    };
+  }, [pinned, mounted, editMode]);
+
   // Phone (static row): the cards carry no blurb — a single shared blurb under
   // the row swaps to whichever card sits on the snap anchor, fading between
   // texts (mirrors the pinned accordion's active-card blurb).
-  const scrollRowRef = useRef<HTMLDivElement>(null);
   const mobileDescRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (!mounted || editMode || wideEnough) return;
@@ -504,13 +602,10 @@ export default function WorkShowcase({
             <EditableImage
               path={`work.items.${i}.img`}
               raw={w.img}
-              src={
-                w.img
-                  ? w.img.startsWith("http")
-                    ? w.img
-                    : wixImage(w.img, 700, 875)
-                  : PLACEHOLDER_IMG
-              }
+              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
+              // The CMS focal point keeps the important part of the frame in
+              // view under the crop (defaults to centre when unset).
+              style={{ objectPosition: focusPosition(w.img) }}
               alt={w.title}
               className={editMode ? "aspect-[4/5] w-full object-cover" : "h-full w-full object-cover"}
             />
@@ -623,7 +718,7 @@ export default function WorkShowcase({
         </Container>
         <div
           ref={scrollRowRef}
-          className={`gallery-scroll snap-x snap-mandatory overflow-x-auto ${
+          className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto active:cursor-grabbing ${
             editMode ? "mt-10 pb-6 pt-10" : "mt-2 min-h-0 flex-1 pb-2 pt-8 sm:mt-10 sm:flex-none sm:pb-6 sm:pt-10"
           }`}
         >
@@ -684,7 +779,7 @@ export default function WorkShowcase({
               are all driven imperatively (see the effect). */}
           <div
             ref={rowWrapRef}
-            className="mt-6 flex min-h-0 w-full flex-1 items-center overflow-hidden"
+            className="mt-6 flex min-h-0 w-full flex-1 cursor-grab items-center overflow-hidden active:cursor-grabbing"
           >
             <div
               ref={rowRef}
@@ -701,14 +796,9 @@ export default function WorkShowcase({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={
-                      w.img
-                        ? w.img.startsWith("http")
-                          ? w.img
-                          : wixImage(w.img, 900, 900)
-                        : PLACEHOLDER_IMG
-                    }
+                    src={w.img ? resolveImage(w.img, 900, 900) : PLACEHOLDER_IMG}
                     alt={w.title}
+                    style={{ objectPosition: focusPosition(w.img) }}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent" />
@@ -818,7 +908,9 @@ function AccordionPanel({
         style={{ opacity: "calc(1 - var(--exp, 0))" }}
       >
         <span
-          className={`font-heading text-sm uppercase tracking-wide ${
+          // The light drop shadow lifts the label off whatever frame sits
+          // behind the collapsed sliver.
+          className={`font-heading text-sm uppercase tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.65)] ${
             variant === "gallery" ? "text-gold" : "text-white/90"
           }`}
           style={{ writingMode: "vertical-rl" }}

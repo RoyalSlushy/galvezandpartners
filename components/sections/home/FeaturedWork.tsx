@@ -7,8 +7,8 @@ import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { focusPosition } from "@/lib/wix";
+import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -194,13 +194,8 @@ export default function FeaturedWork({
             <EditableImage
               path={`work.items.${i}.img`}
               raw={w.img}
-              src={
-                w.img
-                  ? w.img.startsWith("http")
-                    ? w.img
-                    : wixImage(w.img, 700, 875)
-                  : PLACEHOLDER_IMG
-              }
+              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
+              style={{ objectPosition: focusPosition(w.img) }}
               alt={w.title}
               className="aspect-[4/5] w-full object-cover"
             />

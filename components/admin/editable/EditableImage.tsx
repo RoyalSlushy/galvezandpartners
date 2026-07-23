@@ -15,6 +15,9 @@ type EditableImageProps = {
   src: string;
   alt: string;
   className?: string;
+  /** Inline styles for the rendered element (e.g. a CMS focal point applied
+   * as object-position). */
+  style?: React.CSSProperties;
   label?: string;
   /** Playback speed for video sources (1 = normal). Not a real HTML attribute,
    * so it's applied imperatively via a ref effect. */
@@ -43,6 +46,7 @@ export default function EditableImage({
   src,
   alt,
   className,
+  style,
   label,
   playbackRate = 1,
   autoPlayVideo = true,
@@ -111,6 +115,7 @@ export default function EditableImage({
         ref={setVideoRef}
         src={src}
         className={className}
+        style={style}
         autoPlay={autoPlayVideo && !reduced}
         muted
         loop={loopVideo && !reduced}
@@ -125,5 +130,5 @@ export default function EditableImage({
   }
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} {...editProps} />;
+  return <img src={src} alt={alt} className={className} style={style} {...editProps} />;
 }

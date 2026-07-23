@@ -37,8 +37,13 @@ export default function Footer({
   return (
     // Extra bottom padding on mobile clears the floating bottom nav (h-16) so
     // the credit line and admin gear are never hidden behind it.
-    <footer className="w-full bg-navy pt-16 pb-28 text-white sm:pb-8">
-      <Container className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="w-full bg-navy pb-28 text-white sm:pb-8">
+      {/* The header's animated accent stroke, mirrored along the footer's top
+          edge (same site-column constraint as the header's wrapper). */}
+      <div aria-hidden className="pointer-events-none mx-auto w-full max-w-site px-5 sm:px-8">
+        <div className="header-accent-border" />
+      </div>
+      <Container className="grid gap-12 pt-16 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />

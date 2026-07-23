@@ -22,9 +22,13 @@ import FocusPicker from "./FocusPicker";
 const GRADIENT_PATH = "home.hero.gradient";
 const GRADIENT_HOST_PATHS = new Set(["site.headerImage"]);
 
-/** Case-study gallery slots — these frames feed the very tall mobile hero, so
- * their picker also offers a focal point for that crop. */
-const CASE_GALLERY_PATH = /^case_studies\.studies\.\d+\.gallery\.\d+$/;
+/** Image slots that get cropped hard somewhere on the site (the case-study
+ * hero band, the Our Works case cards), so their picker also offers a focal
+ * point for that crop. */
+const FOCUS_PATHS = [
+  /^case_studies\.studies\.\d+\.gallery\.\d+$/,
+  /^work\.items\.\d+\.img$/,
+];
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -129,9 +133,10 @@ export default function ImagePicker() {
   const imageChanged = selected !== picker.raw && selected.trim().length > 0;
   const changed = imageChanged || gradientChanged;
 
-  // Case-study frames feed the tall phone hero, so offer a focal point for that
-  // crop (images only — object-position is meaningless for the video element).
-  const showsFocus = CASE_GALLERY_PATH.test(picker.path) && !!selected && !isVideoUrl(selected);
+  // Hard-cropped slots get a focal point (images only — object-position is
+  // meaningless for the video element).
+  const showsFocus =
+    FOCUS_PATHS.some((re) => re.test(picker.path)) && !!selected && !isVideoUrl(selected);
 
   const applyChanges = () => {
     if (imageChanged) admin.setValue(picker.path, selected.trim());

@@ -398,7 +398,7 @@ export default function MobileMenu({
               shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
-            <LanguageSwitcher openUp />
+            <LanguageSwitcher />
             <SocialIcons socials={socials} />
           </div>
         </nav>
