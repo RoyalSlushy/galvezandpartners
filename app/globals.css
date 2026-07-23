@@ -353,6 +353,16 @@
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
 }
 
+/* Card backdrop: the same drifting "GALVEZ" letter grid, held faint and fading
+   out toward the LEFT so the card's left-anchored copy stays clean — used on the
+   "gallery / explore" hand-off card and the home "there's more" card. */
+.glyph-grid-fade-left {
+  opacity: 0.12;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
+}
+
 @layer base {
   /* Custom horizontal swipe gestures (card carousel, mobile nav drawer) must not
      be hijacked by the browser's back/forward overscroll navigation. Set on the

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
@@ -251,15 +252,16 @@ export default function FeaturedWork({
 
   const endCard = (
     <div className={`flex ${END_CARD_W} snap-start items-center`}>
-      <div className="flex aspect-[4/5] w-full flex-col items-start justify-center border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
-        <p className="font-display text-f5 lowercase leading-[0.95] text-white">
+      <div className="relative flex aspect-[4/5] w-full flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
+        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <p className="relative font-display text-f5 lowercase leading-[0.95] text-white">
           {t("there's")}{" "}
           <span className="text-gold">{t("more")}</span>
         </p>
-        <p className="mt-3 font-body text-base text-white/60">
+        <p className="relative mt-3 font-body text-base text-white/60">
           {t("Every story on one page.")}
         </p>
-        <Button href={featured.ctaHref} variant="gold" className="mt-8">
+        <Button href={featured.ctaHref} variant="gold" className="relative mt-8">
           {editMode ? (
             <EditableText
               path="home.featuredWork.ctaLabel"

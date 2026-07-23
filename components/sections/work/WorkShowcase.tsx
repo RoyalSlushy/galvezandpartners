@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
@@ -682,15 +683,16 @@ export default function WorkShowcase({
       className={`flex ${editMode ? END_CARD_W : END_CARD_FIT} snap-start items-center`}
     >
       <div
-        className={`flex aspect-[4/5] flex-col items-start justify-center border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
+        className={`relative flex aspect-[4/5] flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
           editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
         }`}
       >
-        <p className="font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
-        <p className="mt-2 font-body text-base text-white/60 sm:mt-3">
+        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
+        <p className="relative mt-2 font-body text-base text-white/60 sm:mt-3">
           {tv("Every frame on one wall — sort it, filter it, tag it.")}
         </p>
-        <span className="btn-outline mt-5 sm:mt-7">{tv("explore")}</span>
+        <span className="btn-outline relative mt-5 sm:mt-7">{tv("explore")}</span>
       </div>
     </a>
   );
@@ -838,13 +840,14 @@ export default function WorkShowcase({
                   className="absolute inset-0 flex flex-col justify-center overflow-hidden p-5 sm:p-6"
                   style={{ opacity: "var(--exp, 0)" }}
                 >
-                  <p className="font-display text-f5 lowercase leading-[0.95] text-gold">
+                  <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+                  <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">
                     {tv("the gallery")}
                   </p>
-                  <p className="mt-3 font-body text-sm text-white/60">
+                  <p className="relative mt-3 font-body text-sm text-white/60">
                     {tv("Every frame on one wall — sort it, filter it, tag it.")}
                   </p>
-                  <span className="btn-outline mt-6 w-fit">{tv("explore")}</span>
+                  <span className="btn-outline relative mt-6 w-fit">{tv("explore")}</span>
                 </div>
               </AccordionPanel>
             </div>

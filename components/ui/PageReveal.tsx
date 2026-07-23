@@ -10,6 +10,9 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 // A stalled asset must never hold the page hostage — reveal regardless once
 // this much time has passed.
 const MAX_WAIT_MS = 4000;
+// The veil holds at least this long even when everything is already cached, so
+// the reveal always reads as a deliberate beat rather than a flicker.
+const MIN_SHOW_MS = 750;
 
 /**
  * Full-viewport veil over the page while the assets inside the first viewport
@@ -38,7 +41,8 @@ export default function PageReveal() {
 
   useEffect(() => {
     const run = ++runRef.current;
-    const deadline = performance.now() + MAX_WAIT_MS;
+    const startedAt = performance.now();
+    const deadline = startedAt + MAX_WAIT_MS;
     const current = () => runRef.current === run;
 
     const nextFrames = () =>
@@ -84,6 +88,10 @@ export default function PageReveal() {
         document.fonts?.ready.catch(() => {}),
         new Promise((r) => setTimeout(r, Math.max(0, deadline - performance.now()))),
       ]);
+      // Enforce the minimum show time so a fully-cached page still gets the
+      // deliberate reveal beat instead of a flash.
+      const remaining = MIN_SHOW_MS - (performance.now() - startedAt);
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
       if (current()) setVeiled(false);
     })();
   }, [pathname]);

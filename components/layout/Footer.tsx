@@ -46,19 +46,24 @@ export default function Footer({
       <div aria-hidden className="pointer-events-none mx-auto w-full max-w-site px-5 sm:px-8">
         <div className="header-accent-border" />
       </div>
-      <Container className="grid gap-12 pt-16 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div>
+      {/* Columns pack to the left on desktop (auto-width, gapped) rather than
+          stretching across the full width. */}
+      <Container className="flex flex-col gap-12 pt-16 md:flex-row md:flex-wrap md:justify-start md:gap-x-20">
+        {/* The logo scales to the exact width of the tagline beneath it: the
+            column shrinks to the tagline's single-line width (w-fit) and the
+            logo fills it (w-full). */}
+        <div className="w-fit">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto" />
+          <img src="/logo.svg" alt="Galvez & Partners" className="block h-auto w-full" />
           <EditableText
             path="site.tagline"
             value={editMode ? tagline : t(tagline)}
             as="p"
-            className="mt-5 font-heading text-2xl text-cream"
+            className="mt-5 whitespace-nowrap font-heading text-2xl text-cream"
           />
         </div>
 
-        <div>
+        <div className="md:w-72">
           <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Get in Touch")}</h2>
           <EditableText
             path="site.contact.email"
@@ -102,7 +107,7 @@ export default function Footer({
           </a>
         </div>
 
-        <div>
+        <div className="md:w-56">
           <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Menu")}</h2>
           <ul className="mt-4 space-y-2">
             {menu.map((item, i) => (

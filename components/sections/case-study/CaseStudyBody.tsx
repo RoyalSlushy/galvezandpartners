@@ -160,9 +160,15 @@ export default function CaseStudyBody({
               </span>
             </a>
           )}
-          <div className="grid gap-6 sm:grid-cols-2">
+          {/* Masonry wall (CSS columns) — images render whole at their true
+              aspect, so varied heights pack into a staggered grid. */}
+          <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
             {cs.gallery.map((id, i) => (
-              <RevealOnScroll key={i} delay={0.05 * (i % 2)} className={editMode ? "relative" : ""}>
+              <RevealOnScroll
+                key={i}
+                delay={0.05 * (i % 2)}
+                className={`mb-6 break-inside-avoid ${editMode ? "relative" : ""}`}
+              >
                 <EditableImage
                   path={`${base}.gallery.${i}`}
                   raw={id}
@@ -190,7 +196,7 @@ export default function CaseStudyBody({
                     raw: "",
                   })
                 }
-                className="flex min-h-40 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
+                className="mb-6 flex min-h-40 w-full break-inside-avoid flex-col items-center justify-center gap-2 border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
               >
                 <ImageIcon className="h-6 w-6" />
                 <span className="font-heading text-sm">Add gallery image</span>
