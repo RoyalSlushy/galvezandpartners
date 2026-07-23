@@ -509,6 +509,14 @@ body[data-gp-pinned-header] header {
   }
 }
 
+/* Case-study page: the hero and the gallery wall are gentle scroll-snap stops
+   (proximity — never mandatory — so free scrolling deep inside the gallery is
+   not hijacked). Scoped to the attribute CaseStudyHero sets on <html> while
+   mounted, so no other route is touched. */
+html[data-gp-case-snap] {
+  scroll-snap-type: y proximity;
+}
+
 /* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
    frames, each drifting (Ken Burns) in an alternating direction while the
    active one crossfades in. Stilled under reduced motion below — the first

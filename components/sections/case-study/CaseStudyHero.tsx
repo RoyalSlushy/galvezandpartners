@@ -3,13 +3,26 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlyphNumber } from "@/components/ui/Glyph";
-import { focusPosition, wixImage } from "@/lib/wix";
+import { focusPosition, wixImage, wixImageFit } from "@/lib/wix";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 /** How long each slide is held before crossfading to the next. */
 const SLIDE_MS = 5000;
 /** Cap on the number of frames pulled into the slideshow. */
 const MAX_SLIDES = 8;
+/** Frames wider than this (w/h) get collaged instead of brute-cropped. */
+const WIDE = 16 / 9 + 0.01;
+
+/** The 1–3 frames collaged under a wide slide: the next frames in gallery
+ * order (wrapping, never the slide itself), as many as bring the block close
+ * to a square — the wide frame keeps its own strip, so the leftover height
+ * divided into n near-square cells gives n ≈ 1 / (1 − 1/aspect). */
+function pickCompanions(all: string[], i: number, aspect: number): string[] {
+  const n = Math.min(3, Math.max(1, Math.round(1 / (1 - 1 / aspect))));
+  const out: string[] = [];
+  for (let k = 1; k < all.length && out.length < n; k++) out.push(all[(i + k) % all.length]);
+  return out;
+}
 
 /**
  * Case-study masthead, every width: a full-viewport hero (it fills the screen
@@ -62,31 +75,110 @@ export default function CaseStudyHero({
     return () => clearInterval(id);
   }, [reduced, slides.length]);
 
+  // Natural aspect (w/h) per frame, probed client-side from a small fit (no
+  // crop) render. Frames wider than 16:9 would lose everything to the band's
+  // tall crop, so those slides swap to a collage: the wide frame keeps a strip
+  // at its own aspect with 1–3 other case frames beneath, approximating a
+  // square block.
+  const [aspects, setAspects] = useState<Record<string, number>>({});
+  const slidesKey = slides.join("|");
+  useEffect(() => {
+    let alive = true;
+    for (const id of slides) {
+      if (aspects[id]) continue;
+      const probe = new window.Image();
+      probe.onload = () => {
+        if (!alive || !probe.naturalWidth || !probe.naturalHeight) return;
+        setAspects((a) =>
+          a[id] ? a : { ...a, [id]: probe.naturalWidth / probe.naturalHeight },
+        );
+      };
+      probe.src = wixImageFit(id, 200, 200);
+    }
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slidesKey]);
+
+  // The hero and the gallery wall are gentle scroll-snap stops while this
+  // masthead is mounted (see html[data-gp-case-snap] in globals.css).
+  useEffect(() => {
+    document.documentElement.setAttribute("data-gp-case-snap", "");
+    return () => document.documentElement.removeAttribute("data-gp-case-snap");
+  }, []);
+
   const initial = (title.trim()[0] ?? "").toUpperCase();
 
   return (
     <section
+      id="case-hero"
       aria-label={title}
       style={{ height: "calc(100svh - var(--header-h))" }}
-      className={`relative w-full overflow-hidden bg-navy ${className}`}
+      className={`relative w-full snap-start scroll-mt-[var(--header-h)] overflow-hidden bg-navy ${className}`}
     >
       {/* Backdrop band — geometry + edge fade per breakpoint live in .cs-band. */}
       <div aria-hidden className="cs-band">
-        {slides.map((id, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={wixImage(id, 1200, 1200)}
-            alt=""
-            loading={i === 0 ? "eager" : "lazy"}
-            // The CMS focal point keeps the important part of the frame in view
-            // under the crop (defaults to centre when unset).
-            style={{ objectPosition: focusPosition(id) }}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
-              i % 2 ? "cs-kenburns-alt" : "cs-kenburns"
-            } ${i === active ? "opacity-100" : "opacity-0"}`}
-          />
-        ))}
+        {slides.map((id, i) => {
+          const aspect = aspects[id];
+          const companions =
+            aspect && aspect > WIDE ? pickCompanions(slides, i, aspect) : [];
+          const collage = companions.length > 0 && aspect ? aspect : null;
+          return (
+            <div
+              key={i}
+              className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
+                i === active ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <div className={`h-full w-full ${i % 2 ? "cs-kenburns-alt" : "cs-kenburns"}`}>
+                {collage ? (
+                  // Wide frame: a collage block — the frame's own strip up top
+                  // (row share = its height within a square of its width), the
+                  // companions splitting the leftover beneath.
+                  <div
+                    className="grid h-full w-full gap-1"
+                    style={{
+                      gridTemplateRows: `${(1 / collage).toFixed(3)}fr ${(1 - 1 / collage).toFixed(3)}fr`,
+                      gridTemplateColumns: `repeat(${companions.length}, 1fr)`,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={wixImage(id, 1200, Math.max(200, Math.round(1200 / collage)))}
+                      alt=""
+                      loading={i === 0 ? "eager" : "lazy"}
+                      style={{ objectPosition: focusPosition(id), gridColumn: "1 / -1" }}
+                      className="h-full w-full object-cover"
+                    />
+                    {companions.map((cid, j) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={j}
+                        src={wixImage(cid, 600, 600)}
+                        alt=""
+                        loading="lazy"
+                        style={{ objectPosition: focusPosition(cid) }}
+                        className="h-full w-full object-cover"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={wixImage(id, 1200, 1200)}
+                    alt=""
+                    loading={i === 0 ? "eager" : "lazy"}
+                    // The CMS focal point keeps the important part of the frame
+                    // in view under the crop (defaults to centre when unset).
+                    style={{ objectPosition: focusPosition(id) }}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
         {/* Gentle veil so the gold copy reads over any frame; phones add a
             heavier top scrim under the back link. */}
         <div className="absolute inset-0 bg-navy/20" />
@@ -94,11 +186,13 @@ export default function CaseStudyHero({
       </div>
 
       {/* Low-opacity initial behind the copy: bleeding off the top-right on
-          phones, off the bottom-left (under the text column) on sm+. */}
+          phones; on sm+ it sits bottom-left with 40% of its own height (0.4 ×
+          56vh = 22.4vh) hanging past the hero's bottom edge — clipped by the
+          section's overflow-hidden where the body continues. */}
       {initial && (
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-[7vw] top-[2vh] select-none font-display text-[52.8vh] leading-none text-white/[0.07] sm:-bottom-[6vh] sm:-left-[3vw] sm:right-auto sm:top-auto sm:text-[56vh]"
+          className="pointer-events-none absolute -right-[7vw] top-[2vh] select-none font-display text-[52.8vh] leading-none text-white/[0.07] sm:-bottom-[22.4vh] sm:-left-[3vw] sm:right-auto sm:top-auto sm:text-[56vh]"
         >
           <GlyphNumber value={initial} tintClassName="bg-white/[0.07]" />
         </span>

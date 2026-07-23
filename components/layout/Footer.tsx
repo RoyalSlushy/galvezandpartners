@@ -34,6 +34,9 @@ export default function Footer({
   const t = useT();
 
   const menu: NavItem[] = [...nav, { label: "Connect With Us", href: "/contact-us" }];
+  // Map query follows the CMS address ("734 W Polk St, Phoenix, AZ 85007" by
+  // default), so an address edit re-aims the embed too.
+  const mapQuery = contact.addressLines.join(", ");
   return (
     // Extra bottom padding on mobile clears the floating bottom nav (h-16) so
     // the credit line and admin gear are never hidden behind it.
@@ -73,6 +76,30 @@ export default function Footer({
             lineClassName={() => "block"}
             label="address"
           />
+          {/* Office map, aimed at the address above. The keyless Google embed
+              geocodes the query itself; the invert/hue filter re-tints the map
+              into the site's navy so it doesn't glare in the dark footer. */}
+          <div className="mt-5 overflow-hidden border border-white/10">
+            <iframe
+              title={t("Map to our office")}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block h-44 w-full"
+              style={{
+                border: 0,
+                filter: "invert(0.88) hue-rotate(185deg) saturate(0.55) brightness(0.95)",
+              }}
+            />
+          </div>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block font-din text-xs uppercase tracking-[0.2em] text-gold transition hover:text-gold-bright"
+          >
+            {t("get directions")} ↗
+          </a>
         </div>
 
         <div>

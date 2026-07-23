@@ -128,6 +128,9 @@ const ES: Record<string, string> = {
   // --- Work showcase / gallery (Our Works page) ---
   "the gallery": "la galería",
   gallery: "galería",
+  overview: "resumen",
+  "Map to our office": "Mapa a nuestra oficina",
+  "get directions": "cómo llegar",
   "Every frame on one wall — sort it, filter it, tag it.":
     "Cada imagen en un solo muro: ordénala, fíltrala, etiquétala.",
   explore: "explorar",

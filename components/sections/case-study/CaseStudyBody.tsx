@@ -136,14 +136,30 @@ export default function CaseStudyBody({
         </section>
       )}
 
-      {/* The hero's "gallery" cue lands here. For visitors nothing sits between
-          the hero and the wall, so it pads its own top (edit mode gets spacing
-          from the sections above). */}
+      {/* The hero's "gallery" cue lands here (a snap stop, aligned flush under
+          the viewport top). For visitors nothing sits between the hero and the
+          wall, so it pads its own top (edit mode gets spacing from the
+          sections above). */}
       <section
         id="case-study-gallery"
-        className={`scroll-mt-[var(--header-h)] pb-24 ${editMode ? "pt-10 sm:pt-0" : "pt-10 sm:pt-16"}`}
+        className={`snap-start pb-24 ${editMode ? "pt-10 sm:pt-0" : "pt-8 sm:pt-10"}`}
       >
         <Container>
+          {/* Return cue — mirrors the hero's "gallery" cue, sending the reader
+              back up to the masthead. Visitors only (edit mode has no hero). */}
+          {!editMode && (
+            <a
+              href="#case-hero"
+              className="group mb-8 inline-flex items-center gap-3 text-white/60 transition hover:text-gold"
+            >
+              <span aria-hidden className="cs-scroll-cue inline-block text-lg leading-none">
+                ↑
+              </span>
+              <span className="font-heading text-[11px] uppercase tracking-[0.35em]">
+                {t("overview")}
+              </span>
+            </a>
+          )}
           <div className="grid gap-6 sm:grid-cols-2">
             {cs.gallery.map((id, i) => (
               <RevealOnScroll key={i} delay={0.05 * (i % 2)} className={editMode ? "relative" : ""}>
