@@ -98,6 +98,7 @@ export default function CaseStudyBody({
           gallery={cs.gallery}
           backHref="/our-works"
           backLabel={t("Our Work")}
+          scrollLabel={t("gallery")}
         />
       )}
 
@@ -135,7 +136,10 @@ export default function CaseStudyBody({
         </Container>
       </section>
 
-      <section className="pb-24">
+      {/* The mobile hero's "gallery" cue lands here. On phones the (hidden)
+          Background section above provides no spacing, so the wall pads its own
+          top there. */}
+      <section id="case-study-gallery" className="scroll-mt-[var(--header-h)] pb-24 pt-10 sm:pt-0">
         <Container>
           <div className="grid gap-6 sm:grid-cols-2">
             {cs.gallery.map((id, i) => (

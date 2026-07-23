@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { readFocus, stripFocus, withFocus } from "@/lib/wix";
-import { resolveImage } from "@/lib/adminClient";
+import { readFocus, stripFocus, withFocus, wixImageFit } from "@/lib/wix";
 
 /**
  * Focal-point picker for the image editor. Lets an admin mark the point of a
@@ -20,11 +19,22 @@ export default function FocusPicker({
   onChange: (next: string) => void;
 }) {
   const focus = readFocus(raw) ?? { x: 50, y: 50 };
-  const src = resolveImage(stripFocus(raw), 900, 900);
+  // Fetch the WHOLE frame (fit, no server-side crop) so the admin aims on the
+  // full image; http URLs are already the original.
+  const clean = stripFocus(raw);
+  const src = clean.startsWith("http") ? clean : wixImageFit(clean, 1000, 1000);
   const boxRef = useRef<HTMLDivElement>(null);
-  // Match the box to the image's aspect so object-cover fills it exactly (no
-  // letterbox), keeping the pointer→image mapping 1:1.
+  // Match the box to the image's natural aspect so it fills exactly (no crop,
+  // no letterbox), keeping the pointer→image mapping 1:1. Synced from both the
+  // ref (already-cached images complete before React attaches its load
+  // listener) and onLoad (the normal path); same-string updates bail out, so
+  // this can't loop.
   const [aspect, setAspect] = useState<string>("4 / 3");
+  const syncAspect = (el: HTMLImageElement | null) => {
+    if (el && el.complete && el.naturalWidth && el.naturalHeight) {
+      setAspect(`${el.naturalWidth} / ${el.naturalHeight}`);
+    }
+  };
   const dragging = useRef(false);
   const isSet = !!readFocus(raw);
 
@@ -77,15 +87,11 @@ export default function FocusPicker({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={syncAspect}
             src={src}
             alt=""
             draggable={false}
-            onLoad={(e) => {
-              const el = e.currentTarget;
-              if (el.naturalWidth && el.naturalHeight) {
-                setAspect(`${el.naturalWidth} / ${el.naturalHeight}`);
-              }
-            }}
+            onLoad={(e) => syncAspect(e.currentTarget)}
             className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           />
           <span

@@ -539,6 +539,20 @@ body[data-gp-pinned-header] header {
     transform: scale(1.05) translate(2%, -2.5%);
   }
 }
+.cs-scroll-cue {
+  animation: cs-scroll-cue 1.8s ease-in-out infinite;
+}
+@keyframes cs-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
 
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
    the 1200px site width kicks in, then center. .gallery-scroll mirrors the
@@ -580,10 +594,15 @@ body[data-gp-pinned-header] header {
     opacity: 1;
   }
   /* Case-study masthead: freeze the slideshow drift (the first frame holds;
-     auto-advance is already suppressed in the component). */
+     auto-advance is already suppressed in the component) and the scroll cue. */
   .cs-kenburns,
-  .cs-kenburns-alt {
+  .cs-kenburns-alt,
+  .cs-scroll-cue {
     animation: none !important;
+  }
+  .cs-scroll-cue {
+    transform: none;
+    opacity: 1;
   }
   .cs-scroll-cue {
     transform: none;
