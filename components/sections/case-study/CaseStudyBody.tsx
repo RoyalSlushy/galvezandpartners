@@ -94,10 +94,10 @@ export default function CaseStudyBody({
         <CaseStudyHero
           className="sm:hidden"
           title={cs.title}
+          background={t(cs.background)}
           gallery={cs.gallery}
           backHref="/our-works"
           backLabel={t("Our Work")}
-          scrollLabel={t("Background")}
         />
       )}
 
@@ -118,7 +118,11 @@ export default function CaseStudyBody({
         </Container>
       </header>
 
-      <section id="case-study-read" className="scroll-mt-[var(--header-h)] py-16 sm:py-20">
+      {/* On phones the write-up already lives in the hero, so this repeat is
+          hidden there (visitors); desktop and edit mode keep it. */}
+      <section
+        className={`py-16 sm:py-20 ${editMode ? "" : "hidden sm:block"}`}
+      >
         <Container>
           <h2 className="font-display text-f6 uppercase tracking-wide text-gold">{t("Background")}</h2>
           <EditableText

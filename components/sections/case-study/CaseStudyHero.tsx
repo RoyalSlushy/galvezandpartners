@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import useFitText from "@/components/ui/useFitText";
+import { GlyphNumber } from "@/components/ui/Glyph";
 import { wixImage } from "@/lib/wix";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
@@ -15,36 +16,38 @@ const MAX_SLIDES = 8;
  * Mobile case-study masthead: a full-viewport hero (it fills the screen below
  * the pinned site header, so header + hero together own the first screen) over
  * a revolving slideshow of the study's own gallery frames — each crossfades to
- * the next while drifting (Ken Burns). The foreground is deliberately spare: the
- * back link and the case title sit top-left (left-aligned); a single "Background"
- * span sits bottom-left and scrolls down to the write-up.
+ * the next while drifting (Ken Burns). A giant, low-opacity glyph of the case's
+ * initial sits behind the copy (the uploaded letterform where one exists, the
+ * display font otherwise). The foreground is left-anchored: the back link and
+ * title sit top-left; the background write-up sits bottom-left, so the first
+ * screen already tells the story.
  *
  * Phones only (`sm:hidden`); tablet/desktop keep the classic article header. The
  * drift + auto-advance are stilled under `prefers-reduced-motion` (the first
  * frame simply holds). Shown to visitors only — edit mode keeps the plain,
- * editable header so admins can change the title.
+ * editable header + write-up so admins can change them.
  */
 export default function CaseStudyHero({
   title,
+  background,
   gallery,
   backHref,
   backLabel,
-  scrollLabel,
   className = "",
 }: {
   title: string;
+  background: string;
   gallery: string[];
   backHref: string;
   backLabel: string;
-  scrollLabel: string;
   className?: string;
 }) {
   const reduced = usePrefersReducedMotion();
-  // The title is fit to fill its box (the fitted size lives on the wrapper; the
-  // h1 inherits it — Tailwind preflight sets headings to font-size:inherit), so
-  // long client names shrink instead of overflowing.
+  // The title is fit to fill a fixed box (the fitted size lives on the wrapper;
+  // the h1 inherits it — Tailwind preflight sets headings to font-size:inherit),
+  // so long client names shrink instead of overflowing.
   const { ref: titleRef } = useFitText<HTMLDivElement>({
-    max: 62,
+    max: 58,
     min: 22,
     deps: [title],
   });
@@ -58,6 +61,8 @@ export default function CaseStudyHero({
     const id = setInterval(() => setActive((a) => (a + 1) % slides.length), SLIDE_MS);
     return () => clearInterval(id);
   }, [reduced, slides.length]);
+
+  const initial = (title.trim()[0] ?? "").toUpperCase();
 
   return (
     <section
@@ -85,11 +90,22 @@ export default function CaseStudyHero({
       {/* Legibility scrims tuned for left-anchored text: darkest down the left
           edge, with a top/bottom navy fade that seams the hero into the header
           above and the article below. */}
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/55 to-navy/15" />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/55 to-navy/20" />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-navy/70 via-transparent to-navy" />
 
-      {/* Foreground column. */}
-      <div className="relative z-10 flex h-full flex-col px-6 pb-7 pt-5">
+      {/* Giant, low-opacity initial (uploaded glyph where one exists, else the
+          display-font letter) bleeding off the right edge behind the copy. */}
+      {initial && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-[7vw] top-1/2 -translate-y-1/2 select-none font-display text-[66vh] leading-none text-white/[0.07]"
+        >
+          <GlyphNumber value={initial} tintClassName="bg-white/[0.07]" />
+        </span>
+      )}
+
+      {/* Foreground column — title top-left, write-up bottom-left. */}
+      <div className="relative z-10 flex h-full flex-col px-6 pb-8 pt-5">
         <div className="flex flex-col items-start gap-4 text-left">
           <Link
             href={backHref}
@@ -100,11 +116,10 @@ export default function CaseStudyHero({
           </Link>
           {/* Fixed-height box so the fit constrains both axes with slack (a tight
               line-height would otherwise overflow a content-hugging box and pin
-              the fit to its minimum). The h1 inherits the fitted size and flows
-              top-left. */}
+              the fit to its minimum). The h1 inherits the fitted size. */}
           <div
             ref={titleRef}
-            className="mt-1 h-[36vh] w-full overflow-hidden text-left text-f2"
+            className="mt-1 h-[30vh] w-full overflow-hidden text-left text-f2"
           >
             <h1 className="font-display lowercase leading-[0.92] text-white [text-wrap:balance]">
               {title}
@@ -112,16 +127,13 @@ export default function CaseStudyHero({
           </div>
         </div>
 
-        {/* The "Background" span — bottom-left, scrolls to the write-up. */}
-        <a
-          href="#case-study-read"
-          className="group mt-auto inline-flex items-center gap-3 self-start text-white/70 transition hover:text-gold"
-        >
-          <span className="font-heading text-[11px] uppercase tracking-[0.35em]">{scrollLabel}</span>
-          <span aria-hidden className="cs-scroll-cue text-lg leading-none">
-            ↓
-          </span>
-        </a>
+        {/* Background write-up, bottom-left. Its right edge is kept clear of the
+            floating nav icon (a w-12 / 3rem circle inset right-4 / 1rem — see
+            MobileMenu) via the right padding, and clamped so it can never
+            overrun the hero. */}
+        <p className="mt-auto max-w-md pr-14 font-body text-sm leading-relaxed text-white/85 line-clamp-6">
+          {background}
+        </p>
       </div>
     </section>
   );

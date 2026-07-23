@@ -513,8 +513,8 @@ body[data-gp-pinned-header] header {
 
 /* Case-study mobile masthead (CaseStudyHero): a revolving slideshow of the
    study's frames, each drifting (Ken Burns) in an alternating direction while
-   the active one crossfades in; the scroll cue bobs. All are stilled under
-   reduced motion below — the first frame then simply holds. */
+   the active one crossfades in. Stilled under reduced motion below — the first
+   frame then simply holds. */
 .cs-kenburns {
   animation: cs-kenburns 22s ease-in-out infinite alternate;
   will-change: transform;
@@ -537,20 +537,6 @@ body[data-gp-pinned-header] header {
   }
   to {
     transform: scale(1.05) translate(2%, -2.5%);
-  }
-}
-.cs-scroll-cue {
-  animation: cs-scroll-cue 1.8s ease-in-out infinite;
-}
-@keyframes cs-scroll-cue {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(4px);
-    opacity: 1;
   }
 }
 
@@ -593,11 +579,10 @@ body[data-gp-pinned-header] header {
     transform: none;
     opacity: 1;
   }
-  /* Case-study masthead: freeze the slideshow drift and the scroll cue (the
-     first frame holds; auto-advance is already suppressed in the component). */
+  /* Case-study masthead: freeze the slideshow drift (the first frame holds;
+     auto-advance is already suppressed in the component). */
   .cs-kenburns,
-  .cs-kenburns-alt,
-  .cs-scroll-cue {
+  .cs-kenburns-alt {
     animation: none !important;
   }
   .cs-scroll-cue {
