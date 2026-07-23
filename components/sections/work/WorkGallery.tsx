@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { XIcon } from "@/components/admin/icons";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -56,8 +58,25 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [matchAll, setMatchAll] = useState(false);
   const [sort, setSort] = useState<SortKey>("curated");
+  // Curated index of the piece open in the media overlay (null = closed).
+  const [lightbox, setLightbox] = useState<number | null>(null);
 
   const items = gallery.items;
+
+  // Media overlay chrome: lock the page scroll while open, close on Escape.
+  useEffect(() => {
+    if (lightbox === null) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [lightbox]);
 
   // Tag cloud: every tag in use, busiest first (ties alphabetical).
   const allTags = useMemo(() => {
@@ -258,19 +277,27 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     className="right-2 top-2"
                   />
                 )}
-                <EditableImage
-                  path={`work.gallery.items.${idx}.img`}
-                  raw={item.img}
-                  src={
-                    item.img
-                      ? item.img.startsWith("http")
-                        ? item.img
-                        : wixImageFit(item.img, 640, CROP_HEIGHTS[idx % CROP_HEIGHTS.length])
-                      : PLACEHOLDER_IMG
-                  }
-                  alt={item.title}
-                  className="w-full bg-navy-soft object-contain transition duration-500 group-hover:scale-105"
-                />
+                {/* Visitors press the media to open it in the overlay; edit
+                    mode leaves the click to EditableImage's picker. */}
+                <MaybePressable
+                  pressable={!editMode}
+                  label={`View ${item.title}`}
+                  onPress={() => setLightbox(idx)}
+                >
+                  <EditableImage
+                    path={`work.gallery.items.${idx}.img`}
+                    raw={item.img}
+                    src={
+                      item.img
+                        ? item.img.startsWith("http")
+                          ? item.img
+                          : wixImageFit(item.img, 640, CROP_HEIGHTS[idx % CROP_HEIGHTS.length])
+                        : PLACEHOLDER_IMG
+                    }
+                    alt={item.title}
+                    className="w-full bg-navy-soft object-contain transition duration-500 group-hover:scale-105"
+                  />
+                </MaybePressable>
                 {editMode ? (
                   <figcaption className="space-y-1 p-3">
                     <EditableText
@@ -300,7 +327,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                           type="button"
                           aria-pressed={selected.has(tag)}
                           onClick={() => toggleTag(tag)}
-                          className={`border px-2.5 py-0.5 font-din text-[11px] transition ${
+                          className={`border px-2.5 py-0.5 font-din text-[11px] uppercase tracking-wide transition ${
                             selected.has(tag)
                               ? "border-gold bg-gold text-navy"
                               : "border-white/25 text-white/75 hover:border-gold hover:text-gold"
@@ -333,6 +360,90 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </div>
         )}
       </Container>
+
+      {/* Media overlay: the pressed piece large (whole, uncropped), its title
+          + tags beneath, over a blurred navy backdrop. Closes on the X, the
+          backdrop, or Escape (see the effect above). */}
+      {lightbox !== null &&
+        items[lightbox] &&
+        createPortal(
+          <MediaOverlay item={items[lightbox]} onClose={() => setLightbox(null)} />,
+          document.body,
+        )}
     </section>
+  );
+}
+
+/** Wraps children in a press target when `pressable` (visitors), and renders
+ * them bare otherwise (edit mode, where clicks belong to the picker). */
+function MaybePressable({
+  pressable,
+  label,
+  onPress,
+  children,
+}: {
+  pressable: boolean;
+  label: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  if (!pressable) return <>{children}</>;
+  return (
+    <button type="button" aria-label={label} onClick={onPress} className="block w-full cursor-zoom-in">
+      {children}
+    </button>
+  );
+}
+
+/** Full-screen viewer for one gallery piece — image or video (with controls). */
+function MediaOverlay({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+  const video = isVideoUrl(item.img);
+  const src = item.img.startsWith("http") ? item.img : wixImageFit(item.img, 1600, 1600);
+  const tags = parseTags(item.tags);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.title}
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-navy/90 p-4 backdrop-blur-sm sm:p-10"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center border border-white/15 bg-navy/70 text-white/70 transition hover:border-gold hover:text-gold sm:right-6 sm:top-6"
+      >
+        <XIcon className="h-5 w-5" />
+      </button>
+      <figure className="pointer-events-none flex max-h-full w-full max-w-5xl flex-col items-center gap-4">
+        {video ? (
+          <video
+            src={src}
+            controls
+            autoPlay
+            playsInline
+            className="pointer-events-auto max-h-[80svh] max-w-full object-contain shadow-2xl shadow-black/50"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={item.title}
+            className="pointer-events-auto max-h-[80svh] max-w-full object-contain shadow-2xl shadow-black/50"
+          />
+        )}
+        <figcaption className="pointer-events-auto flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 text-center">
+          <span className="font-heading text-base text-white">{item.title}</span>
+          {tags.length > 0 && (
+            <span className="font-din text-[11px] uppercase tracking-[0.2em] text-gold/80">
+              {tags.join("  ·  ")}
+            </span>
+          )}
+        </figcaption>
+      </figure>
+    </div>
   );
 }

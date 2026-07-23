@@ -8,6 +8,7 @@ import FlagIcon from "./FlagIcon";
  * overkill). The button advertises the OTHER language, in that language —
  * "🇲🇽 En Español" while browsing English, "🇺🇸 In English" while browsing
  * Spanish — and a tap switches instantly (no reload) via the LocaleProvider.
+ * Phones truncate the label to the flag + short code ("ES" / "EN").
  */
 export default function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { locale, setLocale } = useLocale();
@@ -22,7 +23,8 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
       className={`flex items-center gap-2 py-1 font-heading text-base leading-none tracking-wide text-white/90 transition hover:text-gold ${className}`}
     >
       <FlagIcon code={next} />
-      <span>{next === "es" ? "En Español" : "In English"}</span>
+      <span className="hidden sm:inline">{next === "es" ? "En Español" : "In English"}</span>
+      <span className="sm:hidden">{next === "es" ? "ES" : "EN"}</span>
     </button>
   );
 }
