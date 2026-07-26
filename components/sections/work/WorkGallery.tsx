@@ -63,7 +63,7 @@ const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 // Height of the gold title band at the head of the section (px) — deep enough
 // to read as the wall's masthead once it has fully unrolled. Its slot is
 // reserved at the same height, so unrolling it never moves the wall below.
-const BAND_H = 96;
+const BAND_H = 114;
 
 /**
  * "#work-gallery" — the masonry wall after the cases: a vertically scrolling,
@@ -99,14 +99,24 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   // open from the start.
   const sectionRef = useRef<HTMLElement>(null);
   const bandRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLAnchorElement>(null);
   const reduced = usePrefersReducedMotion();
   useEffect(() => {
     const band = bandRef.current;
     const section = sectionRef.current;
+    const rail = railRef.current;
     if (!band || !section) return;
+    // The rail back to the cases only turns up once the wall is fully in — it
+    // has nothing to say while the section is still arriving.
+    const showRail = (on: boolean) => {
+      if (!rail) return;
+      rail.style.opacity = on ? "1" : "0";
+      rail.style.pointerEvents = on ? "auto" : "none";
+    };
     if (editMode || reduced) {
       band.style.height = `${BAND_H}px`;
-      band.style.setProperty("--band-open", "1");
+      section.style.setProperty("--band-open", "1");
+      showRail(true);
       return;
     }
     let raf = 0;
@@ -118,7 +128,8 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
       // has climbed to the top of it.
       const open = Math.max(0, Math.min(1, (window.innerHeight - top) / window.innerHeight));
       band.style.height = `${open * BAND_H}px`;
-      band.style.setProperty("--band-open", open.toFixed(3));
+      section.style.setProperty("--band-open", open.toFixed(3));
+      showRail(open >= 0.995);
     };
     const onScroll = () => {
       if (ticking) return;
@@ -133,7 +144,8 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       band.style.height = "";
-      band.style.removeProperty("--band-open");
+      section.style.removeProperty("--band-open");
+      showRail(false);
     };
   }, [editMode, reduced]);
 
@@ -216,11 +228,13 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           flow. */}
       <div className="pointer-events-none sticky top-1/2 z-20 h-0">
         <GutterRail
+          ref={railRef}
           href="#work-cases"
           title="Back to the cases"
           label={tv("cases")}
           icon={<CasesIcon className="h-5 w-5" />}
-          className="pointer-events-auto absolute -translate-y-1/2"
+          align="body"
+          className="absolute -translate-y-1/2 opacity-0 transition-opacity duration-300"
         />
       </div>
       <Container>
@@ -251,7 +265,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                 path="work.gallery.heading"
                 value={tv(gallery.heading)}
                 as="h2"
-                className="relative truncate font-display text-f6 lowercase leading-none text-navy sm:text-f5"
+                className="relative truncate font-display text-f6/[1] lowercase text-navy sm:text-f5/[1]"
               />
               {!editMode && (
                 <div className="relative ml-auto flex shrink-0 items-center gap-2 pl-2 sm:pl-3">
