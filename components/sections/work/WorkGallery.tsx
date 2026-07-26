@@ -221,22 +221,6 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
 
   return (
     <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
-      {/* The mirror of the cases' gallery rail: back up to the cases, in the
-          same handle on the left of the body column. Sticky (rather than pinned
-          to the section's middle like the cases' one) so it stays alongside the
-          wall for its whole length; the zero-height wrapper keeps it out of the
-          flow. */}
-      <div className="pointer-events-none sticky top-1/2 z-20 h-0">
-        <GutterRail
-          ref={railRef}
-          href="#work-cases"
-          title="Back to the cases"
-          label={tv("cases")}
-          icon={<CasesIcon className="h-5 w-5" />}
-          align="body"
-          className="absolute -translate-y-1/2 opacity-0 transition-opacity duration-300"
-        />
-      </div>
       <Container>
         {/* Section head: the gold line the cases' progress bar ends on, opening
             downward into the band that carries this section's title. Its slot is
@@ -252,7 +236,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             style={{ height: editMode ? BAND_H : 0 }}
           >
             <div
-              className="relative flex w-full items-end justify-between gap-3 px-4 pb-4 sm:gap-4 sm:px-7 sm:pb-5"
+              className="relative flex w-full items-end px-4 pb-4 sm:px-7 sm:pb-5"
               style={{
                 height: BAND_H,
                 // The title catches up once there is band to read it on, rather
@@ -261,99 +245,105 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
               }}
             >
               <CtaGrid scale={1.25} />
-              <EditableText
-                path="work.gallery.heading"
-                value={tv(gallery.heading)}
-                as="h2"
-                className="relative truncate font-display text-f6/[1] lowercase text-navy sm:text-f5/[1]"
-              />
-              {!editMode && (
-                <div className="relative ml-auto flex shrink-0 items-center gap-2 pl-2 sm:pl-3">
-                  <p className="hidden font-din text-sm uppercase tracking-[0.2em] text-navy/60 md:block">
-                    {visible.length} / {items.length}
-                  </p>
-                  {/* Search and sort share one slot: whichever is wanted is open
-                      and the other is its icon. Hovering (or tabbing to) the
-                      shut one swaps them, and it stays swapped so the cursor can
-                      travel into the field it just opened. */}
-                  <label
-                    className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
-                      pane === "search"
-                        ? "w-32 border-navy/30 bg-navy/10 sm:w-52"
-                        : `w-9 cursor-pointer ${query ? "border-navy bg-navy/20" : "border-navy/25"}`
-                    }`}
-                    onMouseEnter={() => setPane("search")}
-                    // Touch has no hover: a tap on the shut control opens it.
-                    onClick={() => setPane("search")}
-                  >
-                    <span className="sr-only">{tv("Search the gallery")}</span>
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={1.8}
-                      strokeLinecap="round"
-                      className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
-                      aria-hidden
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m21 21-4.3-4.3" />
-                    </svg>
-                    <input
-                      type="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onFocus={() => setPane("search")}
-                      placeholder={tv("search the wall…")}
-                      tabIndex={pane === "search" ? undefined : -1}
-                      className={`h-full w-full bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none placeholder:text-navy/45 sm:pr-3 sm:text-sm ${
-                        pane === "search" ? "" : "pointer-events-none opacity-0"
+              {/* Title and controls share one row, so they sit level with each
+                  other — centred against the title's line rather than each hung
+                  off its own bottom edge. The row as a whole rides the band's
+                  bottom, which is where the pair sat before. */}
+              <div className="relative flex w-full items-center justify-between gap-3 sm:gap-4">
+                <EditableText
+                  path="work.gallery.heading"
+                  value={tv(gallery.heading)}
+                  as="h2"
+                  className="truncate font-display text-f6/[1] lowercase text-navy sm:text-f5/[1]"
+                />
+                {!editMode && (
+                  <div className="ml-auto flex shrink-0 items-center gap-2 pl-2 sm:pl-3">
+                    <p className="hidden font-din text-sm uppercase tracking-[0.2em] text-navy/60 md:block">
+                      {visible.length} / {items.length}
+                    </p>
+                    {/* Search and sort share one slot: whichever is wanted is open
+                        and the other is its icon. Hovering (or tabbing to) the
+                        shut one swaps them, and it stays swapped so the cursor can
+                        travel into the field it just opened. */}
+                    <label
+                      className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                        pane === "search"
+                          ? "w-32 border-navy/30 bg-navy/10 sm:w-52"
+                          : `w-9 cursor-pointer ${query ? "border-navy bg-navy/20" : "border-navy/25"}`
                       }`}
-                    />
-                  </label>
-                  <div
-                    className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
-                      pane === "sort"
-                        ? "w-32 border-navy/30 bg-navy/10 sm:w-48"
-                        : `w-9 cursor-pointer ${sort === "curated" ? "border-navy/25" : "border-navy bg-navy/20"}`
-                    }`}
-                    onMouseEnter={() => setPane("sort")}
-                    onClick={() => setPane("sort")}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={1.8}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
-                      aria-hidden
+                      onMouseEnter={() => setPane("search")}
+                      // Touch has no hover: a tap on the shut control opens it.
+                      onClick={() => setPane("search")}
                     >
-                      <path d="M7 4v16m0 0-3-3.4M7 20l3-3.4M17 20V4m0 0-3 3.4M17 4l3 3.4" />
-                    </svg>
-                    <label className="sr-only" htmlFor="gallery-sort">
-                      {tv("sort")}
+                      <span className="sr-only">{tv("Search the gallery")}</span>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                        aria-hidden
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      <input
+                        type="search"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onFocus={() => setPane("search")}
+                        placeholder={tv("search the wall…")}
+                        tabIndex={pane === "search" ? undefined : -1}
+                        className={`h-full w-full bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none placeholder:text-navy/45 sm:pr-3 sm:text-sm ${
+                          pane === "search" ? "" : "pointer-events-none opacity-0"
+                        }`}
+                      />
                     </label>
-                    <select
-                      id="gallery-sort"
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value as SortKey)}
-                      onFocus={() => setPane("sort")}
-                      tabIndex={pane === "sort" ? undefined : -1}
-                      className={`h-full w-full cursor-pointer appearance-none bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none sm:pr-3 sm:text-sm ${
-                        pane === "sort" ? "" : "pointer-events-none opacity-0"
+                    <div
+                      className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                        pane === "sort"
+                          ? "w-32 border-navy/30 bg-navy/10 sm:w-48"
+                          : `w-9 cursor-pointer ${sort === "curated" ? "border-navy/25" : "border-navy bg-navy/20"}`
                       }`}
+                      onMouseEnter={() => setPane("sort")}
+                      onClick={() => setPane("sort")}
                     >
-                      {SORTS.map((s) => (
-                        <option key={s.key} value={s.key} className="bg-navy text-white">
-                          {tv(s.label)}
-                        </option>
-                      ))}
-                    </select>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                        aria-hidden
+                      >
+                        <path d="M7 4v16m0 0-3-3.4M7 20l3-3.4M17 20V4m0 0-3 3.4M17 4l3 3.4" />
+                      </svg>
+                      <label className="sr-only" htmlFor="gallery-sort">
+                        {tv("sort")}
+                      </label>
+                      <select
+                        id="gallery-sort"
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as SortKey)}
+                        onFocus={() => setPane("sort")}
+                        tabIndex={pane === "sort" ? undefined : -1}
+                        className={`h-full w-full cursor-pointer appearance-none bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none sm:pr-3 sm:text-sm ${
+                          pane === "sort" ? "" : "pointer-events-none opacity-0"
+                        }`}
+                      >
+                        {SORTS.map((s) => (
+                          <option key={s.key} value={s.key} className="bg-navy text-white">
+                            {tv(s.label)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -431,9 +421,31 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </div>
         )}
 
+      </Container>
+
+      {/* The mirror of the cases' gallery rail: back up to the cases, just left
+          of the body column. It starts level with the top of the wall and then
+          sticks a little below the viewport's top edge for the wall's length, so
+          it is alongside the grid rather than floating over the head above it.
+          The zero-height wrapper keeps it out of the flow; the section (not the
+          site column) is its containing block, so the rail's own left offset —
+          measured from the viewport — still lands in the gutter. */}
+      <div className="pointer-events-none sticky top-6 z-20 mt-10 h-0">
+        <GutterRail
+          ref={railRef}
+          href="#work-cases"
+          title="Back to the cases"
+          label={tv("cases")}
+          icon={<CasesIcon className="h-5 w-5" />}
+          align="body"
+          className="absolute opacity-0 transition-opacity duration-300"
+        />
+      </div>
+
+      <Container>
         {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
         {visible.length > 0 ? (
-          <div className="mt-10 columns-2 gap-4 sm:columns-3 lg:columns-4">
+          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
             {visible.map(({ item, idx }) => (
               <figure
                 key={idx}
@@ -500,7 +512,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             ))}
           </div>
         ) : (
-          <div className="mt-16 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
+          <div className="mt-6 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
             <p className="font-display text-f6 lowercase text-white/80">{tv("nothing on the wall")}</p>
             <p className="max-w-sm font-body text-sm text-white/50">
               {tv("No images match that search and tag combination.")}

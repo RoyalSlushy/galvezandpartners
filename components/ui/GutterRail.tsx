@@ -2,13 +2,13 @@ import { forwardRef, type ReactNode } from "react";
 
 // Body left edge = the outer gutter plus the column's 2rem padding. "handle"
 // centres the rail in the space left of it (half that, less half the icon's
-// 3rem width); "body" tucks it against the column, an icon's width plus a
-// hair's breadth to its left. Both clamp to the viewport edge on narrow screens
+// 3rem width); "body" sets it just left of the column — an icon's width plus a
+// small gap. Both clamp to the viewport edge on narrow screens
 // where the handle runs out.
 const BODY_LEFT = "((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem)";
 const LEFT = {
   handle: `max(0.25rem, calc(${BODY_LEFT} / 2 - 1.5rem))`,
-  body: `max(0.25rem, calc(${BODY_LEFT} - 3.5rem))`,
+  body: `max(0.25rem, calc(${BODY_LEFT} - 4.25rem))`,
 };
 
 /**
