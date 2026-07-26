@@ -20,8 +20,8 @@ const MIN_SHOW_MS = 1000;
  * revealed fully painted — no images popping in one by one across the first
  * screen. The header is never covered: the veil is absolutely positioned inside
  * the content wrapper that holds <main> and the footer, so the masthead stays
- * visible whenever it is in view, and the spinner sticks to the viewport center
- * of whatever slice of the veil is on screen.
+ * visible whenever it is in view, while the mark it breathes holds the centre of
+ * the viewport itself.
  *
  * Rendered in the root layout. The veil ships in the server HTML already
  * covering the content (the spinner's delayed fade-in and spin are pure CSS, so
@@ -261,9 +261,12 @@ export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
             }
       }
     >
-      {/* The veil spans the whole content column, so the spinner sticks to the
-          viewport rather than sitting at the top of a very tall page. */}
-      <div className="sticky top-0 flex h-screen items-center justify-center">
+      {/* The mark centres on the viewport, not on the veil: the veil starts
+          below the masthead (and runs the length of the page), so centring
+          inside it would sit the mark half a header low. Fixed, so it holds the
+          middle of the screen at any scroll position — what is *veiled* is
+          still only the content around it. */}
+      <div className="pointer-events-none fixed inset-0 flex items-center justify-center">
         {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash
             it; the brand favicon gently "breathes" while loading. */}
         <span className="gp-veil-spinner">
