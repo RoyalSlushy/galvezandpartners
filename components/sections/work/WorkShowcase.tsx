@@ -30,6 +30,11 @@ const CARD_FIT =
 const END_CARD_FIT =
   "h-full w-auto shrink-0 sm:h-auto sm:w-[min(30vw,34vh)] sm:max-w-[420px] md:w-[min(24vw,34vh)]";
 
+// The pinned column stops this far above the viewport's bottom edge, so the
+// progress line it ends on stays readable and the strip below it belongs to the
+// gallery section, whose band unrolls straight off the line.
+const BAND_LEAD = 32; // px
+
 /**
  * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
  * the first paint match the wide layout, correcting on mount for narrow screens.
@@ -802,15 +807,17 @@ export default function WorkShowcase({
       {/* Pinned below the sticky site header (top = --header-h) and sized to the
           remaining viewport, so the header and this content together fill the
           screen with nothing cut off. The header slides away as the section
-          ends (see the effect). */}
+          ends (see the effect).
+          It stops BAND_LEAD short of the viewport's bottom edge, and the
+          progress line sits flush on that edge with no padding under it: the
+          line is the section's last pixel, and the strip it leaves belongs to
+          the gallery section below, whose band opens directly off it. */}
       <div
         ref={stickyRef}
         className="sticky top-[var(--header-h)] overflow-hidden"
-        style={{ height: "calc(100svh - var(--header-h))" }}
+        style={{ height: `calc(100svh - var(--header-h) - ${BAND_LEAD}px)` }}
       >
-        {/* The progress line keeps a little room under it — flush with the
-            viewport's bottom edge it could not be read at all. */}
-        <div className="flex h-full flex-col justify-center pt-2 pb-8">
+        <div className="flex h-full flex-col justify-center pt-2">
           <GalleryRail label={tv("gallery")} />
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
