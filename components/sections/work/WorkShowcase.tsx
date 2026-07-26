@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
+import GutterRail from "@/components/ui/GutterRail";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
@@ -752,6 +753,7 @@ export default function WorkShowcase({
     return (
       <section
         key="ws-static"
+        id="work-cases"
         className={`relative w-full overflow-hidden bg-navy ${
           editMode
             ? "py-16 sm:py-20"
@@ -803,7 +805,7 @@ export default function WorkShowcase({
   }
 
   return (
-    <section key="ws-pinned" ref={sectionRef} className="relative w-full bg-navy">
+    <section key="ws-pinned" id="work-cases" ref={sectionRef} className="relative w-full bg-navy">
       {/* Pinned below the sticky site header (top = --header-h) and sized to the
           remaining viewport, so the header and this content together fill the
           screen with nothing cut off. The header slides away as the section
@@ -1118,36 +1120,17 @@ function ShowcaseHeading({
   );
 }
 
-/**
- * Rail centered in the "handle" — the gutter to the left of the site column
- * (which is where the widest case is anchored). A masonry-grid icon plus a
- * vertical label that jump to the #work-gallery wall. Horizontally centered in
- * the space between the viewport edge and the body's left edge; clamped to the
- * viewport edge on narrow screens where the handle runs out.
- */
+/** The cases' rail down to the gallery wall (the wall carries the mirror of it
+ * back up — see WorkGallery). */
 function GalleryRail({ label }: { label: string }) {
   return (
-    <a
+    <GutterRail
       href="#work-gallery"
-      aria-label="Jump to the gallery"
-      // Body left edge = outer gutter + the column's 2rem padding; centre of the
-      // handle is half that, minus half the icon's width (1.5rem).
-      style={{
-        left: "max(0.25rem, calc(((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem) / 2 - 1.5rem))",
-      }}
-      className="group absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3"
-    >
-      <span className="flex h-11 w-11 items-center justify-center border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
-        <MasonryIcon className="h-5 w-5" />
-      </span>
-      <span
-        aria-hidden
-        className="hidden font-heading text-[11px] uppercase tracking-[0.3em] text-white/50 transition group-hover:text-gold sm:block"
-        style={{ writingMode: "vertical-rl" }}
-      >
-        {label}
-      </span>
-    </a>
+      title="Jump to the gallery"
+      label={label}
+      icon={<MasonryIcon className="h-5 w-5" />}
+      className="absolute top-1/2 -translate-y-1/2"
+    />
   );
 }
 

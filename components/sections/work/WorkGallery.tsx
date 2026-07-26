@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Container from "@/components/ui/Container";
 import CtaGrid from "@/components/sections/home/CtaGrid";
+import GutterRail from "@/components/ui/GutterRail";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
@@ -26,6 +27,25 @@ const SORTS: { key: SortKey; label: string }[] = [
   { key: "za", label: "title z → a" },
 ];
 
+/** Stacked cards, for the rail back up to the case studies. */
+function CasesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="7" width="13" height="14" rx="1.5" />
+      <path d="M7 4h11a2 2 0 0 1 2 2v11" />
+    </svg>
+  );
+}
+
 /** Split a comma-separated tag string into clean lowercase tags. */
 function parseTags(tags: string): string[] {
   return tags
@@ -40,9 +60,10 @@ function parseTags(tags: string): string[] {
 // the varied bounds plus real aspect ratios give the masonry its rhythm.
 const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 
-// Height of the gold title band at the head of the section (px). Its slot is
+// Height of the gold title band at the head of the section (px) — deep enough
+// to read as the wall's masthead once it has fully unrolled. Its slot is
 // reserved at the same height, so unrolling it never moves the wall below.
-const BAND_H = 64;
+const BAND_H = 96;
 
 /**
  * "#work-gallery" — the masonry wall after the cases: a vertically scrolling,
@@ -188,6 +209,20 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
 
   return (
     <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
+      {/* The mirror of the cases' gallery rail: back up to the cases, in the
+          same handle on the left of the body column. Sticky (rather than pinned
+          to the section's middle like the cases' one) so it stays alongside the
+          wall for its whole length; the zero-height wrapper keeps it out of the
+          flow. */}
+      <div className="pointer-events-none sticky top-1/2 z-20 h-0">
+        <GutterRail
+          href="#work-cases"
+          title="Back to the cases"
+          label={tv("cases")}
+          icon={<CasesIcon className="h-5 w-5" />}
+          className="pointer-events-auto absolute -translate-y-1/2"
+        />
+      </div>
       <Container>
         {/* Section head: the gold line the cases' progress bar ends on, opening
             downward into the band that carries this section's title. Its slot is
@@ -203,7 +238,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             style={{ height: editMode ? BAND_H : 0 }}
           >
             <div
-              className="relative flex w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-7"
+              className="relative flex w-full items-end justify-between gap-3 px-4 pb-4 sm:gap-4 sm:px-7 sm:pb-5"
               style={{
                 height: BAND_H,
                 // The title catches up once there is band to read it on, rather
