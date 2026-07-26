@@ -72,7 +72,6 @@ export default async function RootLayout({
         <noscript>
           <style>{`[data-gp-veil]{display:none}`}</style>
         </noscript>
-        <PageReveal />
         <ScrollToTopOnHome />
         <LocaleProvider>
           <AdminProvider>
@@ -83,14 +82,20 @@ export default async function RootLayout({
                 tagline={site.tagline}
                 headerImage={site.headerImage}
               />
-              <main className="flex-1">{children}</main>
-              <Footer
-                nav={site.nav}
-                socials={site.socials}
-                contact={site.contact}
-                footer={site.footer}
-                tagline={site.tagline}
-              />
+              {/* The load veil covers the body content only — it lives inside
+                  this wrapper (below the header in the DOM and in geometry), so
+                  the masthead is never hidden while a page loads. */}
+              <div className="relative flex flex-1 flex-col">
+                <PageReveal />
+                <main className="flex-1">{children}</main>
+                <Footer
+                  nav={site.nav}
+                  socials={site.socials}
+                  contact={site.contact}
+                  footer={site.footer}
+                  tagline={site.tagline}
+                />
+              </div>
             </GlyphProvider>
           </AdminProvider>
         </LocaleProvider>

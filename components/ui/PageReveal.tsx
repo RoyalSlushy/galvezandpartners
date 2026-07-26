@@ -15,12 +15,16 @@ const MAX_WAIT_MS = 4000;
 const MIN_SHOW_MS = 750;
 
 /**
- * Full-viewport veil over the page while the assets inside the first viewport
- * finish loading, so a page is only ever revealed fully painted — no images
- * popping in one by one across the first screen.
+ * Veil over the page's body content (everything below the masthead) while the
+ * assets inside the first viewport finish loading, so a page is only ever
+ * revealed fully painted — no images popping in one by one across the first
+ * screen. The header is never covered: the veil is absolutely positioned inside
+ * the content wrapper that holds <main> and the footer, so the masthead stays
+ * visible whenever it is in view, and the spinner sticks to the viewport center
+ * of whatever slice of the veil is on screen.
  *
  * Rendered in the root layout. The veil ships in the server HTML already
- * covering the page (the spinner's delayed fade-in and spin are pure CSS, so
+ * covering the content (the spinner's delayed fade-in and spin are pure CSS, so
  * it works before hydration too); once mounted, the effect below waits for
  * every in-viewport <img> (swept repeatedly, so images mounted late by
  * client-only effects are caught) plus the webfonts, then fades the veil out.
@@ -100,16 +104,20 @@ export default function PageReveal() {
     <div
       aria-hidden
       data-gp-veil
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-navy transition-opacity duration-500 ${
+      className={`absolute inset-0 z-[100] bg-navy transition-opacity duration-500 ${
         veiled ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
-      {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash it;
-          the brand favicon gently "breathes" (scale + opacity) while loading. */}
-      <span className="gp-veil-spinner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/favicon.svg" alt="" className="gp-veil-breathe h-16 w-16" />
-      </span>
+      {/* The veil spans the whole content column, so the spinner sticks to the
+          viewport rather than sitting at the top of a very tall page. */}
+      <div className="sticky top-0 flex h-screen items-center justify-center">
+        {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash
+            it; the brand favicon gently "breathes" while loading. */}
+        <span className="gp-veil-spinner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/favicon.svg" alt="" className="gp-veil-breathe h-16 w-16" />
+        </span>
+      </div>
     </div>
   );
 }
