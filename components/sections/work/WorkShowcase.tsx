@@ -808,9 +808,9 @@ export default function WorkShowcase({
         className="sticky top-[var(--header-h)] overflow-hidden"
         style={{ height: "calc(100svh - var(--header-h))" }}
       >
-        {/* No bottom padding: the progress line rides the section's bottom
-            edge, where the gallery band below picks it straight up. */}
-        <div className="flex h-full flex-col justify-center pt-2">
+        {/* The progress line keeps a little room under it — flush with the
+            viewport's bottom edge it could not be read at all. */}
+        <div className="flex h-full flex-col justify-center pt-2 pb-8">
           <GalleryRail label={tv("gallery")} />
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />

@@ -187,7 +187,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const filtersActive = query.trim() !== "" || selected.size > 0;
 
   return (
-    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
+    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pt-8 pb-20 sm:pt-10 sm:pb-24">
       <Container>
         {/* Section head: the gold line the cases' progress bar ends on, opening
             downward into the band that carries this section's title. Its slot is
