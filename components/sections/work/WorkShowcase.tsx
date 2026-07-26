@@ -363,6 +363,8 @@ export default function WorkShowcase({
       if (i !== active) {
         e.preventDefault();
         e.stopPropagation();
+        // ...so the page transition must call off the push it just started.
+        window.dispatchEvent(new Event("gp:nav-cancel"));
         easeToA(i);
       }
     };
@@ -438,6 +440,9 @@ export default function WorkShowcase({
       mouseDragged = false;
       e.preventDefault();
       e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
     };
     // Native image drag would hijack the gesture mid-pull.
     const onDragStart = (e: Event) => e.preventDefault();
@@ -530,6 +535,9 @@ export default function WorkShowcase({
       dragged = false;
       e.preventDefault();
       e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
     };
     const onDragStart = (e: Event) => e.preventDefault();
     scroller.addEventListener("pointerdown", onDown);

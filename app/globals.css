@@ -503,9 +503,42 @@ body[data-gp-pinned-header] header {
     opacity: 1;
   }
 }
+/* The mark breathes at 2.4s for two pulses, then draws the breath out over the
+   next three (3.2s, 4.0s, 4.8s) until each one takes twice as long as it did at
+   the start, and holds there — a wait that visibly settles rather than ticking.
+   CSS can't ramp a duration, so the five ramp pulses are laid out along one
+   16.8s pass (percentages below are each pulse's start and peak on that
+   timeline); the steady 4.8s loop starts as it ends, and being later in the
+   animation list it takes over the moment it does. */
 .gp-veil-breathe {
-  animation: gp-veil-breathe 2.4s ease-in-out infinite;
+  animation:
+    gp-veil-breathe-ramp 16.8s ease-in-out forwards,
+    gp-veil-breathe 4.8s ease-in-out 16.8s infinite;
   will-change: transform, opacity;
+}
+@keyframes gp-veil-breathe-ramp {
+  /* pulse 1 — 2.4s */
+  0%,
+  14.286%,
+  /* pulse 2 — 2.4s */
+  28.571%,
+  /* pulse 3 — 3.2s */
+  47.619%,
+  /* pulse 4 — 4.0s */
+  71.429%,
+  /* pulse 5 — 4.8s */
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  7.143%,
+  21.429%,
+  38.095%,
+  59.524%,
+  85.714% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
 }
 @keyframes gp-veil-breathe {
   0%,
