@@ -656,6 +656,34 @@ html[data-gp-case-snap] {
   }
 }
 
+/* Team profile card pop-up: the backdrop fades in and the polaroid card pops
+   with a springy overshoot, settling on a -1deg resting tilt. Both run once on
+   mount — closing unmounts the modal, so there is no exit animation. */
+.gp-fade-in {
+  animation: gp-fade-in 250ms ease-out both;
+}
+@keyframes gp-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.gp-card-pop {
+  animation: gp-card-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes gp-card-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) rotate(4deg) translateY(24px);
+  }
+  70% {
+    transform: scale(1.02) rotate(-2deg) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-1deg) translateY(0);
+  }
+}
+
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
    the 1200px site width kicks in, then center. .gallery-scroll mirrors the
    same inset as scroll-padding so snap points don't swallow the gutter. */
@@ -719,6 +747,14 @@ html[data-gp-case-snap] {
     animation: none !important;
     transform: none;
     opacity: 0.25;
+  }
+  /* Team profile card: appears in place, untilted. */
+  .gp-fade-in,
+  .gp-card-pop {
+    animation: none !important;
+  }
+  .gp-card-pop {
+    transform: none;
   }
 }
 

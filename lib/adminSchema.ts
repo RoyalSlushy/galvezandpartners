@@ -14,7 +14,18 @@ export function normalizePath(path: string): string {
 /** Templates for "+ add" on each editable list. Placeholder copy is visible on
  * purpose so freshly added items can be clicked and edited in place. */
 const LIST_TEMPLATES: Record<string, () => unknown> = {
-  "team.members": () => ({ name: "New Member", role: "Role", photo: "", socials: [] }),
+  "team.members": () => ({
+    name: "New Member",
+    role: "Role",
+    photo: "",
+    socials: [],
+    emoji: "😀",
+    superpower: "Add a superpower…",
+    fuel: "Add a fuel of choice…",
+    obsession: "Add an obsession…",
+    hiddenTalent: "Add a hidden talent…",
+    motto: "Add a motto…",
+  }),
   "team.members.*.socials": () => ({ label: "Instagram", href: "", icon: "instagram" }),
   "home.services": () => ({ title: "New Service", description: "Describe this service.", media: "" }),
   "home.multicultural.cards": () => ({ title: "new card", body: "Card copy goes here." }),
@@ -85,6 +96,12 @@ const FIELD_LABELS: Record<string, string> = {
   "team.members.*.name": "name",
   "team.members.*.role": "role",
   "team.members.*.photo": "photo",
+  "team.members.*.emoji": "favorite emoji",
+  "team.members.*.superpower": "superpower",
+  "team.members.*.fuel": "fuel of choice",
+  "team.members.*.obsession": "currently obsessed with",
+  "team.members.*.hiddenTalent": "hidden talent",
+  "team.members.*.motto": "motto",
   "work.heading": "heading",
   "work.items.*.title": "work title",
   "work.items.*.img": "work image",

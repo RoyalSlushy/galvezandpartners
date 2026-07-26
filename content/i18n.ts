@@ -122,6 +122,85 @@ const ES: Record<string, string> = {
   "Video Content Creator": "Creador de Contenido de Video",
   "Digital Marketing": "Marketing Digital",
 
+  // --- Team profile cards: chrome + field labels ---
+  "Meet me": "Conóceme",
+  Close: "Cerrar",
+  Superpower: "Superpoder",
+  "Fuel of choice": "Combustible de cabecera",
+  "Currently obsessed with": "Obsesión del momento",
+  "Hidden talent": "Talento oculto",
+
+  // --- Team profile cards: default values (admin-edited values fall through
+  //     untranslated, same as roles) ---
+  "Seeing the story before anyone else does": "Ve la historia antes que nadie",
+  "Black coffee, no sugar": "Café negro, sin azúcar",
+  "Brands with something to say": "Marcas con algo que decir",
+  "Closes deals in two languages mid-sentence":
+    "Cierra tratos en dos idiomas a media frase",
+  "Every brand has a story worth telling.":
+    "Toda marca tiene una historia que vale la pena contar.",
+  "Turning spreadsheets into strategy": "Convierte hojas de cálculo en estrategia",
+  "Cold brew by the liter": "Cold brew por litro",
+  "Campaigns that make the numbers dance": "Campañas que hacen bailar los números",
+  "Remembers every client's birthday": "Recuerda el cumpleaños de cada cliente",
+  "Good marketing is a good story on schedule.":
+    "El buen marketing es una buena historia a tiempo.",
+  "Reading the algorithm's mind": "Le lee la mente al algoritmo",
+  "Iced horchata latte": "Latte de horchata con hielo",
+  "Micro-trends that peak on a Tuesday": "Microtendencias que explotan un martes",
+  "Types a caption faster than autocorrect can ruin it":
+    "Escribe un pie de foto más rápido de lo que el autocorrector lo arruina",
+  "Post it like you mean it.": "Publícalo con toda la intención.",
+  "Making comment sections feel like family":
+    "Hace que los comentarios se sientan como familia",
+  "Matcha with extra foam": "Matcha con espuma extra",
+  "The perfect story sticker placement": "El sticker perfecto en la story",
+  "Spots a typo from across the room": "Detecta un error de dedo desde lejos",
+  "Community first, content always.": "Primero la comunidad, siempre el contenido.",
+  "Kerning injustices, corrected on sight":
+    "Corrige injusticias de kerning a primera vista",
+  "Café de olla, extra cinnamon": "Café de olla, con canela extra",
+  "Grids nobody notices but everybody feels":
+    "Retículas que nadie nota pero todos sienten",
+  "Names the font on any billboard in seconds":
+    "Nombra la fuente de cualquier espectacular en segundos",
+  "Design is storytelling you can see.": "El diseño es una historia que se ve.",
+  "Sketching the big idea on a napkin": "Boceta la gran idea en una servilleta",
+  "Espresso, doubled": "Espresso, doble",
+  "Color palettes hiding in old movie posters":
+    "Paletas de color escondidas en carteles de cine viejos",
+  "Draws a perfect circle freehand": "Dibuja un círculo perfecto a mano alzada",
+  "Make it bold or make it again.": "Hazlo audaz o hazlo de nuevo.",
+  "Herding a whole shoot with one clipboard":
+    "Dirige todo un rodaje con una sola tabla de apuntes",
+  "Vanilla oat-milk latte": "Latte de avena con vainilla",
+  "Call sheets that actually run on time":
+    "Planes de rodaje que de verdad salen a tiempo",
+  "Packs a production van like a Tetris champion":
+    "Carga la van de producción como campeona de Tetris",
+  "Plan the magic, then let it happen.": "Planea la magia y deja que suceda.",
+  "Finding the golden hour at any hour": "Encuentra la hora dorada a cualquier hora",
+  "Chai, extra spicy": "Chai, extra especiado",
+  "B-roll nobody asked for but everybody loves":
+    "B-roll que nadie pidió pero todos aman",
+  "Steady hands — no gimbal required": "Pulso firme, sin necesidad de gimbal",
+  "Every frame earns its place.": "Cada cuadro se gana su lugar.",
+  "Cutting a scroll-stopper before lunch":
+    "Edita un video que detiene el scroll antes de comer",
+  "Agua de jamaica, ice cold": "Agua de jamaica, bien fría",
+  "Transitions smoother than the song's drop":
+    "Transiciones más suaves que el drop de la canción",
+  "Quotes every line of his favorite movies":
+    "Cita cada línea de sus películas favoritas",
+  "If it doesn't hook in three seconds, cut again.":
+    "Si no engancha en tres segundos, edita otra vez.",
+  "Squeezing ROI out of every last click": "Le exprime ROI hasta al último clic",
+  "Green tea and analytics dashboards": "Té verde y tableros de analítica",
+  "A/B tests with a plot twist": "Pruebas A/B con giro inesperado",
+  "Explains attribution at a family dinner":
+    "Explica la atribución en la cena familiar",
+  "Data tells you where the story lands.": "Los datos te dicen dónde aterriza la historia.",
+
   // --- Work index ---
   "our work speaks for itself": "nuestro trabajo habla por sí mismo",
 
