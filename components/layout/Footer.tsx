@@ -10,6 +10,74 @@ import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 
+// The site's designer, linked from the credit line to their portfolio. Matched
+// case-insensitively inside the CMS credit text, so admins can reword the line
+// around the name without losing the link.
+const DESIGNER = "Adrian Chavez";
+const DESIGNER_URL = "https://adriven.design";
+
+// What the footer map searches for: the business listing, so the pin carries the
+// company name instead of a bare street number.
+const MAP_PLACE = "Galvez and Partners Advertising and Marketing";
+
+/**
+ * Google's embed only ships its stock light palette, so the map is recolored
+ * from the outside in two stages.
+ *
+ * 1. This filter on the iframe. `invert` flips the near-white land to near-black
+ *    and Google's marker red (#ea4335) to a cyan; the hue rotation then carries
+ *    that cyan around to the brand gold's hue (~36°) — so every red accent on
+ *    the map lands on the accent yellow — while the land, being neutral, is
+ *    unmoved by it and stays a dark gray for stage 2.
+ * 2. Two blend layers over the iframe (see <MapTint>) push those darks and grays
+ *    into navy: a `screen` pass lifts the near-black land onto the navy, and a
+ *    partial `color` pass pulls the remaining neutrals to the navy's hue. Both
+ *    leave the saturated gold accents standing.
+ */
+const MAP_FILTER = "invert(0.92) hue-rotate(220deg) saturate(1.08) brightness(0.96) contrast(1.05)";
+
+/** Frames the map embed and lays the navy blend passes over it (see MAP_FILTER).
+ * `isolate` keeps the blending inside this box, and the layers are click-through
+ * so the map underneath stays draggable. */
+function MapTint({ className = "", children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`relative isolate overflow-hidden border border-white/10 ${className}`}>
+      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "rgb(var(--c-navy))", mixBlendMode: "screen", opacity: 0.5 }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "rgb(var(--c-navy))", mixBlendMode: "color", opacity: 0.3 }}
+      />
+    </div>
+  );
+}
+
+/** The footer credit with the designer's name linked to their site. Renders the
+ * credit unchanged when the name isn't part of it. */
+function CreditLine({ credit }: { credit: string }) {
+  const at = credit.toLowerCase().indexOf(DESIGNER.toLowerCase());
+  if (at < 0) return <span>{credit}</span>;
+  return (
+    <span>
+      {credit.slice(0, at)}
+      <a
+        href={DESIGNER_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="text-white/70 underline underline-offset-4 transition hover:text-gold"
+      >
+        {credit.slice(at, at + DESIGNER.length)}
+      </a>
+      {credit.slice(at + DESIGNER.length)}
+    </span>
+  );
+}
+
 /** Site footer: tagline, contact, menu, socials, credit line, and a discrete
  * gear icon that unlocks the in-page CMS. */
 export default function Footer({
@@ -34,9 +102,11 @@ export default function Footer({
   const t = useT();
 
   const menu: NavItem[] = [...nav, { label: "Connect With Us", href: "/contact-us" }];
-  // Map query follows the CMS address ("734 W Polk St, Phoenix, AZ 85007" by
-  // default), so an address edit re-aims the embed too.
-  const mapQuery = contact.addressLines.join(", ");
+  // The map is aimed at the business listing rather than the street number, so
+  // the embed (and the directions link) label the pin with the company name.
+  // Everything after the street line — the city/state/zip in the CMS address —
+  // still qualifies the search, so an address edit re-aims the map too.
+  const mapQuery = [MAP_PLACE, ...contact.addressLines.slice(1)].join(", ");
   return (
     // Extra bottom padding on mobile clears the floating bottom nav (h-16) so
     // the credit line and admin gear are never hidden behind it.
@@ -81,22 +151,19 @@ export default function Footer({
             lineClassName={() => "block"}
             label="address"
           />
-          {/* Office map, aimed at the address above. The keyless Google embed
-              geocodes the query itself; the invert/hue filter re-tints the map
-              into the site's navy so it doesn't glare in the dark footer. */}
-          <div className="mt-5 overflow-hidden border border-white/10">
+          {/* Office map, aimed at the listing above. The keyless Google embed
+              geocodes the query itself, and the treatment below re-tints its
+              stock palette into the site's — see <MapTint>. */}
+          <MapTint className="mt-5 h-44">
             <iframe
               title={t("Map to our office")}
               src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              className="block h-44 w-full"
-              style={{
-                border: 0,
-                filter: "invert(0.88) hue-rotate(185deg) saturate(0.55) brightness(0.95)",
-              }}
+              className="block h-full w-full"
+              style={{ border: 0, filter: MAP_FILTER }}
             />
-          </div>
+          </MapTint>
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
             target="_blank"
@@ -134,7 +201,11 @@ export default function Footer({
       <Container className="mt-14 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-sm text-white/50 sm:flex-row">
         <EditableText path="site.footer.copyright" value={footer.copyright} as="span" />
         <div className="flex items-center gap-4">
-          <EditableText path="site.footer.credit" value={footer.credit} as="span" />
+          {editMode ? (
+            <EditableText path="site.footer.credit" value={footer.credit} as="span" />
+          ) : (
+            <CreditLine credit={footer.credit} />
+          )}
           <AdminGearButton />
         </div>
       </Container>

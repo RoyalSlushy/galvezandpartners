@@ -478,16 +478,77 @@ body[data-gp-pinned-header] header {
     opacity: 0;
   }
 }
+/* The halo beats at 3s for two pulses, then draws out over the next three (4s,
+   5s, 6s) until a pulse takes twice as long as it did at the start, and holds
+   there — the word announces itself, then settles. CSS can't ramp a duration,
+   so the five ramping pulses are laid out along one pass (percentages below are
+   each pulse's start, its 1.6 scale, and the invisible hold that carries it to
+   the next); the steady 6s loop starts as that pass ends, and being later in the
+   animation list it takes over the moment it does. The second ring's pulses fall
+   midway between the first's throughout, so the pair ends up staggered by half
+   the steady period exactly as it began. */
+@keyframes halo-pulse-ramp {
+  0%,
+  14.2857%,
+  28.5714%,
+  47.619%,
+  71.4286% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  11.4286%,
+  14.2%,
+  25.7143%,
+  28.5%,
+  43.8095%,
+  47.5%,
+  66.6667%,
+  71.3%,
+  94.2857%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes halo-pulse-ramp-late {
+  6.25%,
+  18.75%,
+  33.3333%,
+  52.0833%,
+  75% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  0%,
+  6.2%,
+  16.25%,
+  18.7%,
+  30.4167%,
+  33.28%,
+  48.3333%,
+  52%,
+  70.4167%,
+  74.9%,
+  95%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
 .halo-ring {
   position: absolute;
   inset: -0.18em -0.35em;
   pointer-events: none;
   box-shadow: 0 0 0 2px rgb(var(--c-gold) / 0.55);
   background: radial-gradient(closest-side, rgb(var(--c-gold) / 0.14), transparent 78%);
-  animation: halo-pulse 3s ease-out infinite;
+  animation:
+    halo-pulse-ramp 21s ease-out forwards,
+    halo-pulse 6s ease-out 21s infinite;
 }
 .halo-ring-late {
-  animation-delay: 1.5s;
+  animation:
+    halo-pulse-ramp-late 24s ease-out forwards,
+    halo-pulse 6s ease-out 24s infinite;
 }
 
 /* Page-load veil (PageReveal in the layout): covers the page until the images

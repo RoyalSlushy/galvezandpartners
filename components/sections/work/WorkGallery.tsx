@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Container from "@/components/ui/Container";
-import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CtaGrid from "@/components/sections/home/CtaGrid";
+import GutterRail from "@/components/ui/GutterRail";
+import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
 import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -25,6 +27,25 @@ const SORTS: { key: SortKey; label: string }[] = [
   { key: "za", label: "title z → a" },
 ];
 
+/** Stacked cards, for the rail back up to the case studies. */
+function CasesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="7" width="13" height="14" rx="1.5" />
+      <path d="M7 4h11a2 2 0 0 1 2 2v11" />
+    </svg>
+  );
+}
+
 /** Split a comma-separated tag string into clean lowercase tags. */
 function parseTags(tags: string): string[] {
   return tags
@@ -39,12 +60,19 @@ function parseTags(tags: string): string[] {
 // the varied bounds plus real aspect ratios give the masonry its rhythm.
 const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 
+// Height of the gold title band at the head of the section (px) — deep enough
+// to read as the wall's masthead once it has fully unrolled. Its slot is
+// reserved at the same height, so unrolling it never moves the wall below.
+const BAND_H = 114;
+
 /**
  * "#work-gallery" — the masonry wall after the cases: a vertically scrolling,
- * CMS-managed image grid with search, sort, and a tag-chip filter system
- * (chips also live on each card's hover overlay, so any tag is one click from
- * becoming a filter). Edit mode swaps the filter bar for inline editing of
- * every image, title, and tag list.
+ * CMS-managed image grid with search, sort, and a tag-chip filter system. The
+ * section is headed by a gold band — the far end of the progress line the cases
+ * above run on — that unrolls as the wall climbs into frame, carrying the
+ * section title over an inset letter grid. Hovering a piece names it; its tags
+ * are filters, and live only in the bar above. Edit mode swaps that bar for
+ * inline editing of every image, title, and tag list.
  */
 export default function WorkGallery({ gallery: serverGallery }: { gallery: GalleryContent }) {
   const gallery = useCmsValue("work.gallery", serverGallery);
@@ -58,10 +86,68 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [matchAll, setMatchAll] = useState(false);
   const [sort, setSort] = useState<SortKey>("curated");
+  // Which of the band's two controls is open; the other shows as its icon.
+  const [pane, setPane] = useState<"sort" | "search">("sort");
   // Curated index of the piece open in the media overlay (null = closed).
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   const items = gallery.items;
+
+  // The title band unrolls as this section climbs into frame — picking up where
+  // the cases' progress line finished, which completes exactly as the wall's top
+  // edge reaches the top of the viewport. Edit mode and reduced motion get it
+  // open from the start.
+  const sectionRef = useRef<HTMLElement>(null);
+  const bandRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLAnchorElement>(null);
+  const reduced = usePrefersReducedMotion();
+  useEffect(() => {
+    const band = bandRef.current;
+    const section = sectionRef.current;
+    const rail = railRef.current;
+    if (!band || !section) return;
+    // The rail back to the cases only turns up once the wall is fully in — it
+    // has nothing to say while the section is still arriving.
+    const showRail = (on: boolean) => {
+      if (!rail) return;
+      rail.style.opacity = on ? "1" : "0";
+      rail.style.pointerEvents = on ? "auto" : "none";
+    };
+    if (editMode || reduced) {
+      band.style.height = `${BAND_H}px`;
+      section.style.setProperty("--band-open", "1");
+      showRail(true);
+      return;
+    }
+    let raf = 0;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const top = section.getBoundingClientRect().top;
+      // 0 with the section's top edge at the bottom of the viewport, 1 once it
+      // has climbed to the top of it.
+      const open = Math.max(0, Math.min(1, (window.innerHeight - top) / window.innerHeight));
+      band.style.height = `${open * BAND_H}px`;
+      section.style.setProperty("--band-open", open.toFixed(3));
+      showRail(open >= 0.995);
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      band.style.height = "";
+      section.style.removeProperty("--band-open");
+      showRail(false);
+    };
+  }, [editMode, reduced]);
 
   // Media overlay chrome: lock the page scroll while open, close on Escape.
   useEffect(() => {
@@ -134,23 +220,133 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const filtersActive = query.trim() !== "" || selected.size > 0;
 
   return (
-    <section id="work-gallery" className="w-full bg-navy py-20 sm:py-24">
+    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
       <Container>
-        <RevealOnScroll>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <EditableText
-              path="work.gallery.heading"
-              value={tv(gallery.heading)}
-              as="h2"
-              className="font-display text-f3 lowercase leading-none text-white"
-            />
-            {!editMode && (
-              <p className="pb-1 font-din text-sm uppercase tracking-[0.2em] text-white/40">
-                {visible.length} / {items.length}
-              </p>
-            )}
+        {/* Section head: the gold line the cases' progress bar ends on, opening
+            downward into the band that carries this section's title. Its slot is
+            the band's full height from the start, so the wall below never
+            reflows as it unrolls, and the letter grid inside sits in a
+            fixed-height box so the unroll never re-renders it. */}
+        <div className="relative w-full" style={{ height: BAND_H }}>
+          <div className="absolute inset-x-0 top-0 h-px bg-gold" />
+          <div
+            ref={bandRef}
+            data-gp-gallery-band
+            className="absolute inset-x-0 top-0 overflow-hidden bg-gold"
+            style={{ height: editMode ? BAND_H : 0 }}
+          >
+            <div
+              className="relative flex w-full items-end px-4 pb-4 sm:px-7 sm:pb-5"
+              style={{
+                height: BAND_H,
+                // The title catches up once there is band to read it on, rather
+                // than being sliced in half by the opening edge.
+                opacity: editMode ? 1 : "calc((var(--band-open, 0) - 0.35) / 0.65)",
+              }}
+            >
+              <CtaGrid scale={1.25} />
+              {/* Title and controls share one row, so they sit level with each
+                  other — centred against the title's line rather than each hung
+                  off its own bottom edge. The row as a whole rides the band's
+                  bottom, which is where the pair sat before. */}
+              <div className="relative flex w-full items-center justify-between gap-3 sm:gap-4">
+                <EditableText
+                  path="work.gallery.heading"
+                  value={tv(gallery.heading)}
+                  as="h2"
+                  className="truncate font-display text-f6/[1] lowercase text-navy sm:text-f5/[1]"
+                />
+                {!editMode && (
+                  <div className="ml-auto flex shrink-0 items-center gap-2 pl-2 sm:pl-3">
+                    <p className="hidden font-din text-sm uppercase tracking-[0.2em] text-navy/60 md:block">
+                      {visible.length} / {items.length}
+                    </p>
+                    {/* Search and sort share one slot: whichever is wanted is open
+                        and the other is its icon. Hovering (or tabbing to) the
+                        shut one swaps them, and it stays swapped so the cursor can
+                        travel into the field it just opened. */}
+                    <label
+                      className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                        pane === "search"
+                          ? "w-32 border-navy/30 bg-navy/10 sm:w-52"
+                          : `w-9 cursor-pointer ${query ? "border-navy bg-navy/20" : "border-navy/25"}`
+                      }`}
+                      onMouseEnter={() => setPane("search")}
+                      // Touch has no hover: a tap on the shut control opens it.
+                      onClick={() => setPane("search")}
+                    >
+                      <span className="sr-only">{tv("Search the gallery")}</span>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                        aria-hidden
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      <input
+                        type="search"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onFocus={() => setPane("search")}
+                        placeholder={tv("search the wall…")}
+                        tabIndex={pane === "search" ? undefined : -1}
+                        className={`h-full w-full bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none placeholder:text-navy/45 sm:pr-3 sm:text-sm ${
+                          pane === "search" ? "" : "pointer-events-none opacity-0"
+                        }`}
+                      />
+                    </label>
+                    <div
+                      className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                        pane === "sort"
+                          ? "w-32 border-navy/30 bg-navy/10 sm:w-48"
+                          : `w-9 cursor-pointer ${sort === "curated" ? "border-navy/25" : "border-navy bg-navy/20"}`
+                      }`}
+                      onMouseEnter={() => setPane("sort")}
+                      onClick={() => setPane("sort")}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                        aria-hidden
+                      >
+                        <path d="M7 4v16m0 0-3-3.4M7 20l3-3.4M17 20V4m0 0-3 3.4M17 4l3 3.4" />
+                      </svg>
+                      <label className="sr-only" htmlFor="gallery-sort">
+                        {tv("sort")}
+                      </label>
+                      <select
+                        id="gallery-sort"
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as SortKey)}
+                        onFocus={() => setPane("sort")}
+                        tabIndex={pane === "sort" ? undefined : -1}
+                        className={`h-full w-full cursor-pointer appearance-none bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none sm:pr-3 sm:text-sm ${
+                          pane === "sort" ? "" : "pointer-events-none opacity-0"
+                        }`}
+                      >
+                        {SORTS.map((s) => (
+                          <option key={s.key} value={s.key} className="bg-navy text-white">
+                            {tv(s.label)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </RevealOnScroll>
+        </div>
 
         {editMode ? (
           <p className="mt-6 font-body text-sm text-white/50">
@@ -159,79 +355,44 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </p>
         ) : (
           <div className="mt-8 flex flex-col gap-5">
-            {/* Search + sort row */}
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="relative grow sm:max-w-xs">
-                <span className="sr-only">{tv("Search the gallery")}</span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                  aria-hidden
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={tv("search the wall…")}
-                  className="w-full border border-white/15 bg-navy-soft/60 py-2 pl-10 pr-4 font-body text-sm text-white placeholder:text-white/35 outline-none transition focus:border-gold/70"
-                />
-              </label>
-              <label className="flex items-center gap-2">
-                <span className="font-din text-xs uppercase tracking-[0.2em] text-white/40">
-                  {tv("sort")}
-                </span>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="cursor-pointer border border-white/15 bg-navy-soft/60 px-4 py-2 font-body text-sm text-white outline-none transition focus:border-gold/70"
-                >
-                  {SORTS.map((s) => (
-                    <option key={s.key} value={s.key} className="bg-navy">
-                      {tv(s.label)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selected.size > 1 && (
-                <div
-                  className="flex overflow-hidden border border-white/15"
-                  role="group"
-                  aria-label="Tag match mode"
-                >
-                  {(["any", "all"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={matchAll === (mode === "all")}
-                      onClick={() => setMatchAll(mode === "all")}
-                      className={`px-4 py-2 font-heading text-xs uppercase tracking-wide transition ${
-                        matchAll === (mode === "all")
-                          ? "bg-gold text-navy"
-                          : "text-white/60 hover:text-gold"
-                      }`}
-                    >
-                      {tv(mode)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {filtersActive && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
-                >
-                  {tv("clear")}
-                </button>
-              )}
-            </div>
+            {/* Tag match mode and the clear-all — search and sort live up in the
+                band. The row only renders when it has something to hold. */}
+            {(selected.size > 1 || filtersActive) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {selected.size > 1 && (
+                  <div
+                    className="flex overflow-hidden border border-white/15"
+                    role="group"
+                    aria-label="Tag match mode"
+                  >
+                    {(["any", "all"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={matchAll === (mode === "all")}
+                        onClick={() => setMatchAll(mode === "all")}
+                        className={`px-4 py-2 font-heading text-xs uppercase tracking-wide transition ${
+                          matchAll === (mode === "all")
+                            ? "bg-gold text-navy"
+                            : "text-white/60 hover:text-gold"
+                        }`}
+                      >
+                        {tv(mode)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {filtersActive && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
+                  >
+                    {tv("clear")}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Tag chips */}
             <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by tag">
@@ -260,10 +421,32 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </div>
         )}
 
+      </Container>
+
+      {/* The mirror of the cases' gallery rail: back up to the cases, just left
+          of the body column. It starts level with the top of the wall and then
+          sticks a little below the viewport's top edge for the wall's length, so
+          it is alongside the grid rather than floating over the head above it.
+          The zero-height wrapper keeps it out of the flow; the section (not the
+          site column) is its containing block, so the rail's own left offset —
+          measured from the viewport — still lands in the gutter. */}
+      <div className="pointer-events-none sticky top-6 z-20 mt-10 h-0">
+        <GutterRail
+          ref={railRef}
+          href="#work-cases"
+          title="Back to the cases"
+          label={tv("cases")}
+          icon={<CasesIcon className="h-5 w-5" />}
+          align="body"
+          className="absolute opacity-0 transition-opacity duration-300"
+        />
+      </div>
+
+      <Container>
         {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
         {visible.length > 0 ? (
-          <div className="mt-10 columns-2 gap-4 sm:columns-3 lg:columns-4">
-            {visible.map(({ item, idx, tags }) => (
+          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
+            {visible.map(({ item, idx }) => (
               <figure
                 key={idx}
                 className="group relative mb-4 break-inside-avoid overflow-hidden bg-navy-soft"
@@ -316,34 +499,20 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     </p>
                   </figcaption>
                 ) : (
+                  // Hover carries the title alone — tags stay in the filter bar
+                  // above, so the overlay reads as a caption rather than a
+                  // control strip.
                   <figcaption className="pointer-events-none absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-navy/90 via-navy/25 to-transparent p-4 opacity-0 transition duration-300 focus-within:opacity-100 group-hover:opacity-100">
                     <p className="font-heading text-sm leading-snug text-white sm:text-base">
                       {item.title}
                     </p>
-                    <span className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
-                      {tags.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          aria-pressed={selected.has(tag)}
-                          onClick={() => toggleTag(tag)}
-                          className={`border px-2.5 py-0.5 font-din text-[11px] uppercase tracking-wide transition ${
-                            selected.has(tag)
-                              ? "border-gold bg-gold text-navy"
-                              : "border-white/25 text-white/75 hover:border-gold hover:text-gold"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </span>
                   </figcaption>
                 )}
               </figure>
             ))}
           </div>
         ) : (
-          <div className="mt-16 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
+          <div className="mt-6 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
             <p className="font-display text-f6 lowercase text-white/80">{tv("nothing on the wall")}</p>
             <p className="max-w-sm font-body text-sm text-white/50">
               {tv("No images match that search and tag combination.")}

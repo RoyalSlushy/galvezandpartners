@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
+import GutterRail from "@/components/ui/GutterRail";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
@@ -29,6 +30,11 @@ const CARD_FIT =
   "h-full w-auto shrink-0 sm:h-auto sm:w-[min(34vw,38vh)] sm:max-w-[420px] md:w-[min(27vw,38vh)]";
 const END_CARD_FIT =
   "h-full w-auto shrink-0 sm:h-auto sm:w-[min(30vw,34vh)] sm:max-w-[420px] md:w-[min(24vw,34vh)]";
+
+// The pinned column stops this far above the viewport's bottom edge, so the
+// progress line it ends on stays readable and the strip below it belongs to the
+// gallery section, whose band unrolls straight off the line.
+const BAND_LEAD = 32; // px
 
 /**
  * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
@@ -241,12 +247,12 @@ export default function WorkShowcase({
         desc.style.opacity = String(Math.max(0, Math.min(1, (settled - 0.5) * 2)));
       }
     };
-    // Snap: once scrolling settles, ease to the nearest integer active index so a
-    // case rests fully 5:4 (never mid-squeeze). Uses a custom eased rAF animation
-    // with `behavior:"instant"` steps — never the browser's own smooth scroll —
-    // so the two can't fight (the source of the earlier jank). A user scroll
-    // mid-ease (the position diverging from what we set) cancels it. The very
-    // ends are left alone — the page-top rest and the gallery hand-off.
+    // Snap: once scrolling settles, ease to the nearest detent so a case rests
+    // fully 5:4 (never mid-squeeze). Uses a custom eased rAF animation with
+    // `behavior:"instant"` steps — never the browser's own smooth scroll — so
+    // the two can't fight (the source of the earlier jank). A user scroll
+    // mid-ease (the position diverging from what we set) cancels it. Only the
+    // page-top rest is left alone.
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let snapRaf = 0;
     let snapProgY: number | null = null;
@@ -255,25 +261,51 @@ export default function WorkShowcase({
       snapRaf = 0;
       snapProgY = null;
     };
-    // Ease the page scroll so the accordion lands on card index `targetA`.
+    // Page Y of the gallery wall's top edge (null before it mounts).
+    const galleryTopY = () => {
+      const wall = document.getElementById("work-gallery");
+      return wall ? window.scrollY + wall.getBoundingClientRect().top : null;
+    };
+    // Page Y of a detent. 0…N-1 are the accordion's panels (N-1 being the
+    // gallery hand-off card); the virtual index N is the gallery wall's own top
+    // edge, so the stretch between the last case and the wall — previously a
+    // free-scrolling gap — comes to rest at one end or the other.
+    const detentY = (i: number) => {
+      if (i >= N) return galleryTopY();
+      const a = Math.max(0, Math.min(N - 1, i));
+      const rect = section.getBoundingClientRect();
+      return window.scrollY + rect.top - headerH + (a / (N - 1)) * scrollable;
+    };
+    // Where the journey currently stands, in that same detent space.
+    const currentIndex = () => {
+      const p = progressAt(section.getBoundingClientRect().top);
+      if (p < 1) return p * (N - 1);
+      const end = detentY(N - 1) ?? 0;
+      const wall = galleryTopY();
+      if (wall == null || wall <= end) return N - 1;
+      return N - 1 + Math.max(0, Math.min(1, (window.scrollY - end) / (wall - end)));
+    };
+    // Ease the page scroll to the detent `targetA`.
     const easeToA = (targetA: number) => {
-      const clamped = Math.max(0, Math.min(N - 1, targetA));
+      const clamped = Math.max(0, Math.min(N, targetA));
       lastSettled = Math.round(clamped);
       if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
+      const y = detentY(clamped);
+      if (y == null) return;
       const startY = window.scrollY;
-      // scroll delta so progressAt(rect.top) reaches clamped/(N-1)
-      const dist = rect.top - headerH + (clamped / (N - 1)) * scrollable;
+      const dist = y - startY;
       if (Math.abs(dist) < 1.5) return;
-      const dur = Math.min(460, Math.max(200, Math.abs(dist) * 0.9));
+      // Short and decisive: the accordion should read as clicking into place
+      // rather than drifting there.
+      const dur = Math.min(300, Math.max(130, Math.abs(dist) * 0.5));
       const ease = (t: number) => 1 - Math.pow(1 - t, 3);
       let startT: number | null = null;
       const frame = (now: number) => {
         if (startT === null) startT = now;
         const t = Math.min(1, (now - startT) / dur);
-        const y = startY + dist * ease(t);
-        snapProgY = y;
-        window.scrollTo({ top: y, behavior: "instant" });
+        const y2 = startY + dist * ease(t);
+        snapProgY = y2;
+        window.scrollTo({ top: y2, behavior: "instant" });
         if (t < 1) snapRaf = requestAnimationFrame(frame);
         else cancelSnap();
       };
@@ -282,19 +314,19 @@ export default function WorkShowcase({
     };
     // Detent snap: once scrolling settles, a nudge in either direction advances a
     // whole card that way (a small scroll means "go to the next card"); a larger
-    // move lands on the nearest. The very ends are left alone — the page-top rest
-    // and the gallery hand-off.
+    // move lands on the nearest. The page-top rest is left alone, as is anything
+    // past the gallery wall's top edge — the wall itself scrolls freely.
     const runSnap = () => {
       if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
-      const p = progressAt(rect.top);
-      if (p <= 0.015 || p >= 0.985) return;
-      const currentA = p * (N - 1);
-      const d = currentA - lastSettled;
+      const wall = galleryTopY();
+      if (wall != null && window.scrollY > wall + 4) return;
+      const current = currentIndex();
+      if (current <= 0.015 * (N - 1)) return;
+      const d = current - lastSettled;
       let target: number;
       if (Math.abs(d) < 0.05) target = lastSettled; // barely moved → stay put
       else if (Math.abs(d) <= 1) target = lastSettled + Math.sign(d); // nudge → next/prev
-      else target = Math.round(currentA); // larger move → nearest card
+      else target = Math.round(current); // larger move → nearest detent
       easeToA(target);
     };
     const onScroll = () => {
@@ -309,7 +341,9 @@ export default function WorkShowcase({
       }
       if (!snapRaf) {
         clearTimeout(idleTimer);
-        idleTimer = setTimeout(runSnap, 110);
+        // Short idle window so a settled scroll is taken into its detent
+        // promptly rather than lingering between two cards.
+        idleTimer = setTimeout(runSnap, 60);
       }
     };
     const onResize = () => {
@@ -335,6 +369,8 @@ export default function WorkShowcase({
       if (i !== active) {
         e.preventDefault();
         e.stopPropagation();
+        // ...so the page transition must call off the push it just started.
+        window.dispatchEvent(new Event("gp:nav-cancel"));
         easeToA(i);
       }
     };
@@ -410,13 +446,16 @@ export default function WorkShowcase({
       mouseDragged = false;
       e.preventDefault();
       e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
     };
     // Native image drag would hijack the gesture mid-pull.
     const onDragStart = (e: Event) => e.preventDefault();
 
     measure();
     update();
-    lastSettled = Math.round((N - 1) * progressAt(section.getBoundingClientRect().top));
+    lastSettled = Math.round(currentIndex());
     setReady(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
@@ -502,6 +541,9 @@ export default function WorkShowcase({
       dragged = false;
       e.preventDefault();
       e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
     };
     const onDragStart = (e: Event) => e.preventDefault();
     scroller.addEventListener("pointerdown", onDown);
@@ -687,7 +729,12 @@ export default function WorkShowcase({
           editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
         }`}
       >
-        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <CtaGrid
+          className="glyph-grid-fade-left"
+          glyphClassName="bg-gold"
+          fontClassName="text-gold"
+          scale={1.25}
+        />
         <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
         <p className="relative mt-2 font-body text-base text-white/60 sm:mt-3">
           {tv("Every frame on one wall — sort it, filter it, tag it.")}
@@ -706,6 +753,7 @@ export default function WorkShowcase({
     return (
       <section
         key="ws-static"
+        id="work-cases"
         className={`relative w-full overflow-hidden bg-navy ${
           editMode
             ? "py-16 sm:py-20"
@@ -757,17 +805,21 @@ export default function WorkShowcase({
   }
 
   return (
-    <section key="ws-pinned" ref={sectionRef} className="relative w-full bg-navy">
+    <section key="ws-pinned" id="work-cases" ref={sectionRef} className="relative w-full bg-navy">
       {/* Pinned below the sticky site header (top = --header-h) and sized to the
           remaining viewport, so the header and this content together fill the
           screen with nothing cut off. The header slides away as the section
-          ends (see the effect). */}
+          ends (see the effect).
+          It stops BAND_LEAD short of the viewport's bottom edge, and the
+          progress line sits flush on that edge with no padding under it: the
+          line is the section's last pixel, and the strip it leaves belongs to
+          the gallery section below, whose band opens directly off it. */}
       <div
         ref={stickyRef}
         className="sticky top-[var(--header-h)] overflow-hidden"
-        style={{ height: "calc(100svh - var(--header-h))" }}
+        style={{ height: `calc(100svh - var(--header-h) - ${BAND_LEAD}px)` }}
       >
-        <div className="flex h-full flex-col justify-center pt-2 pb-6">
+        <div className="flex h-full flex-col justify-center pt-2">
           <GalleryRail label={tv("gallery")} />
           <Container>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
@@ -838,9 +890,21 @@ export default function WorkShowcase({
               >
                 <div
                   className="absolute inset-0 flex flex-col justify-center overflow-hidden p-5 sm:p-6"
-                  style={{ opacity: "var(--exp, 0)" }}
+                  // The accordion rewrites this opacity every frame as the card
+                  // expands; the hint keeps that on the compositor instead of
+                  // repainting the letter grid behind the copy each time.
+                  style={{ opacity: "var(--exp, 0)", willChange: "opacity" }}
                 >
-                  <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+                  {/* coverAspect: this card's width animates from a sliver to
+                      5:4, so the grid is built once at its widest and clipped
+                      until then — the expansion never re-renders it. */}
+                  <CtaGrid
+                    className="glyph-grid-fade-left"
+                    glyphClassName="bg-gold"
+                    fontClassName="text-gold"
+                    scale={1.25}
+                    coverAspect={1.35}
+                  />
                   <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">
                     {tv("the gallery")}
                   </p>
@@ -862,6 +926,9 @@ export default function WorkShowcase({
               {tv(items[0]?.description ?? "")}
             </p>
           </Container>
+          {/* Progress line for the journey through the cases. It runs full width
+              as the last of them lands, where the gallery section below picks it
+              up and opens it into its own band (see WorkGallery). */}
           <Container className="mt-4">
             <div className="h-px w-full bg-white/10">
               <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
@@ -904,11 +971,13 @@ function AccordionPanel({
   const inner = (
     <>
       {children}
-      {/* Vertical label shown while the panel is a collapsed sliver. */}
+      {/* Vertical label shown while the panel is a collapsed sliver. It clears
+          out over the first half of the widening (gone by --exp 0.5, not 1) so
+          the card's own copy has the frame to itself well before it settles. */}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 flex items-center justify-center px-2"
-        style={{ opacity: "calc(1 - var(--exp, 0))" }}
+        style={{ opacity: "calc(1 - 2 * var(--exp, 0))" }}
       >
         <span
           // The light drop shadow lifts the label off whatever frame sits
@@ -1051,36 +1120,17 @@ function ShowcaseHeading({
   );
 }
 
-/**
- * Rail centered in the "handle" — the gutter to the left of the site column
- * (which is where the widest case is anchored). A masonry-grid icon plus a
- * vertical label that jump to the #work-gallery wall. Horizontally centered in
- * the space between the viewport edge and the body's left edge; clamped to the
- * viewport edge on narrow screens where the handle runs out.
- */
+/** The cases' rail down to the gallery wall (the wall carries the mirror of it
+ * back up — see WorkGallery). */
 function GalleryRail({ label }: { label: string }) {
   return (
-    <a
+    <GutterRail
       href="#work-gallery"
-      aria-label="Jump to the gallery"
-      // Body left edge = outer gutter + the column's 2rem padding; centre of the
-      // handle is half that, minus half the icon's width (1.5rem).
-      style={{
-        left: "max(0.25rem, calc(((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem) / 2 - 1.5rem))",
-      }}
-      className="group absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3"
-    >
-      <span className="flex h-11 w-11 items-center justify-center border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
-        <MasonryIcon className="h-5 w-5" />
-      </span>
-      <span
-        aria-hidden
-        className="hidden font-heading text-[11px] uppercase tracking-[0.3em] text-white/50 transition group-hover:text-gold sm:block"
-        style={{ writingMode: "vertical-rl" }}
-      >
-        {label}
-      </span>
-    </a>
+      title="Jump to the gallery"
+      label={label}
+      icon={<MasonryIcon className="h-5 w-5" />}
+      className="absolute top-1/2 -translate-y-1/2"
+    />
   );
 }
 
