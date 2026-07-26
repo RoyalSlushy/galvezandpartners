@@ -65,6 +65,8 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [matchAll, setMatchAll] = useState(false);
   const [sort, setSort] = useState<SortKey>("curated");
+  // Which of the band's two controls is open; the other shows as its icon.
+  const [pane, setPane] = useState<"sort" | "search">("sort");
   // Curated index of the piece open in the media overlay (null = closed).
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -185,7 +187,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const filtersActive = query.trim() !== "" || selected.size > 0;
 
   return (
-    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy py-20 sm:py-24">
+    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
       <Container>
         {/* Section head: the gold line the cases' progress bar ends on, opening
             downward into the band that carries this section's title. Its slot is
@@ -201,7 +203,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             style={{ height: editMode ? BAND_H : 0 }}
           >
             <div
-              className="relative flex w-full items-center justify-between gap-4 px-5 sm:px-7"
+              className="relative flex w-full items-center justify-between gap-3 px-4 sm:gap-4 sm:px-7"
               style={{
                 height: BAND_H,
                 // The title catches up once there is band to read it on, rather
@@ -214,12 +216,94 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                 path="work.gallery.heading"
                 value={tv(gallery.heading)}
                 as="h2"
-                className="relative font-display text-f5 lowercase leading-none text-navy"
+                className="relative truncate font-display text-f6 lowercase leading-none text-navy sm:text-f5"
               />
               {!editMode && (
-                <p className="relative font-din text-sm uppercase tracking-[0.2em] text-navy/60">
-                  {visible.length} / {items.length}
-                </p>
+                <div className="relative ml-auto flex shrink-0 items-center gap-2 pl-2 sm:pl-3">
+                  <p className="hidden font-din text-sm uppercase tracking-[0.2em] text-navy/60 md:block">
+                    {visible.length} / {items.length}
+                  </p>
+                  {/* Search and sort share one slot: whichever is wanted is open
+                      and the other is its icon. Hovering (or tabbing to) the
+                      shut one swaps them, and it stays swapped so the cursor can
+                      travel into the field it just opened. */}
+                  <label
+                    className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                      pane === "search"
+                        ? "w-32 border-navy/30 bg-navy/10 sm:w-52"
+                        : `w-9 cursor-pointer ${query ? "border-navy bg-navy/20" : "border-navy/25"}`
+                    }`}
+                    onMouseEnter={() => setPane("search")}
+                    // Touch has no hover: a tap on the shut control opens it.
+                    onClick={() => setPane("search")}
+                  >
+                    <span className="sr-only">{tv("Search the gallery")}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                      aria-hidden
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onFocus={() => setPane("search")}
+                      placeholder={tv("search the wall…")}
+                      tabIndex={pane === "search" ? undefined : -1}
+                      className={`h-full w-full bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none placeholder:text-navy/45 sm:pr-3 sm:text-sm ${
+                        pane === "search" ? "" : "pointer-events-none opacity-0"
+                      }`}
+                    />
+                  </label>
+                  <div
+                    className={`relative flex h-9 items-center overflow-hidden border transition-[width,background-color] duration-300 ${
+                      pane === "sort"
+                        ? "w-32 border-navy/30 bg-navy/10 sm:w-48"
+                        : `w-9 cursor-pointer ${sort === "curated" ? "border-navy/25" : "border-navy bg-navy/20"}`
+                    }`}
+                    onMouseEnter={() => setPane("sort")}
+                    onClick={() => setPane("sort")}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="pointer-events-none absolute left-0 top-1/2 h-4 w-9 -translate-y-1/2 px-2.5 text-navy/70"
+                      aria-hidden
+                    >
+                      <path d="M7 4v16m0 0-3-3.4M7 20l3-3.4M17 20V4m0 0-3 3.4M17 4l3 3.4" />
+                    </svg>
+                    <label className="sr-only" htmlFor="gallery-sort">
+                      {tv("sort")}
+                    </label>
+                    <select
+                      id="gallery-sort"
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as SortKey)}
+                      onFocus={() => setPane("sort")}
+                      tabIndex={pane === "sort" ? undefined : -1}
+                      className={`h-full w-full cursor-pointer appearance-none bg-transparent pl-9 pr-2 font-body text-xs text-navy outline-none sm:pr-3 sm:text-sm ${
+                        pane === "sort" ? "" : "pointer-events-none opacity-0"
+                      }`}
+                    >
+                      {SORTS.map((s) => (
+                        <option key={s.key} value={s.key} className="bg-navy text-white">
+                          {tv(s.label)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -232,79 +316,44 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           </p>
         ) : (
           <div className="mt-8 flex flex-col gap-5">
-            {/* Search + sort row */}
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="relative grow sm:max-w-xs">
-                <span className="sr-only">{tv("Search the gallery")}</span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                  aria-hidden
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={tv("search the wall…")}
-                  className="w-full border border-white/15 bg-navy-soft/60 py-2 pl-10 pr-4 font-body text-sm text-white placeholder:text-white/35 outline-none transition focus:border-gold/70"
-                />
-              </label>
-              <label className="flex items-center gap-2">
-                <span className="font-din text-xs uppercase tracking-[0.2em] text-white/40">
-                  {tv("sort")}
-                </span>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="cursor-pointer border border-white/15 bg-navy-soft/60 px-4 py-2 font-body text-sm text-white outline-none transition focus:border-gold/70"
-                >
-                  {SORTS.map((s) => (
-                    <option key={s.key} value={s.key} className="bg-navy">
-                      {tv(s.label)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selected.size > 1 && (
-                <div
-                  className="flex overflow-hidden border border-white/15"
-                  role="group"
-                  aria-label="Tag match mode"
-                >
-                  {(["any", "all"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={matchAll === (mode === "all")}
-                      onClick={() => setMatchAll(mode === "all")}
-                      className={`px-4 py-2 font-heading text-xs uppercase tracking-wide transition ${
-                        matchAll === (mode === "all")
-                          ? "bg-gold text-navy"
-                          : "text-white/60 hover:text-gold"
-                      }`}
-                    >
-                      {tv(mode)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {filtersActive && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
-                >
-                  {tv("clear")}
-                </button>
-              )}
-            </div>
+            {/* Tag match mode and the clear-all — search and sort live up in the
+                band. The row only renders when it has something to hold. */}
+            {(selected.size > 1 || filtersActive) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {selected.size > 1 && (
+                  <div
+                    className="flex overflow-hidden border border-white/15"
+                    role="group"
+                    aria-label="Tag match mode"
+                  >
+                    {(["any", "all"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={matchAll === (mode === "all")}
+                        onClick={() => setMatchAll(mode === "all")}
+                        className={`px-4 py-2 font-heading text-xs uppercase tracking-wide transition ${
+                          matchAll === (mode === "all")
+                            ? "bg-gold text-navy"
+                            : "text-white/60 hover:text-gold"
+                        }`}
+                      >
+                        {tv(mode)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {filtersActive && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
+                  >
+                    {tv("clear")}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Tag chips */}
             <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by tag">
