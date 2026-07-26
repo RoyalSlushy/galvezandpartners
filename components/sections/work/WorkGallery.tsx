@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Container from "@/components/ui/Container";
-import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CtaGrid from "@/components/sections/home/CtaGrid";
+import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
 import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -39,12 +40,18 @@ function parseTags(tags: string): string[] {
 // the varied bounds plus real aspect ratios give the masonry its rhythm.
 const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 
+// Height of the gold title band at the head of the section (px). Its slot is
+// reserved at the same height, so unrolling it never moves the wall below.
+const BAND_H = 64;
+
 /**
  * "#work-gallery" — the masonry wall after the cases: a vertically scrolling,
- * CMS-managed image grid with search, sort, and a tag-chip filter system
- * (chips also live on each card's hover overlay, so any tag is one click from
- * becoming a filter). Edit mode swaps the filter bar for inline editing of
- * every image, title, and tag list.
+ * CMS-managed image grid with search, sort, and a tag-chip filter system. The
+ * section is headed by a gold band — the far end of the progress line the cases
+ * above run on — that unrolls as the wall climbs into frame, carrying the
+ * section title over an inset letter grid. Hovering a piece names it; its tags
+ * are filters, and live only in the bar above. Edit mode swaps that bar for
+ * inline editing of every image, title, and tag list.
  */
 export default function WorkGallery({ gallery: serverGallery }: { gallery: GalleryContent }) {
   const gallery = useCmsValue("work.gallery", serverGallery);
@@ -62,6 +69,50 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   const items = gallery.items;
+
+  // The title band unrolls as this section climbs into frame — picking up where
+  // the cases' progress line finished, which completes exactly as the wall's top
+  // edge reaches the top of the viewport. Edit mode and reduced motion get it
+  // open from the start.
+  const sectionRef = useRef<HTMLElement>(null);
+  const bandRef = useRef<HTMLDivElement>(null);
+  const reduced = usePrefersReducedMotion();
+  useEffect(() => {
+    const band = bandRef.current;
+    const section = sectionRef.current;
+    if (!band || !section) return;
+    if (editMode || reduced) {
+      band.style.height = `${BAND_H}px`;
+      band.style.setProperty("--band-open", "1");
+      return;
+    }
+    let raf = 0;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const top = section.getBoundingClientRect().top;
+      // 0 with the section's top edge at the bottom of the viewport, 1 once it
+      // has climbed to the top of it.
+      const open = Math.max(0, Math.min(1, (window.innerHeight - top) / window.innerHeight));
+      band.style.height = `${open * BAND_H}px`;
+      band.style.setProperty("--band-open", open.toFixed(3));
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      band.style.height = "";
+      band.style.removeProperty("--band-open");
+    };
+  }, [editMode, reduced]);
 
   // Media overlay chrome: lock the page scroll while open, close on Escape.
   useEffect(() => {
@@ -134,23 +185,45 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const filtersActive = query.trim() !== "" || selected.size > 0;
 
   return (
-    <section id="work-gallery" className="w-full bg-navy py-20 sm:py-24">
+    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy py-20 sm:py-24">
       <Container>
-        <RevealOnScroll>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <EditableText
-              path="work.gallery.heading"
-              value={tv(gallery.heading)}
-              as="h2"
-              className="font-display text-f3 lowercase leading-none text-white"
-            />
-            {!editMode && (
-              <p className="pb-1 font-din text-sm uppercase tracking-[0.2em] text-white/40">
-                {visible.length} / {items.length}
-              </p>
-            )}
+        {/* Section head: the gold line the cases' progress bar ends on, opening
+            downward into the band that carries this section's title. Its slot is
+            the band's full height from the start, so the wall below never
+            reflows as it unrolls, and the letter grid inside sits in a
+            fixed-height box so the unroll never re-renders it. */}
+        <div className="relative w-full" style={{ height: BAND_H }}>
+          <div className="absolute inset-x-0 top-0 h-px bg-gold" />
+          <div
+            ref={bandRef}
+            data-gp-gallery-band
+            className="absolute inset-x-0 top-0 overflow-hidden bg-gold"
+            style={{ height: editMode ? BAND_H : 0 }}
+          >
+            <div
+              className="relative flex w-full items-center justify-between gap-4 px-5 sm:px-7"
+              style={{
+                height: BAND_H,
+                // The title catches up once there is band to read it on, rather
+                // than being sliced in half by the opening edge.
+                opacity: editMode ? 1 : "calc((var(--band-open, 0) - 0.35) / 0.65)",
+              }}
+            >
+              <CtaGrid scale={1.25} />
+              <EditableText
+                path="work.gallery.heading"
+                value={tv(gallery.heading)}
+                as="h2"
+                className="relative font-display text-f5 lowercase leading-none text-navy"
+              />
+              {!editMode && (
+                <p className="relative font-din text-sm uppercase tracking-[0.2em] text-navy/60">
+                  {visible.length} / {items.length}
+                </p>
+              )}
+            </div>
           </div>
-        </RevealOnScroll>
+        </div>
 
         {editMode ? (
           <p className="mt-6 font-body text-sm text-white/50">
@@ -263,7 +336,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
         {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
         {visible.length > 0 ? (
           <div className="mt-10 columns-2 gap-4 sm:columns-3 lg:columns-4">
-            {visible.map(({ item, idx, tags }) => (
+            {visible.map(({ item, idx }) => (
               <figure
                 key={idx}
                 className="group relative mb-4 break-inside-avoid overflow-hidden bg-navy-soft"
@@ -316,27 +389,13 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     </p>
                   </figcaption>
                 ) : (
+                  // Hover carries the title alone — tags stay in the filter bar
+                  // above, so the overlay reads as a caption rather than a
+                  // control strip.
                   <figcaption className="pointer-events-none absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-navy/90 via-navy/25 to-transparent p-4 opacity-0 transition duration-300 focus-within:opacity-100 group-hover:opacity-100">
                     <p className="font-heading text-sm leading-snug text-white sm:text-base">
                       {item.title}
                     </p>
-                    <span className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
-                      {tags.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          aria-pressed={selected.has(tag)}
-                          onClick={() => toggleTag(tag)}
-                          className={`border px-2.5 py-0.5 font-din text-[11px] uppercase tracking-wide transition ${
-                            selected.has(tag)
-                              ? "border-gold bg-gold text-navy"
-                              : "border-white/25 text-white/75 hover:border-gold hover:text-gold"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </span>
                   </figcaption>
                 )}
               </figure>

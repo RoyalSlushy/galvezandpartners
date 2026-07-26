@@ -30,11 +30,6 @@ const CARD_FIT =
 const END_CARD_FIT =
   "h-full w-auto shrink-0 sm:h-auto sm:w-[min(30vw,34vh)] sm:max-w-[420px] md:w-[min(24vw,34vh)]";
 
-// Height of the gallery band the progress line opens into once the cases are
-// behind us (px — its slot is reserved in the layout at the same height, so the
-// expansion costs the row above nothing).
-const BAND_H = 56;
-
 /**
  * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
  * the first paint match the wide layout, correcting on mount for narrow screens.
@@ -90,7 +85,6 @@ export default function WorkShowcase({
   const rowWrapRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const bandRef = useRef<HTMLDivElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const [ready, setReady] = useState(false);
@@ -138,7 +132,6 @@ export default function WorkShowcase({
     const rowWrap = rowWrapRef.current;
     const row = rowRef.current;
     const bar = barRef.current;
-    const band = bandRef.current;
     if (!section || !sticky || !rowWrap || !row || !bar) return;
 
     // Pin the site header at the top for the duration of this section (see the
@@ -212,7 +205,6 @@ export default function WorkShowcase({
         // faded trail lingers rather than cutting out at once).
         el.style.opacity = String(1 - Math.max(0, Math.min(1, (a - i) / 1.5)));
       }
-      return exps;
     };
 
     // Scroll progress 0→1 across the pinned section. Offset by the header height
@@ -234,17 +226,7 @@ export default function WorkShowcase({
       const p = progressAt(rect.top);
       bar.style.transform = `scaleX(${p})`;
       const a = p * (N - 1);
-      const exps = applyWidths(a);
-
-      // Past the cases, the (by now full-width) progress line opens downward
-      // into the gallery band, in step with the gallery panel's own widening.
-      // Its slot is reserved in the layout, so this never reflows the row above.
-      if (band) {
-        band.style.height = `${exps[N - 1] * BAND_H}px`;
-        // The copy inside catches up once there is band to read it on, rather
-        // than being sliced in half by the opening edge.
-        band.style.setProperty("--band-open", exps[N - 1].toFixed(3));
-      }
+      applyWidths(a);
 
       // Active-card blurb: swap the text at the (hidden) handoff midpoint, and
       // fade it in as the case settles fully open / out as it hands off.
@@ -502,7 +484,6 @@ export default function WorkShowcase({
       row.style.height = "";
       row.style.transform = "";
       bar.style.transform = "";
-      if (band) band.style.height = "0px";
       for (const el of panelRefs.current) {
         if (el) {
           el.style.width = "";
@@ -934,39 +915,12 @@ export default function WorkShowcase({
               {tv(items[0]?.description ?? "")}
             </p>
           </Container>
-          {/* The gold progress line and the gallery band it opens into once the
-              cases are behind us (driven by the effect). The slot is the band's
-              full height from the start, so nothing above it ever reflows; the
-              line rides its top edge and the band unrolls downward from there,
-              covering it. */}
+          {/* Progress line for the journey through the cases. It runs full width
+              as the last of them lands, where the gallery section below picks it
+              up and opens it into its own band (see WorkGallery). */}
           <Container className="mt-4">
-            <div className="relative w-full" style={{ height: BAND_H }}>
-              <div className="absolute inset-x-0 top-0 h-px bg-white/10">
-                <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
-              </div>
-              <div
-                ref={bandRef}
-                data-gp-gallery-band
-                className="absolute inset-x-0 top-0 overflow-hidden bg-gold"
-                style={{ height: 0 }}
-              >
-                {/* Fixed height (the band's own clips it), so the letter grid
-                    inside is measured once and not on every frame of the
-                    unroll. */}
-                <a
-                  href="#work-gallery"
-                  className="group relative flex w-full items-center justify-between overflow-hidden px-5 sm:px-7"
-                  style={{ height: BAND_H, opacity: "calc((var(--band-open, 0) - 0.35) / 0.65)" }}
-                >
-                  <CtaGrid scale={1.25} />
-                  <span className="relative font-display text-f6 lowercase leading-none text-navy">
-                    {tv("the gallery")}
-                  </span>
-                  <span className="relative font-heading text-xs uppercase tracking-[0.25em] text-navy/70 transition group-hover:text-navy">
-                    {tv("explore")} ↗
-                  </span>
-                </a>
-              </div>
+            <div className="h-px w-full bg-white/10">
+              <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
             </div>
           </Container>
         </div>
