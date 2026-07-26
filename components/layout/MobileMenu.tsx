@@ -46,6 +46,9 @@ export default function MobileMenu({
   socials: Social[];
 }) {
   const [open, setOpen] = useState(false);
+  // Distance from the viewport top where the veil starts: the bottom edge of the
+  // header while it's still in view, 0 once it has scrolled off.
+  const [veilTop, setVeilTop] = useState(0);
   const t = useT();
   const pathname = usePathname();
 
@@ -56,6 +59,22 @@ export default function MobileMenu({
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  // Keep the veil below the header for as long as the header is on screen.
+  useEffect(() => {
+    const measure = () => {
+      const header = document.querySelector("header");
+      const bottom = header?.getBoundingClientRect().bottom ?? 0;
+      setVeilTop(Math.max(0, bottom));
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
     };
   }, [open]);
 
@@ -159,7 +178,8 @@ export default function MobileMenu({
       <div
         aria-hidden
         onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+        style={{ top: veilTop }}
+        className={`fixed inset-x-0 bottom-0 z-40 bg-black/50 transition-opacity duration-300 ${
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
