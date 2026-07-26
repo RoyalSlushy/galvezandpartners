@@ -687,7 +687,12 @@ export default function WorkShowcase({
           editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
         }`}
       >
-        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <CtaGrid
+          className="glyph-grid-fade-left"
+          glyphClassName="bg-gold"
+          fontClassName="text-gold"
+          scale={1.25}
+        />
         <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">{tv("the gallery")}</p>
         <p className="relative mt-2 font-body text-base text-white/60 sm:mt-3">
           {tv("Every frame on one wall — sort it, filter it, tag it.")}
@@ -838,9 +843,21 @@ export default function WorkShowcase({
               >
                 <div
                   className="absolute inset-0 flex flex-col justify-center overflow-hidden p-5 sm:p-6"
-                  style={{ opacity: "var(--exp, 0)" }}
+                  // The accordion rewrites this opacity every frame as the card
+                  // expands; the hint keeps that on the compositor instead of
+                  // repainting the letter grid behind the copy each time.
+                  style={{ opacity: "var(--exp, 0)", willChange: "opacity" }}
                 >
-                  <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+                  {/* coverAspect: this card's width animates from a sliver to
+                      5:4, so the grid is built once at its widest and clipped
+                      until then — the expansion never re-renders it. */}
+                  <CtaGrid
+                    className="glyph-grid-fade-left"
+                    glyphClassName="bg-gold"
+                    fontClassName="text-gold"
+                    scale={1.25}
+                    coverAspect={1.35}
+                  />
                   <p className="relative font-display text-f5 lowercase leading-[0.95] text-gold">
                     {tv("the gallery")}
                   </p>
