@@ -31,16 +31,93 @@ const MIN_SHOW_MS = 1000;
  * Client-side navigations re-veil synchronously before the incoming page can
  * paint. Images below the fold are left to lazy-load as normal, and <noscript>
  * visitors never see the veil at all (see the style block in the layout).
+ *
+ * Navigations also carry a direction, taken from where the two pages sit in the
+ * site nav: going to a menu item further right pushes the outgoing page out to
+ * the left, and the veil then slides off the same way to reveal the new one
+ * (mirrored for a leftward move). `navOrder` is the nav's hrefs in menu order;
+ * routes outside the menu (a case study, say) have no place in that order and
+ * simply cross-fade, as does a back/forward step.
  */
-export default function PageReveal() {
+// How far the outgoing page slides before the veil takes over, and how long the
+// two halves of the transition run.
+const PUSH_PX = 64;
+const PUSH_MS = 300;
+const SLIDE_MS = 600;
+
+export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
   const pathname = usePathname();
   const [veiled, setVeiled] = useState(true);
+  // Direction of the navigation in progress: +1 rightward through the menu, -1
+  // leftward, 0 for a plain cross-fade.
+  const [dir, setDir] = useState(0);
+  const pendingDir = useRef(0);
   const runRef = useRef(0);
+
+  // Watch link presses so the direction is known *before* the route changes —
+  // the outgoing page starts pushing while the next one is still being fetched.
+  useEffect(() => {
+    if (navOrder.length === 0) return;
+    const page = () => document.querySelector<HTMLElement>("[data-gp-page]");
+    // Where a path sits in the menu: an exact hit, else the section it lives
+    // under ("/" excluded — everything starts with it), else nowhere.
+    const rank = (path: string) => {
+      const exact = navOrder.indexOf(path);
+      if (exact >= 0) return exact;
+      let best = -1;
+      let bestLen = 0;
+      navOrder.forEach((href, i) => {
+        if (href !== "/" && path.startsWith(`${href}/`) && href.length > bestLen) {
+          best = i;
+          bestLen = href.length;
+        }
+      });
+      return best;
+    };
+    let revertTimer: ReturnType<typeof setTimeout> | undefined;
+    const onClick = (e: MouseEvent) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      const href = a.getAttribute("href");
+      if (!href || !href.startsWith("/")) return;
+      const to = href.split(/[?#]/)[0];
+      if (!to || to === pathname) return;
+      const from = rank(pathname);
+      const there = rank(to);
+      const d = from < 0 || there < 0 ? 0 : Math.sign(there - from);
+      // Reduced motion keeps the plain cross-fade — no push, no slide.
+      if (d === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      pendingDir.current = d;
+      const el = page();
+      if (!el) return;
+      el.style.transition = `transform ${PUSH_MS}ms cubic-bezier(0.4,0,0.2,1), opacity ${PUSH_MS}ms ease`;
+      el.style.transform = `translate3d(${-d * PUSH_PX}px,0,0)`;
+      el.style.opacity = "0";
+      // A press that ends up not navigating (something else swallowed it) must
+      // not leave the page pushed aside; a route change clears this first.
+      clearTimeout(revertTimer);
+      revertTimer = setTimeout(() => el.removeAttribute("style"), 2500);
+    };
+    // Capture phase: Next's own Link handler calls preventDefault on the way
+    // through, so a bubbling listener would only ever see cancelled events.
+    document.addEventListener("click", onClick, true);
+    return () => {
+      clearTimeout(revertTimer);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [navOrder, pathname]);
 
   // Re-veil pre-paint whenever the route changes so the incoming page is never
   // seen half-loaded. (On first mount this is a no-op — the state starts true.)
   useIsoLayoutEffect(() => {
+    setDir(pendingDir.current);
+    pendingDir.current = 0;
     setVeiled(true);
+    // The incoming page starts clean under the veil: dropping the inline
+    // transition along with the offset means it snaps back rather than easing.
+    const el = document.querySelector<HTMLElement>("[data-gp-page]");
+    if (el) el.removeAttribute("style");
   }, [pathname]);
 
   useEffect(() => {
@@ -104,14 +181,23 @@ export default function PageReveal() {
     <div
       aria-hidden
       data-gp-veil
-      // The veil only ever *fades out*. Covering is instant (no transition on
-      // the way in) so a client-side navigation can't flash the incoming page
-      // through a fading-in veil; revealing eases over 500ms.
+      // The veil only ever *leaves*. Covering is instant (no transition on the
+      // way in) so a client-side navigation can't flash the incoming page
+      // through a fading-in veil. On the way out it fades, and — when the
+      // navigation had a direction — slides off that way, carrying on the push
+      // the outgoing page started. (The content wrapper clips horizontally, so
+      // the departing veil never widens the page.)
       className={`absolute inset-0 z-[100] bg-navy ${
-        veiled
-          ? "opacity-100"
-          : "pointer-events-none opacity-0 transition-opacity duration-500"
+        veiled ? "opacity-100" : "pointer-events-none opacity-0 transition-opacity duration-500"
       }`}
+      style={
+        veiled || dir === 0
+          ? undefined
+          : {
+              transform: `translate3d(${-dir * 100}%,0,0)`,
+              transition: `opacity 500ms ease, transform ${SLIDE_MS}ms cubic-bezier(0.22,1,0.36,1)`,
+            }
+      }
     >
       {/* The veil spans the whole content column, so the spinner sticks to the
           viewport rather than sitting at the top of a very tall page. */}

@@ -241,12 +241,12 @@ export default function WorkShowcase({
         desc.style.opacity = String(Math.max(0, Math.min(1, (settled - 0.5) * 2)));
       }
     };
-    // Snap: once scrolling settles, ease to the nearest integer active index so a
-    // case rests fully 5:4 (never mid-squeeze). Uses a custom eased rAF animation
-    // with `behavior:"instant"` steps — never the browser's own smooth scroll —
-    // so the two can't fight (the source of the earlier jank). A user scroll
-    // mid-ease (the position diverging from what we set) cancels it. The very
-    // ends are left alone — the page-top rest and the gallery hand-off.
+    // Snap: once scrolling settles, ease to the nearest detent so a case rests
+    // fully 5:4 (never mid-squeeze). Uses a custom eased rAF animation with
+    // `behavior:"instant"` steps — never the browser's own smooth scroll — so
+    // the two can't fight (the source of the earlier jank). A user scroll
+    // mid-ease (the position diverging from what we set) cancels it. Only the
+    // page-top rest is left alone.
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let snapRaf = 0;
     let snapProgY: number | null = null;
@@ -255,25 +255,51 @@ export default function WorkShowcase({
       snapRaf = 0;
       snapProgY = null;
     };
-    // Ease the page scroll so the accordion lands on card index `targetA`.
+    // Page Y of the gallery wall's top edge (null before it mounts).
+    const galleryTopY = () => {
+      const wall = document.getElementById("work-gallery");
+      return wall ? window.scrollY + wall.getBoundingClientRect().top : null;
+    };
+    // Page Y of a detent. 0…N-1 are the accordion's panels (N-1 being the
+    // gallery hand-off card); the virtual index N is the gallery wall's own top
+    // edge, so the stretch between the last case and the wall — previously a
+    // free-scrolling gap — comes to rest at one end or the other.
+    const detentY = (i: number) => {
+      if (i >= N) return galleryTopY();
+      const a = Math.max(0, Math.min(N - 1, i));
+      const rect = section.getBoundingClientRect();
+      return window.scrollY + rect.top - headerH + (a / (N - 1)) * scrollable;
+    };
+    // Where the journey currently stands, in that same detent space.
+    const currentIndex = () => {
+      const p = progressAt(section.getBoundingClientRect().top);
+      if (p < 1) return p * (N - 1);
+      const end = detentY(N - 1) ?? 0;
+      const wall = galleryTopY();
+      if (wall == null || wall <= end) return N - 1;
+      return N - 1 + Math.max(0, Math.min(1, (window.scrollY - end) / (wall - end)));
+    };
+    // Ease the page scroll to the detent `targetA`.
     const easeToA = (targetA: number) => {
-      const clamped = Math.max(0, Math.min(N - 1, targetA));
+      const clamped = Math.max(0, Math.min(N, targetA));
       lastSettled = Math.round(clamped);
       if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
+      const y = detentY(clamped);
+      if (y == null) return;
       const startY = window.scrollY;
-      // scroll delta so progressAt(rect.top) reaches clamped/(N-1)
-      const dist = rect.top - headerH + (clamped / (N - 1)) * scrollable;
+      const dist = y - startY;
       if (Math.abs(dist) < 1.5) return;
-      const dur = Math.min(460, Math.max(200, Math.abs(dist) * 0.9));
+      // Short and decisive: the accordion should read as clicking into place
+      // rather than drifting there.
+      const dur = Math.min(300, Math.max(130, Math.abs(dist) * 0.5));
       const ease = (t: number) => 1 - Math.pow(1 - t, 3);
       let startT: number | null = null;
       const frame = (now: number) => {
         if (startT === null) startT = now;
         const t = Math.min(1, (now - startT) / dur);
-        const y = startY + dist * ease(t);
-        snapProgY = y;
-        window.scrollTo({ top: y, behavior: "instant" });
+        const y2 = startY + dist * ease(t);
+        snapProgY = y2;
+        window.scrollTo({ top: y2, behavior: "instant" });
         if (t < 1) snapRaf = requestAnimationFrame(frame);
         else cancelSnap();
       };
@@ -282,19 +308,19 @@ export default function WorkShowcase({
     };
     // Detent snap: once scrolling settles, a nudge in either direction advances a
     // whole card that way (a small scroll means "go to the next card"); a larger
-    // move lands on the nearest. The very ends are left alone — the page-top rest
-    // and the gallery hand-off.
+    // move lands on the nearest. The page-top rest is left alone, as is anything
+    // past the gallery wall's top edge — the wall itself scrolls freely.
     const runSnap = () => {
       if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
-      const p = progressAt(rect.top);
-      if (p <= 0.015 || p >= 0.985) return;
-      const currentA = p * (N - 1);
-      const d = currentA - lastSettled;
+      const wall = galleryTopY();
+      if (wall != null && window.scrollY > wall + 4) return;
+      const current = currentIndex();
+      if (current <= 0.015 * (N - 1)) return;
+      const d = current - lastSettled;
       let target: number;
       if (Math.abs(d) < 0.05) target = lastSettled; // barely moved → stay put
       else if (Math.abs(d) <= 1) target = lastSettled + Math.sign(d); // nudge → next/prev
-      else target = Math.round(currentA); // larger move → nearest card
+      else target = Math.round(current); // larger move → nearest detent
       easeToA(target);
     };
     const onScroll = () => {
@@ -309,7 +335,9 @@ export default function WorkShowcase({
       }
       if (!snapRaf) {
         clearTimeout(idleTimer);
-        idleTimer = setTimeout(runSnap, 110);
+        // Short idle window so a settled scroll is taken into its detent
+        // promptly rather than lingering between two cards.
+        idleTimer = setTimeout(runSnap, 60);
       }
     };
     const onResize = () => {
@@ -416,7 +444,7 @@ export default function WorkShowcase({
 
     measure();
     update();
-    lastSettled = Math.round((N - 1) * progressAt(section.getBoundingClientRect().top));
+    lastSettled = Math.round(currentIndex());
     setReady(true);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
@@ -921,11 +949,13 @@ function AccordionPanel({
   const inner = (
     <>
       {children}
-      {/* Vertical label shown while the panel is a collapsed sliver. */}
+      {/* Vertical label shown while the panel is a collapsed sliver. It clears
+          out over the first half of the widening (gone by --exp 0.5, not 1) so
+          the card's own copy has the frame to itself well before it settles. */}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 flex items-center justify-center px-2"
-        style={{ opacity: "calc(1 - var(--exp, 0))" }}
+        style={{ opacity: "calc(1 - 2 * var(--exp, 0))" }}
       >
         <span
           // The light drop shadow lifts the label off whatever frame sits

@@ -84,17 +84,23 @@ export default async function RootLayout({
               />
               {/* The load veil covers the body content only — it lives inside
                   this wrapper (below the header in the DOM and in geometry), so
-                  the masthead is never hidden while a page loads. */}
-              <div className="relative flex flex-1 flex-col">
-                <PageReveal />
-                <main className="flex-1">{children}</main>
-                <Footer
-                  nav={site.nav}
-                  socials={site.socials}
-                  contact={site.contact}
-                  footer={site.footer}
-                  tagline={site.tagline}
-                />
+                  the masthead is never hidden while a page loads. Page changes
+                  push sideways through here (see PageReveal), so the wrapper
+                  clips horizontally; `clip` rather than `hidden` because it must
+                  not become a scroll container — the pinned /our-works accordion
+                  sticks against the viewport. */}
+              <div className="relative flex flex-1 flex-col overflow-x-clip">
+                <PageReveal navOrder={[...site.nav.map((item) => item.href), "/contact-us"]} />
+                <div data-gp-page className="flex flex-1 flex-col">
+                  <main className="flex-1">{children}</main>
+                  <Footer
+                    nav={site.nav}
+                    socials={site.socials}
+                    contact={site.contact}
+                    footer={site.footer}
+                    tagline={site.tagline}
+                  />
+                </div>
               </div>
             </GlyphProvider>
           </AdminProvider>
