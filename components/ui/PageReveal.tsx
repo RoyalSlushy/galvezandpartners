@@ -12,7 +12,7 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 const MAX_WAIT_MS = 4000;
 // The veil holds at least this long even when everything is already cached, so
 // the reveal always reads as a deliberate beat rather than a flicker.
-const MIN_SHOW_MS = 750;
+const MIN_SHOW_MS = 1000;
 
 /**
  * Veil over the page's body content (everything below the masthead) while the
@@ -104,8 +104,13 @@ export default function PageReveal() {
     <div
       aria-hidden
       data-gp-veil
-      className={`absolute inset-0 z-[100] bg-navy transition-opacity duration-500 ${
-        veiled ? "opacity-100" : "pointer-events-none opacity-0"
+      // The veil only ever *fades out*. Covering is instant (no transition on
+      // the way in) so a client-side navigation can't flash the incoming page
+      // through a fading-in veil; revealing eases over 500ms.
+      className={`absolute inset-0 z-[100] bg-navy ${
+        veiled
+          ? "opacity-100"
+          : "pointer-events-none opacity-0 transition-opacity duration-500"
       }`}
     >
       {/* The veil spans the whole content column, so the spinner sticks to the

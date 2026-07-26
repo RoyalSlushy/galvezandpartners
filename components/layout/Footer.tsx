@@ -10,6 +10,33 @@ import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 
+// The site's designer, linked from the credit line to their portfolio. Matched
+// case-insensitively inside the CMS credit text, so admins can reword the line
+// around the name without losing the link.
+const DESIGNER = "Adrian Chavez";
+const DESIGNER_URL = "https://adriven.design";
+
+/** The footer credit with the designer's name linked to their site. Renders the
+ * credit unchanged when the name isn't part of it. */
+function CreditLine({ credit }: { credit: string }) {
+  const at = credit.toLowerCase().indexOf(DESIGNER.toLowerCase());
+  if (at < 0) return <span>{credit}</span>;
+  return (
+    <span>
+      {credit.slice(0, at)}
+      <a
+        href={DESIGNER_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="text-white/70 underline underline-offset-4 transition hover:text-gold"
+      >
+        {credit.slice(at, at + DESIGNER.length)}
+      </a>
+      {credit.slice(at + DESIGNER.length)}
+    </span>
+  );
+}
+
 /** Site footer: tagline, contact, menu, socials, credit line, and a discrete
  * gear icon that unlocks the in-page CMS. */
 export default function Footer({
@@ -134,7 +161,11 @@ export default function Footer({
       <Container className="mt-14 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-sm text-white/50 sm:flex-row">
         <EditableText path="site.footer.copyright" value={footer.copyright} as="span" />
         <div className="flex items-center gap-4">
-          <EditableText path="site.footer.credit" value={footer.credit} as="span" />
+          {editMode ? (
+            <EditableText path="site.footer.credit" value={footer.credit} as="span" />
+          ) : (
+            <CreditLine credit={footer.credit} />
+          )}
           <AdminGearButton />
         </div>
       </Container>

@@ -77,19 +77,43 @@ export default function CtaGrid({
 
   // Size the letter grid to cover the panel plus one period of overscan on
   // every side, so the up-right drift never exposes an uncovered edge.
+  //
+  // The grid is hundreds of masked cells, so re-rendering it per resize frame is
+  // expensive — and this panel does get resized every frame (the /our-works
+  // accordion animates its gallery card's width as you swipe to it). Two guards
+  // keep that cheap: the counts are quantised to whole letter periods, so a
+  // continuous resize crosses a threshold only rarely, and the grid only ever
+  // grows on the way (shrinking waits for the resize to settle), so a widening
+  // sweep re-renders once at most per period rather than on every frame.
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
-    const measure = () => {
+    const step = LETTERS.length; // quantum, in tiles
+    const quantise = (px: number) =>
+      (Math.ceil(Math.ceil(px / tile) / step) + 1) * step + OVERSCAN * 2;
+    let shrinkTimer: ReturnType<typeof setTimeout> | undefined;
+    const apply = (cols: number, rows: number, allowShrink: boolean) =>
+      setDims((d) => {
+        const c = allowShrink ? cols : Math.max(d.cols, cols);
+        const r = allowShrink ? rows : Math.max(d.rows, rows);
+        return d.cols === c && d.rows === r ? d : { cols: c, rows: r };
+      });
+    const measure = (allowShrink: boolean) => {
       const { width, height } = wrap.getBoundingClientRect();
-      const cols = Math.ceil(width / tile) + OVERSCAN * 2;
-      const rows = Math.ceil(height / tile) + OVERSCAN * 2;
-      setDims((d) => (d.cols === cols && d.rows === rows ? d : { cols, rows }));
+      apply(quantise(width), quantise(height), allowShrink);
     };
-    measure();
-    const ro = new ResizeObserver(measure);
+    measure(true);
+    const ro = new ResizeObserver(() => {
+      measure(false);
+      // Reclaim the overshoot once the element stops changing size.
+      clearTimeout(shrinkTimer);
+      shrinkTimer = setTimeout(() => measure(true), 300);
+    });
     ro.observe(wrap);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      clearTimeout(shrinkTimer);
+    };
   }, [tile]);
 
   // Drift the whole letter layer diagonally, easing the speed up on hover.
@@ -125,6 +149,7 @@ export default function CtaGrid({
     card?.addEventListener("mouseleave", onLeave);
 
     const tick = (t: number) => {
+      raf = 0;
       if (last == null) last = t;
       const dt = t - last;
       last = t;
@@ -139,10 +164,27 @@ export default function CtaGrid({
 
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    // Only drift while the grid is actually on screen — several of these live on
+    // the page at once (the CTA, the drawer, the gallery hand-off card), and an
+    // off-screen one has no business burning a frame's worth of work.
+    const start = () => {
+      if (!raf) {
+        last = null;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const io = new IntersectionObserver(([entry]) => (entry.isIntersecting ? start() : stop()), {
+      rootMargin: "100px",
+    });
+    io.observe(wrap);
 
     return () => {
-      cancelAnimationFrame(raf);
+      io.disconnect();
+      stop();
       card?.removeEventListener("mouseenter", onEnter);
       card?.removeEventListener("mouseleave", onLeave);
     };
@@ -182,7 +224,15 @@ export default function CtaGrid({
   }, [dims, glyphs, glyphClassName, fontClassName, tile, glyphW, glyphH]);
 
   return (
-    <div ref={wrapRef} aria-hidden className={`${className} pointer-events-none absolute inset-0`}>
+    <div
+      ref={wrapRef}
+      aria-hidden
+      className={`${className} pointer-events-none absolute inset-0`}
+      // The letter layer is large and always overflows this box; containment
+      // keeps its paint (and its layout) from rippling out into the card that a
+      // scroll-driven animation may be resizing every frame.
+      style={{ contain: "layout paint" }}
+    >
       <div
         ref={layerRef}
         className="absolute grid"

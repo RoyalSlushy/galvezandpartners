@@ -2,8 +2,10 @@
 
 import { useAdmin } from "./AdminProvider";
 
-/** The discreet footer gear. Opens the login popover for visitors who know to
- * look for it, or pops the admin drawer open when already unlocked. */
+/** The discreet footer gear. Invisible until the cursor finds its spot (or it
+ * takes keyboard focus) — it still occupies its slot in the credit row, so
+ * hovering that position reveals it. Opens the login popover for visitors who
+ * know to look for it, or pops the admin drawer open when already unlocked. */
 export default function AdminGearButton() {
   const admin = useAdmin();
   return (
@@ -12,7 +14,7 @@ export default function AdminGearButton() {
       onClick={() => (admin.auth === "authed" ? admin.pokeDrawer() : admin.openLogin())}
       aria-label="Admin"
       title="Admin"
-      className="inline-flex h-5 w-5 items-center justify-center text-white/30 transition hover:text-gold"
+      className="inline-flex h-5 w-5 items-center justify-center text-white/30 opacity-0 transition hover:text-gold hover:opacity-100 focus-visible:opacity-100"
     >
       <svg
         viewBox="0 0 24 24"
