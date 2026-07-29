@@ -172,8 +172,9 @@ export default function TeamGrid({
 
       {openIdx !== null && members[openIdx] && (
         <MemberCardModal
-          member={members[openIdx]}
+          members={members}
           index={openIdx}
+          onNavigate={setOpenIdx}
           onClose={() => setOpenIdx(null)}
         />
       )}

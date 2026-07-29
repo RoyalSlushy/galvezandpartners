@@ -125,6 +125,8 @@ const ES: Record<string, string> = {
   // --- Team profile cards: chrome ---
   "Meet me": "Conóceme",
   Close: "Cerrar",
+  Previous: "Anterior",
+  Next: "Siguiente",
 
   // --- Team profile cards: the FACT_PROMPTS question library (content/team.ts).
   //     Every prompt admins can pick needs an entry here. ---
