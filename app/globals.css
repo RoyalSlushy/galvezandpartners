@@ -678,7 +678,11 @@ html[data-gp-case-snap] {
   /* Resting state, so a dealt piece keeps its angle once the animation ends
      (and when animation is suppressed for reduced motion). */
   transform: rotate(var(--deal-rot, 0deg));
-  animation: gp-deal 560ms cubic-bezier(0.17, 0.84, 0.34, 1) both;
+  /* A dealt card slides to a stop — it never springs back. The travel is a
+     single decelerating move with no overshoot and no keyframe between the
+     throw and the rest, so wherever friction runs out is where the card
+     stays; anything that pulled it back onto a mark would read as a snap. */
+  animation: gp-deal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform;
 }
 @keyframes gp-deal {
@@ -689,11 +693,6 @@ html[data-gp-case-snap] {
   }
   30% {
     opacity: 1;
-  }
-  80% {
-    /* Skids just past the mark before settling back onto it. */
-    transform: translate3d(0, -1.25rem, 0) rotate(calc(var(--deal-rot, 0deg) + 3deg))
-      scale(1.012);
   }
   100% {
     opacity: 1;

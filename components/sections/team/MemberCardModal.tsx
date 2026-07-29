@@ -16,7 +16,7 @@ import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
 const ANSWER_PLACEHOLDER = "Add an answer…";
 
 /** How long the whole deal takes: the last piece's delay plus its flight. */
-const DEAL_SETTLED_MS = 900;
+const DEAL_SETTLED_MS = 1000;
 
 /** One dealt piece: where it comes in from, where it lands, and when. `y`
  * defaults to the keyframes' off-screen 110vh; small pieces override it. */
@@ -118,10 +118,10 @@ export default function MemberCardModal({
   }, [onClose]);
 
   // Lock body scroll while open — same fixed-body technique as the mobile
-  // drawer (keeps iOS Safari from scrolling behind, restores without a jump).
+  // drawer (keeps iOS Safari from scrolling behind).
   useEffect(() => {
     const scrollY = window.scrollY;
-    const { body } = document;
+    const { body, documentElement: html } = document;
     body.style.position = "fixed";
     body.style.top = `-${scrollY}px`;
     body.style.left = "0";
@@ -133,7 +133,15 @@ export default function MemberCardModal({
       body.style.left = "";
       body.style.right = "";
       body.style.width = "";
+      // Un-fixing the body drops the page to the top, so it has to be put back
+      // — but the site sets `scroll-behavior: smooth` globally (for in-page
+      // anchors), which would *animate* that, gliding the page back into place
+      // after the card is already gone. Suspend it so the page is restored
+      // within this same frame and never appears to move at all.
+      const prev = html.style.scrollBehavior;
+      html.style.scrollBehavior = "auto";
       window.scrollTo(0, scrollY);
+      html.style.scrollBehavior = prev;
     };
   }, []);
 
