@@ -1,31 +1,36 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { GlyphMark } from "@/components/ui/Glyph";
 import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
+import { AddChip } from "@/components/admin/editable/ListControls";
+import PromptPicker from "./PromptPicker";
 import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
 
-/** The quirky fact rows, in display order. Placeholders show only in edit mode
- * (visible on purpose, matching the CMS list-template convention) so admins can
- * click and fill empty fields; visitors never see an empty row. */
-const FIELDS = [
-  { key: "superpower", label: "Superpower", placeholder: "Add a superpower…" },
-  { key: "fuel", label: "Fuel of choice", placeholder: "Add a fuel of choice…" },
-  { key: "obsession", label: "Currently obsessed with", placeholder: "Add an obsession…" },
-  { key: "hiddenTalent", label: "Hidden talent", placeholder: "Add a hidden talent…" },
-] as const;
+/** Shown in edit mode for a fact whose answer hasn't been filled in yet
+ * (visible on purpose, matching the CMS list-template convention). */
+const ANSWER_PLACEHOLDER = "Add an answer…";
+
+/** One tossed piece: where it spins in from, where it lands, and when. */
+function toss(rot: string, spin: string, delayMs: number): CSSProperties {
+  return {
+    ["--toss-rot" as string]: rot,
+    ["--toss-spin" as string]: spin,
+    animationDelay: `${delayMs}ms`,
+  };
+}
 
 /**
- * Pop-up profile for one team member, styled like two scrapbook pieces over a
- * dimmed backdrop: an isolated polaroid photo card (tape strip, emoji sticker,
- * glyph initial behind the cutout) and a separate details card with the name,
- * role, quirky fact rows and motto. They sit side by side on desktop — the
- * details card lying horizontal — and stack on mobile. Mounted only while
- * open; the entrance is a mount-time keyframe (gp-card-pop / gp-fade-in in
- * globals.css), so closing simply unmounts.
+ * Pop-up profile for one team member, staged like stationery tossed onto a
+ * desk: an isolated polaroid photo card and a separate details card fly up
+ * from below, spin, and settle at slight opposed angles, with the emoji
+ * sticker landing last. They sit side by side on desktop and stack on mobile.
+ *
+ * Mounted only while open — the entrances are mount-time keyframes (gp-toss /
+ * gp-fade-in in globals.css), so closing simply unmounts.
  */
 export default function MemberCardModal({
   member,
@@ -43,6 +48,8 @@ export default function MemberCardModal({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  // Which fact's question picker is open, and where to anchor it.
+  const [picking, setPicking] = useState<{ i: number; top: number; left: number } | null>(null);
 
   // Focus the close button on open; hand focus back to the opener on close.
   useEffect(() => {
@@ -51,8 +58,8 @@ export default function MemberCardModal({
     return () => opener?.focus?.();
   }, []);
 
-  // Escape closes (EditableText stops propagation while a field is being
-  // edited, so Escape there only cancels the edit). Tab cycles inside the card.
+  // Escape closes (EditableText and the prompt picker stop propagation while
+  // they're active, so Escape there only dismisses them). Tab cycles inside.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -103,12 +110,17 @@ export default function MemberCardModal({
   }, []);
 
   const base = `team.members.${index}`;
+  const factsPath = `${base}.facts`;
   const titleId = `member-card-${index}-name`;
+  const facts = member.facts ?? [];
+  // Visitors only ever see answered lines; admins see every line so they can
+  // fill it in.
+  const shown = editMode ? facts : facts.filter((f) => f?.answer);
 
   return (
     // The dialog is the full-screen layer, so the close button can sit at the
-    // viewport corner: a `fixed` child of the animated card wrapper would
-    // resolve against that wrapper's transform instead of the viewport.
+    // viewport corner: a `fixed` child of a tossed card would resolve against
+    // that card's transform instead of the viewport.
     <div
       ref={cardRef}
       role="dialog"
@@ -144,22 +156,25 @@ export default function MemberCardModal({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="gp-card-pop relative w-full max-w-sm sm:max-w-3xl"
+          className="relative w-full max-w-md sm:max-w-5xl"
         >
-          <div className="flex max-h-[85dvh] flex-col items-center gap-5 overflow-y-auto p-2 sm:max-h-[90dvh] sm:flex-row sm:gap-8 sm:p-4">
+          <div className="flex max-h-[88dvh] flex-col items-center gap-6 overflow-y-auto p-2 sm:max-h-[90dvh] sm:flex-row sm:items-stretch sm:gap-10 sm:p-4">
             {/* Polaroid photo card — the picture stands on its own, with the
                 tape strip, emoji sticker and glyph initial, plus the classic
                 thick polaroid bottom margin. */}
-            <div className="gp-tilt-l relative w-44 shrink-0 bg-white pb-8 shadow-2xl sm:w-64 sm:pb-10">
+            <div
+              style={toss("-2.5deg", "-18deg", 0)}
+              className="gp-toss relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14"
+            >
               <div
                 aria-hidden
-                className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rotate-[-4deg] bg-gold/70"
+                className="absolute left-1/2 top-0 z-20 h-5 w-28 -translate-x-1/2 rotate-[-4deg] bg-gold/70 sm:h-6 sm:w-32"
               />
-              <div className="relative m-3 mb-0 overflow-hidden bg-cream/60">
+              <div className="relative m-3 mb-0 overflow-hidden bg-cream/60 sm:m-4">
                 <GlyphMark
                   char={lastNameInitial(member.name)}
                   tintClassName="bg-navy"
-                  className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-20"
+                  className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-20 sm:h-32 sm:w-32"
                 />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -168,49 +183,82 @@ export default function MemberCardModal({
                   className="relative z-10 aspect-[5/6] w-full object-cover"
                 />
               </div>
-              {/* Emoji sticker, slapped over the polaroid's corner. */}
+              {/* Emoji sticker, slapped on last. */}
               {(editMode || member.emoji) && (
                 <EditableText
                   path={`${base}.emoji`}
                   value={member.emoji || "😀"}
                   as="span"
-                  className="absolute -left-2 top-6 z-20 rotate-[-12deg] text-4xl drop-shadow-md"
+                  style={toss("-12deg", "-45deg", 340)}
+                  className="gp-toss absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
                 />
               )}
             </div>
 
             {/* Details card — a separate horizontal card carrying the name,
-                role, quirky fact rows and motto. */}
-            <div className="gp-tilt-r w-full min-w-0 flex-1 border-b-4 border-gold bg-white px-6 py-5 shadow-2xl sm:px-8 sm:py-6">
-              <h2 id={titleId} className="font-heading text-2xl tracking-tight text-navy">
+                role, the chosen questions and the motto. */}
+            <div
+              style={toss("1.2deg", "14deg", 140)}
+              className="gp-toss w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9"
+            >
+              <h2
+                id={titleId}
+                className="font-heading text-3xl tracking-tight text-navy sm:text-4xl"
+              >
                 {member.name}
               </h2>
-              <p className="mt-0.5 font-din text-xs uppercase text-gold">{tv(member.role)}</p>
+              <p className="mt-1 font-din text-xs uppercase tracking-wide text-gold sm:text-sm">
+                {tv(member.role)}
+              </p>
 
-              <dl className="mt-4 grid gap-x-8 gap-y-3 border-t border-navy/10 pt-4 sm:grid-cols-2">
-                {FIELDS.map(({ key, label, placeholder }) => {
-                  const value = member[key];
-                  if (!editMode && !value) return null;
-                  return (
-                    <div key={key}>
-                      <dt className="font-din text-[10px] uppercase tracking-[0.15em] text-gold">
-                        {tv(label)}
+              {(shown.length > 0 || editMode) && (
+                <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
+                  {shown.map((fact, fi) => (
+                    <div key={fi}>
+                      <dt className="font-din text-[11px] uppercase tracking-[0.15em] text-gold">
+                        {editMode ? (
+                          // The question comes from the shared library, so it's
+                          // picked rather than typed.
+                          <button
+                            type="button"
+                            title="Choose a question"
+                            onClick={(e) => {
+                              const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setPicking({
+                                i: fi,
+                                top: Math.min(r.bottom + 6, window.innerHeight - 340),
+                                left: Math.min(r.left, window.innerWidth - 300),
+                              });
+                            }}
+                            className="border-b border-dashed border-gold/60 uppercase transition hover:text-gold-dark"
+                          >
+                            {fact.prompt || "Choose a question"} ▾
+                          </button>
+                        ) : (
+                          tv(fact.prompt)
+                        )}
                       </dt>
-                      <dd className="mt-0.5 text-sm text-navy">
+                      <dd className="mt-1 text-base text-navy sm:text-lg">
                         <EditableText
-                          path={`${base}.${key}`}
-                          value={value ? tv(value) : placeholder}
+                          path={`${factsPath}.${fi}.answer`}
+                          value={fact.answer ? tv(fact.answer) : ANSWER_PLACEHOLDER}
                           as="span"
-                          className={value ? undefined : "italic text-navy/40"}
+                          label="answer"
+                          className={fact.answer ? undefined : "italic text-navy/40"}
                         />
                       </dd>
                     </div>
-                  );
-                })}
-              </dl>
+                  ))}
+                  {editMode && (
+                    <div className="self-end">
+                      <AddChip listPath={factsPath} label="line" className="!px-3 !py-1.5 !text-xs" />
+                    </div>
+                  )}
+                </dl>
+              )}
 
               {(editMode || member.motto) && (
-                <p className="mt-4 border-t border-navy/10 pt-3 text-center font-display italic text-navy/80">
+                <p className="mt-6 border-t border-navy/10 pt-4 text-center font-display text-lg italic text-navy/80 sm:text-xl">
                   “
                   <EditableText
                     path={`${base}.motto`}
@@ -225,6 +273,15 @@ export default function MemberCardModal({
           </div>
         </div>
       </div>
+
+      {picking && (
+        <PromptPicker
+          listPath={factsPath}
+          index={picking.i}
+          pos={{ top: picking.top, left: picking.left }}
+          onClose={() => setPicking(null)}
+        />
+      )}
     </div>
   );
 }

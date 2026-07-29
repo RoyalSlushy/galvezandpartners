@@ -122,19 +122,42 @@ const ES: Record<string, string> = {
   "Video Content Creator": "Creador de Contenido de Video",
   "Digital Marketing": "Marketing Digital",
 
-  // --- Team profile cards: chrome + field labels ---
+  // --- Team profile cards: chrome ---
   "Meet me": "Conóceme",
   Close: "Cerrar",
+
+  // --- Team profile cards: the FACT_PROMPTS question library (content/team.ts).
+  //     Every prompt admins can pick needs an entry here. ---
   Superpower: "Superpoder",
   "Fuel of choice": "Combustible de cabecera",
   "Currently obsessed with": "Obsesión del momento",
   "Hidden talent": "Talento oculto",
+  "First job ever": "Mi primer trabajo",
+  "Karaoke go-to": "Mi canción de karaoke",
+  "Desk essential": "Indispensable en mi escritorio",
+  "Walk-up song": "Mi canción de entrada",
+  "Comfort watch": "Lo que veo para relajarme",
+  "Weekend mode": "Modo fin de semana",
+  "Pet peeve": "Lo que no soporto",
+  "Dream project": "Proyecto soñado",
+  "Go-to taco order": "Mis tacos de siempre",
+  "Can't work without": "No puedo trabajar sin",
+  "Favorite word": "Palabra favorita",
+  "Childhood dream job": "Lo que quería ser de niñ@",
+  "Best advice I ever got": "El mejor consejo que me han dado",
+  "Proudest work moment": "Mi momento de mayor orgullo",
+  "Always in my camera roll": "Siempre en mi carrete",
+  "Ask me about": "Pregúntame sobre",
 
   // --- Team profile cards: default values (admin-edited values fall through
   //     untranslated, same as roles) ---
   "Seeing the story before anyone else does": "Ve la historia antes que nadie",
   "Black coffee, no sugar": "Café negro, sin azúcar",
   "Brands with something to say": "Marcas con algo que decir",
+  "Listen twice, pitch once": "Escucha dos veces, propón una",
+  "Stretched logos": "Los logotipos deformados",
+  "A highlighter for every department": "Un marcador para cada departamento",
+  "Anything with a heist in it": "Cualquier cosa con un atraco",
   "Closes deals in two languages mid-sentence":
     "Cierra tratos en dos idiomas a media frase",
   "Every brand has a story worth telling.":

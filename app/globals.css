@@ -656,11 +656,13 @@ html[data-gp-case-snap] {
   }
 }
 
-/* Team profile pop-up: the backdrop fades in and the card pair pops with a
-   springy overshoot. The photo polaroid and the details card each keep their
-   own slight scrapbook tilt (opposed, so they read as two pieces laid down
-   next to each other). All run once on mount — closing unmounts the modal, so
-   there is no exit animation. */
+/* Team profile pop-up: the backdrop fades in, then each piece is tossed onto
+   the table — it flies up from below the viewport, spinning, overshoots, and
+   settles at a slight angle like stationery dropped on a desk. Every tossed
+   element sets its own landing angle (--toss-rot), the angle it spins in from
+   (--toss-spin) and an animation-delay, so the pieces land one after another.
+   All run once on mount — closing unmounts the modal, so there is no exit
+   animation. */
 .gp-fade-in {
   animation: gp-fade-in 250ms ease-out both;
 }
@@ -669,27 +671,28 @@ html[data-gp-case-snap] {
     opacity: 0;
   }
 }
-.gp-card-pop {
-  animation: gp-card-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+.gp-toss {
+  /* Resting state, so a tossed piece keeps its angle once the animation ends
+     (and when animation is suppressed for reduced motion). */
+  transform: rotate(var(--toss-rot, 0deg));
+  animation: gp-toss 620ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  will-change: transform;
 }
-@keyframes gp-card-pop {
+@keyframes gp-toss {
   0% {
     opacity: 0;
-    transform: scale(0.85) translateY(24px);
+    transform: translate3d(0, 60vh, 0) rotate(var(--toss-spin, -18deg)) scale(0.9);
   }
-  70% {
-    transform: scale(1.02) translateY(-2px);
+  55% {
+    opacity: 1;
+  }
+  78% {
+    transform: translate3d(0, -10px, 0) rotate(calc(var(--toss-rot, 0deg) + 3deg)) scale(1.015);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) rotate(var(--toss-rot, 0deg)) scale(1);
   }
-}
-.gp-tilt-l {
-  transform: rotate(-2deg);
-}
-.gp-tilt-r {
-  transform: rotate(1deg);
 }
 
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
@@ -756,15 +759,11 @@ html[data-gp-case-snap] {
     transform: none;
     opacity: 0.25;
   }
-  /* Team profile cards: appear in place, untilted. */
+  /* Team profile cards: the pieces are simply already on the table (they keep
+     their resting angle, which is layout rather than motion). */
   .gp-fade-in,
-  .gp-card-pop {
+  .gp-toss {
     animation: none !important;
-  }
-  .gp-card-pop,
-  .gp-tilt-l,
-  .gp-tilt-r {
-    transform: none;
   }
 }
 
