@@ -46,9 +46,9 @@ function piece(
 /**
  * Pop-up profile for one team member: an isolated polaroid photo card and a
  * separate details card, side by side on desktop and stacked on mobile. They
- * spread outward from a single point at the group's centre, as though the
- * whole set came from one source, and settle at slight opposed angles with
- * the emoji sticker arriving last.
+ * rise out of a single point at the bottom centre of the viewport, spreading
+ * up and outward as though the whole set came from one source, and settle at
+ * slight opposed angles with the emoji sticker arriving last.
  *
  * Closing sweeps everything off to the left — an arm clearing the table —
  * before the card unmounts, so the component owns the exit rather than
@@ -103,20 +103,28 @@ export default function MemberCardModal({
   }, [reducedMotion, onClose]);
   useEffect(() => () => window.clearTimeout(sweepTimer.current), []);
 
-  // Each piece flows out from the group's own centre, so it starts life offset
-  // by however far its resting place sits from that centre. Measured from
-  // layout boxes (offsetLeft/Top ignore transforms, so the animation's own
-  // starting transform can't feed back into the measurement) and written as
-  // custom properties the keyframes read.
+  // Every piece flows out of one point: the bottom centre of the viewport. Each
+  // starts life offset by however far its resting place sits from there.
+  //
+  // The offset has to be measured rather than assumed, since the two cards sit
+  // side by side on desktop and stacked on mobile. A piece's own
+  // getBoundingClientRect is no use here — it includes the animation's starting
+  // transform, which would feed back into the measurement — so its layout
+  // position is taken from offsetLeft/offsetTop (which ignore transforms) and
+  // converted to viewport coordinates through the group, the nearest ancestor
+  // that is positioned and never animated.
   const groupRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const group = groupRef.current;
     if (!group) return;
-    const cx = group.offsetWidth / 2;
-    const cy = group.offsetHeight / 2;
+    const groupBox = group.getBoundingClientRect();
+    const originX = window.innerWidth / 2;
+    const originY = window.innerHeight;
     group.querySelectorAll<HTMLElement>("[data-gp-piece]").forEach((el) => {
-      el.style.setProperty("--from-x", `${cx - (el.offsetLeft + el.offsetWidth / 2)}px`);
-      el.style.setProperty("--from-y", `${cy - (el.offsetTop + el.offsetHeight / 2)}px`);
+      const cx = groupBox.left + el.offsetLeft + el.offsetWidth / 2;
+      const cy = groupBox.top + el.offsetTop + el.offsetHeight / 2;
+      el.style.setProperty("--from-x", `${originX - cx}px`);
+      el.style.setProperty("--from-y", `${originY - cy}px`);
     });
   }, [member]);
 

@@ -678,12 +678,12 @@ html[data-gp-case-snap] {
   /* Resting state, so a piece keeps its angle once the animation ends (and
      when animation is suppressed for reduced motion). */
   transform: rotate(var(--rot, 0deg));
-  /* Each piece starts stacked on the group's own centre — --from-x/--from-y
-     are measured per piece at mount — and flows outward to its place, so the
-     whole spread reads as coming from one source. A single decelerating move
-     with no keyframe between the start and the rest: wherever it slows to a
-     stop is where it stays, since anything pulling it back onto a mark would
-     read as a snap. */
+  /* Each piece starts stacked on the bottom centre of the viewport —
+     --from-x/--from-y are measured per piece at mount — and flows up and
+     outward to its place, so the whole spread reads as rising from one
+     source. A single decelerating move with no keyframe between the start
+     and the rest: wherever it slows to a stop is where it stays, since
+     anything pulling it back onto a mark would read as a snap. */
   animation: gp-emerge 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform;
 }
