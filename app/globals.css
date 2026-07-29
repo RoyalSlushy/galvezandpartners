@@ -656,11 +656,14 @@ html[data-gp-case-snap] {
   }
 }
 
-/* Team profile pop-up: the backdrop fades in, then each piece is tossed onto
-   the table — it flies up from below the viewport, spinning, overshoots, and
-   settles at a slight angle like stationery dropped on a desk. Every tossed
-   element sets its own landing angle (--toss-rot), the angle it spins in from
-   (--toss-spin) and an animation-delay, so the pieces land one after another.
+/* Team profile pop-up: the backdrop fades in, then each piece is dealt onto
+   the surface — it comes in from off-screen past the bottom edge of the
+   viewport, skims up with a spin, slides a touch past its mark and settles,
+   the way a dealt card skids on a table. Each element sets where it comes in
+   from (--deal-x / --deal-y / --deal-spin), the angle it lands at
+   (--deal-rot) and an animation-delay, so the pieces are dealt in turn.
+   Nothing between these elements and the viewport may clip (see the modal's
+   scroll container), so the travel reads as entering through the screen edge.
    All run once on mount — closing unmounts the modal, so there is no exit
    animation. */
 .gp-fade-in {
@@ -671,27 +674,30 @@ html[data-gp-case-snap] {
     opacity: 0;
   }
 }
-.gp-toss {
-  /* Resting state, so a tossed piece keeps its angle once the animation ends
+.gp-deal {
+  /* Resting state, so a dealt piece keeps its angle once the animation ends
      (and when animation is suppressed for reduced motion). */
-  transform: rotate(var(--toss-rot, 0deg));
-  animation: gp-toss 620ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  transform: rotate(var(--deal-rot, 0deg));
+  animation: gp-deal 560ms cubic-bezier(0.17, 0.84, 0.34, 1) both;
   will-change: transform;
 }
-@keyframes gp-toss {
+@keyframes gp-deal {
   0% {
     opacity: 0;
-    transform: translate3d(0, 60vh, 0) rotate(var(--toss-spin, -18deg)) scale(0.9);
+    transform: translate3d(var(--deal-x, 0px), var(--deal-y, 110vh), 0)
+      rotate(var(--deal-spin, -24deg)) scale(0.88);
   }
-  55% {
+  30% {
     opacity: 1;
   }
-  78% {
-    transform: translate3d(0, -10px, 0) rotate(calc(var(--toss-rot, 0deg) + 3deg)) scale(1.015);
+  80% {
+    /* Skids just past the mark before settling back onto it. */
+    transform: translate3d(0, -1.25rem, 0) rotate(calc(var(--deal-rot, 0deg) + 3deg))
+      scale(1.012);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) rotate(var(--toss-rot, 0deg)) scale(1);
+    transform: translate3d(0, 0, 0) rotate(var(--deal-rot, 0deg)) scale(1);
   }
 }
 
@@ -762,7 +768,7 @@ html[data-gp-case-snap] {
   /* Team profile cards: the pieces are simply already on the table (they keep
      their resting angle, which is layout rather than motion). */
   .gp-fade-in,
-  .gp-toss {
+  .gp-deal {
     animation: none !important;
   }
 }
