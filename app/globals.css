@@ -674,29 +674,56 @@ html[data-gp-case-snap] {
     opacity: 0;
   }
 }
-.gp-deal {
-  /* Resting state, so a dealt piece keeps its angle once the animation ends
-     (and when animation is suppressed for reduced motion). */
-  transform: rotate(var(--deal-rot, 0deg));
-  /* A dealt card slides to a stop — it never springs back. The travel is a
-     single decelerating move with no overshoot and no keyframe between the
-     throw and the rest, so wherever friction runs out is where the card
-     stays; anything that pulled it back onto a mark would read as a snap. */
-  animation: gp-deal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+.gp-emerge {
+  /* Resting state, so a piece keeps its angle once the animation ends (and
+     when animation is suppressed for reduced motion). */
+  transform: rotate(var(--rot, 0deg));
+  /* Each piece starts stacked on the group's own centre — --from-x/--from-y
+     are measured per piece at mount — and flows outward to its place, so the
+     whole spread reads as coming from one source. A single decelerating move
+     with no keyframe between the start and the rest: wherever it slows to a
+     stop is where it stays, since anything pulling it back onto a mark would
+     read as a snap. */
+  animation: gp-emerge 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform;
 }
-@keyframes gp-deal {
+@keyframes gp-emerge {
   0% {
     opacity: 0;
-    transform: translate3d(var(--deal-x, 0px), var(--deal-y, 110vh), 0)
-      rotate(var(--deal-spin, -24deg)) scale(0.88);
+    transform: translate3d(var(--from-x, 0px), var(--from-y, 0px), 0)
+      rotate(var(--spin, 0deg)) scale(0.6);
   }
-  30% {
+  35% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) rotate(var(--deal-rot, 0deg)) scale(1);
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+}
+
+/* Exit: an arm sweeps across the table and wipes everything off to the left.
+   The pieces accelerate away (rather than easing to a halt) and tumble as
+   they go, clearing the viewport before the card unmounts. */
+.gp-sweep {
+  animation: gp-sweep 460ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  will-change: transform;
+}
+@keyframes gp-sweep {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+  100% {
+    transform: translate3d(-130vw, 0, 0) rotate(calc(var(--rot, 0deg) - 16deg))
+      scale(0.92);
+  }
+}
+.gp-fade-out {
+  animation: gp-fade-out 420ms ease-in both;
+}
+@keyframes gp-fade-out {
+  to {
+    opacity: 0;
   }
 }
 
@@ -765,9 +792,12 @@ html[data-gp-case-snap] {
     opacity: 0.25;
   }
   /* Team profile cards: the pieces are simply already on the table (they keep
-     their resting angle, which is layout rather than motion). */
+     their resting angle, which is layout rather than motion), and the card
+     closes outright rather than being swept off. */
   .gp-fade-in,
-  .gp-deal {
+  .gp-fade-out,
+  .gp-emerge,
+  .gp-sweep {
     animation: none !important;
   }
 }

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { GlyphMark } from "@/components/ui/Glyph";
 import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
@@ -15,35 +22,38 @@ import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
  * (visible on purpose, matching the CMS list-template convention). */
 const ANSWER_PLACEHOLDER = "Add an answer…";
 
-/** How long the whole deal takes: the last piece's delay plus its flight. */
-const DEAL_SETTLED_MS = 1000;
+/** How long the spread takes: the last piece's delay plus its travel. */
+const EMERGE_SETTLED_MS = 700;
+/** How long the sweep takes to clear the viewport, before the card unmounts. */
+const SWEEP_MS = 540;
 
-/** One dealt piece: where it comes in from, where it lands, and when. `y`
- * defaults to the keyframes' off-screen 110vh; small pieces override it. */
-function deal(
+/** One piece's angles and its stagger, which differs between arriving
+ * (flowing outward from the centre) and leaving (swept off to the left). */
+function piece(
   rot: string,
   spin: string,
-  delayMs: number,
-  extra?: { x?: string; y?: string },
+  inDelayMs: number,
+  outDelayMs: number,
+  closing: boolean,
 ): CSSProperties {
   return {
-    ["--deal-rot" as string]: rot,
-    ["--deal-spin" as string]: spin,
-    ...(extra?.x ? { ["--deal-x" as string]: extra.x } : null),
-    ...(extra?.y ? { ["--deal-y" as string]: extra.y } : null),
-    animationDelay: `${delayMs}ms`,
+    ["--rot" as string]: rot,
+    ["--spin" as string]: spin,
+    animationDelay: `${closing ? outDelayMs : inDelayMs}ms`,
   };
 }
 
 /**
- * Pop-up profile for one team member, staged like cards dealt onto a surface:
- * an isolated polaroid photo card and a separate details card come in from
- * off-screen below the viewport, spin, skid past their mark and settle at
- * slight opposed angles, with the emoji sticker dealt last. They sit side by
- * side on desktop and stack on mobile.
+ * Pop-up profile for one team member: an isolated polaroid photo card and a
+ * separate details card, side by side on desktop and stacked on mobile. They
+ * spread outward from a single point at the group's centre, as though the
+ * whole set came from one source, and settle at slight opposed angles with
+ * the emoji sticker arriving last.
  *
- * Mounted only while open — the entrances are mount-time keyframes (gp-deal /
- * gp-fade-in in globals.css), so closing simply unmounts.
+ * Closing sweeps everything off to the left — an arm clearing the table —
+ * before the card unmounts, so the component owns the exit rather than
+ * vanishing the moment its parent drops it. All of it is CSS keyframes
+ * (gp-emerge / gp-sweep / gp-fade-in / gp-fade-out in globals.css).
  */
 export default function MemberCardModal({
   member,
@@ -64,10 +74,8 @@ export default function MemberCardModal({
   // Which fact's question picker is open, and where to anchor it.
   const [picking, setPicking] = useState<{ i: number; top: number; left: number } | null>(null);
 
-  // The cards are dealt in from below the bottom of the screen, so nothing may
-  // clip them on the way: scrolling is only switched on once they have landed.
-  // (A scroll container would both cut the flight short and briefly let the
-  // page scroll down to the empty space the incoming cards occupy.)
+  // The pieces travel outward past their resting places' bounds, so nothing may
+  // clip them on the way: scrolling is only switched on once they have settled.
   const reducedMotion = usePrefersReducedMotion();
   const [landed, setLanded] = useState(false);
   useEffect(() => {
@@ -75,9 +83,42 @@ export default function MemberCardModal({
       setLanded(true);
       return;
     }
-    const id = window.setTimeout(() => setLanded(true), DEAL_SETTLED_MS);
+    const id = window.setTimeout(() => setLanded(true), EMERGE_SETTLED_MS);
     return () => window.clearTimeout(id);
   }, [reducedMotion]);
+
+  // Closing plays the sweep first and unmounts once it has cleared the screen.
+  const [closing, setClosing] = useState(false);
+  const sweepTimer = useRef<number | undefined>(undefined);
+  const requestClose = useCallback(() => {
+    if (reducedMotion) {
+      onClose();
+      return;
+    }
+    setClosing((already) => {
+      if (already) return already;
+      sweepTimer.current = window.setTimeout(onClose, SWEEP_MS);
+      return true;
+    });
+  }, [reducedMotion, onClose]);
+  useEffect(() => () => window.clearTimeout(sweepTimer.current), []);
+
+  // Each piece flows out from the group's own centre, so it starts life offset
+  // by however far its resting place sits from that centre. Measured from
+  // layout boxes (offsetLeft/Top ignore transforms, so the animation's own
+  // starting transform can't feed back into the measurement) and written as
+  // custom properties the keyframes read.
+  const groupRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const group = groupRef.current;
+    if (!group) return;
+    const cx = group.offsetWidth / 2;
+    const cy = group.offsetHeight / 2;
+    group.querySelectorAll<HTMLElement>("[data-gp-piece]").forEach((el) => {
+      el.style.setProperty("--from-x", `${cx - (el.offsetLeft + el.offsetWidth / 2)}px`);
+      el.style.setProperty("--from-y", `${cy - (el.offsetTop + el.offsetHeight / 2)}px`);
+    });
+  }, [member]);
 
   // Focus the close button on open; hand focus back to the opener on close.
   useEffect(() => {
@@ -91,7 +132,7 @@ export default function MemberCardModal({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        requestClose();
       } else if (e.key === "Tab") {
         const card = cardRef.current;
         if (!card) return;
@@ -115,7 +156,7 @@ export default function MemberCardModal({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [requestClose]);
 
   // Lock body scroll while open — same fixed-body technique as the mobile
   // drawer (keeps iOS Safari from scrolling behind).
@@ -164,14 +205,20 @@ export default function MemberCardModal({
       aria-labelledby={titleId}
       className="fixed inset-0 z-[60]"
     >
-      <div aria-hidden onClick={onClose} className="gp-fade-in absolute inset-0 bg-black/60" />
+      <div
+        aria-hidden
+        onClick={requestClose}
+        className={`absolute inset-0 bg-black/60 ${closing ? "gp-fade-out" : "gp-fade-in"}`}
+      />
 
       <button
         ref={closeRef}
         type="button"
-        onClick={onClose}
+        onClick={requestClose}
         aria-label={t("Close")}
-        className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center bg-navy/80 text-white shadow-lg transition hover:bg-gold hover:text-navy"
+        className={`absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center bg-navy/80 text-white shadow-lg transition hover:bg-gold hover:text-navy ${
+          closing ? "gp-fade-out" : ""
+        }`}
       >
         <svg
           viewBox="0 0 24 24"
@@ -187,7 +234,7 @@ export default function MemberCardModal({
       </button>
 
       <div
-        onClick={onClose}
+        onClick={requestClose}
         className={`absolute inset-0 ${landed ? "overflow-y-auto" : "overflow-hidden"}`}
       >
         {/* min-h-full + centering keeps a card pair taller than the screen
@@ -198,13 +245,20 @@ export default function MemberCardModal({
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md sm:max-w-5xl"
           >
-            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-10">
+            <div
+              ref={groupRef}
+              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-10"
+            >
               {/* Polaroid photo card — the picture stands on its own, with the
                   tape strip, emoji sticker and glyph initial, plus the classic
-                  thick polaroid bottom margin. */}
+                  thick polaroid bottom margin. The sweep takes the rightmost
+                  card first, the way an arm crossing the table reaches it. */}
               <div
-                style={deal("-2.5deg", "-24deg", 0, { x: "-6rem" })}
-                className="gp-deal relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14"
+                data-gp-piece
+                style={piece("-2.5deg", "-14deg", 90, 70, closing)}
+                className={`relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14 ${
+                  closing ? "gp-sweep" : "gp-emerge"
+                }`}
               >
                 <div
                   aria-hidden
@@ -223,14 +277,16 @@ export default function MemberCardModal({
                     className="relative z-10 aspect-[5/6] w-full object-cover"
                   />
                 </div>
-                {/* Emoji sticker, slapped on last. */}
+                {/* Emoji sticker, arriving last. It is stuck to the polaroid,
+                    so it rides that card off the table rather than being swept
+                    on its own (which would double up the two translations). */}
                 {(editMode || member.emoji) && (
                   <EditableText
                     path={`${base}.emoji`}
                     value={member.emoji || "😀"}
                     as="span"
-                    style={deal("-12deg", "-60deg", 320, { y: "40vh" })}
-                    className="gp-deal absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
+                    style={piece("-12deg", "-60deg", 260, 0, false)}
+                    className="gp-emerge absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
                   />
                 )}
               </div>
@@ -238,8 +294,11 @@ export default function MemberCardModal({
               {/* Details card — a separate horizontal card carrying the name,
                   role, the chosen questions and the motto. */}
               <div
-                style={deal("1.2deg", "18deg", 150, { x: "6rem" })}
-                className="gp-deal w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9"
+                data-gp-piece
+                style={piece("1.2deg", "12deg", 0, 0, closing)}
+                className={`w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 ${
+                  closing ? "gp-sweep" : "gp-emerge"
+                }`}
               >
                 <h2
                   id={titleId}
