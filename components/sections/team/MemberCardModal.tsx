@@ -14,6 +14,7 @@ import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import EditableText from "@/components/admin/editable/EditableText";
+import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
 import PromptPicker from "./PromptPicker";
 import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
@@ -403,21 +404,45 @@ export default function MemberCardModal({
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
-                <h2
-                  id={titleId}
-                  className="font-heading text-3xl tracking-tight text-navy sm:text-4xl"
-                >
-                  {member.name}
-                </h2>
-                <p className="mt-1 font-din text-xs uppercase tracking-wide text-gold sm:text-sm">
-                  {tv(member.role)}
-                </p>
+                {/* Name and role sit at the left, their social links pushed
+                    out to the right edge of the same block. */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h2
+                      id={titleId}
+                      className="font-heading text-3xl tracking-tight text-navy sm:text-4xl"
+                    >
+                      {member.name}
+                    </h2>
+                    <p className="mt-1 font-display text-xs uppercase tracking-wide text-gold sm:text-sm">
+                      {tv(member.role)}
+                    </p>
+                  </div>
+                  {(member.socials?.length || editMode) && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SocialIcons
+                        socials={member.socials ?? []}
+                        editPathBase={`${base}.socials`}
+                        linkClassName="text-navy/70 hover:text-gold"
+                        className="!gap-3"
+                        iconClassName="h-5 w-5"
+                      />
+                      {editMode && (member.socials?.length ?? 0) === 0 && (
+                        <AddChip
+                          listPath={`${base}.socials`}
+                          label="social link"
+                          className="!px-2.5 !py-1 !text-xs"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {(shown.length > 0 || editMode) && (
                   <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
                     {shown.map((fact, fi) => (
                       <div key={fi}>
-                        <dt className="font-din text-[11px] uppercase tracking-[0.15em] text-gold">
+                        <dt className="font-display text-[11px] uppercase tracking-[0.15em] text-gold">
                           {editMode ? (
                             // The question comes from the shared library, so it's
                             // picked rather than typed.
