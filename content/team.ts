@@ -12,11 +12,12 @@ export const STICKER_FINISHES = ["plain", "holo", "foil", "polychrome"] as const
 export type StickerFinish = (typeof STICKER_FINISHES)[number];
 
 /**
- * A decorative sticker stuck onto one of the profile cards. Position and size
- * are percentages of the card it lives on, so a sticker holds its spot across
- * breakpoints. Stickers may run off the edge of the card's content and over
- * its margin, but are clipped at the card's padding box, so one can never
- * spill past the border.
+ * A decorative sticker stuck onto one of the profile cards. It sits on top of
+ * the card rather than inside it, so it overhangs the edges the way a real
+ * sticker would instead of being sliced off at the border. Position and size
+ * are percentages of the card it is anchored to, so a sticker holds its spot
+ * across breakpoints; the anchor is clamped to the card, which keeps a
+ * sticker's centre on the card while its edges hang past it.
  */
 export type Sticker = {
   /** Which card it is stuck to. */

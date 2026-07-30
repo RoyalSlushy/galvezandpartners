@@ -158,8 +158,8 @@ export default function StickerPopover({
       </Row>
 
       <p className="mt-3 text-[10px] leading-relaxed text-white/35">
-        Drag the sticker to move it. It can hang over the card&apos;s margin but is clipped at
-        the border.
+        Drag the sticker to move it — it sits on top of the card and can hang over the edges.
+        A finish only shows on uploaded artwork, never on an emoji.
       </p>
     </div>,
     document.body,

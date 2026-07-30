@@ -11,11 +11,25 @@ const DRAG_SLOP = 4;
 
 const clampPct = (n: number) => Math.max(0, Math.min(100, n));
 
+/** Sticker artwork can be an uploaded URL, an inline data URI or a file served
+ * from the app itself; only a bare media id needs resolving against the CDN. */
+function stickerSrc(raw: string): string {
+  if (!raw) return "";
+  return /^(https?:|data:|\/)/.test(raw) ? raw : resolveImage(raw, 320, 320);
+}
+
 /**
- * The sticker layer for one card. Stickers sit at a percentage position within
- * the card, so they hold their spot at any size, and the layer clips at the
- * card's padding box: a sticker may hang over the card's margin and off the
- * edge of its content, but never past the border.
+ * The sticker layer for one card. Stickers sit on top of the card rather than
+ * inside it: the layer never clips, so a sticker overhangs the card's edges
+ * the way a real one would, instead of being sliced off at the border. Their
+ * anchor point is a percentage of the card's box — clamped to it, so a
+ * sticker's centre always lands on the card while its edges are free to hang
+ * past it — which also keeps each sticker on its card at any size.
+ *
+ * The layer lives inside the card so stickers ride the card's entrance and
+ * exit transforms. The cost is that each animated card is its own stacking
+ * context, so a sticker overhanging far enough to reach the *other* card is
+ * drawn behind it.
  *
  * In edit mode each sticker is draggable, and a click (a press that didn't
  * travel) opens its editor.
@@ -100,27 +114,35 @@ export default function CardStickers({
       ref={layerRef}
       // Sized against the card so sticker sizes can be given in cqw.
       style={{ containerType: "inline-size" }}
-      className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-30"
     >
       {mine.map(({ s, i }) => {
         const live = drag?.index === i ? drag : null;
         const size = s.size ?? 18;
-        const src = s.img ? resolveImage(s.img, 320, 320) : "";
+        const src = stickerSrc(s.img);
         const style: CSSProperties = {
           left: `${live ? live.x : (s.x ?? 50)}%`,
           top: `${live ? live.y : (s.y ?? 50)}%`,
+          // An explicit width, rather than shrinking to fit the artwork: an
+          // absolutely positioned box near an edge has very little room left
+          // between its offset and the card's far side, and would be squeezed
+          // down to that gap instead of keeping its size.
+          width: `${size}cqw`,
           transform: `translate(-50%, -50%) rotate(${s.rotate ?? 0}deg)`,
-          // The finish is masked to the sticker's own shape; emoji have no
-          // mask image, so they take the plain treatment.
+          // The finish is masked by the artwork's alpha, so it never shows
+          // through the transparent parts of a PNG or SVG.
           ...(src ? ({ ["--sticker-mask" as string]: `url("${src}")` } as CSSProperties) : null),
         };
+        // Only artwork can carry a finish — an emoji has no image to mask
+        // against, so a finish would paint as a block over its whole box.
+        const finish = src ? `gp-sticker-${s.finish ?? "plain"}` : "";
         return (
           <div
             key={i}
             onPointerDown={(e) => startDrag(e, i)}
             title={editMode ? "Drag to move, click to edit" : undefined}
             style={style}
-            className={`gp-sticker absolute gp-sticker-${s.finish ?? "plain"} ${
+            className={`gp-sticker absolute ${finish} ${
               editMode ? "pointer-events-auto cursor-move" : ""
             }`}
           >
@@ -130,13 +152,12 @@ export default function CardStickers({
                 src={src}
                 alt=""
                 draggable={false}
-                style={{ width: `${size}cqw` }}
-                className="block h-auto select-none"
+                className="block h-auto w-full select-none"
               />
             ) : (
               <span
                 style={{ fontSize: `${size}cqw`, lineHeight: 1 }}
-                className="block select-none"
+                className="block select-none whitespace-nowrap"
               >
                 {s.emoji || "⭐"}
               </span>

@@ -737,8 +737,15 @@ html[data-gp-case-snap] {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  -webkit-mask-image: var(--sticker-mask, none);
-  mask-image: var(--sticker-mask, none);
+  /* The finish is masked by the artwork's own alpha, so it paints only where
+     the sticker has opaque pixels — never across the transparent parts of a
+     PNG or SVG, and never as a rectangle around a cut-out shape. The default
+     is a fully transparent mask, so a sticker with no artwork (an emoji, which
+     has no image to mask against) shows no finish at all rather than a block. */
+  -webkit-mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
