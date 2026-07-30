@@ -414,7 +414,8 @@ export default function MemberCardModal({
                     >
                       {member.name}
                     </h2>
-                    <p className="mt-1 font-display text-xs uppercase tracking-wide text-gold sm:text-sm">
+                    {/* 1.5x the base caption sizes (12px / 14px). */}
+                    <p className="mt-1 font-display text-[1.125rem] uppercase tracking-wide text-gold sm:text-[1.3125rem]">
                       {tv(member.role)}
                     </p>
                   </div>
@@ -442,7 +443,8 @@ export default function MemberCardModal({
                   <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
                     {shown.map((fact, fi) => (
                       <div key={fi}>
-                        <dt className="font-display text-[11px] uppercase tracking-[0.15em] text-gold">
+                        {/* 1.2x the base 11px. */}
+                        <dt className="font-display text-[13.2px] uppercase tracking-[0.15em] text-gold">
                           {editMode ? (
                             // The question comes from the shared library, so it's
                             // picked rather than typed.
