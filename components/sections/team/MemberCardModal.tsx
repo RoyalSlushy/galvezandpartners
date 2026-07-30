@@ -17,6 +17,7 @@ import EditableText from "@/components/admin/editable/EditableText";
 import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
 import PromptPicker from "./PromptPicker";
+import CardStickers from "./CardStickers";
 import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
 
 /** Shown in edit mode for a fact whose answer hasn't been filled in yet
@@ -288,6 +289,8 @@ export default function MemberCardModal({
 
   const base = `team.members.${index}`;
   const factsPath = `${base}.facts`;
+  const stickersPath = `${base}.stickers`;
+  const stickers = member.stickers ?? [];
   const titleId = `member-card-${index}-name`;
   const facts = member.facts ?? [];
   // Visitors only ever see answered lines; admins see every line so they can
@@ -393,6 +396,7 @@ export default function MemberCardModal({
                     className="gp-emerge absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
                   />
                 )}
+                <CardStickers stickers={stickers} listPath={stickersPath} card="photo" />
               </div>
 
               {/* Details card — a separate horizontal card carrying the name,
@@ -400,7 +404,7 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("1.2deg", "12deg", 0, 0, exiting)}
-                className={`w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 ${
+                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
@@ -498,6 +502,16 @@ export default function MemberCardModal({
                     ”
                   </p>
                 )}
+                {editMode && (
+                  <div className="relative z-40 mt-5 flex justify-center border-t border-navy/10 pt-4">
+                    <AddChip
+                      listPath={stickersPath}
+                      label="sticker"
+                      className="!px-3 !py-1.5 !text-xs"
+                    />
+                  </div>
+                )}
+                <CardStickers stickers={stickers} listPath={stickersPath} card="details" />
               </div>
             </div>
           </div>

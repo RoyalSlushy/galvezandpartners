@@ -718,6 +718,47 @@ html[data-gp-case-snap] {
       scale(0.92);
   }
 }
+/* Card stickers. The reflective finishes lay a gradient over the sticker and
+   mask it to the sticker's own artwork (--sticker-mask is set to the image
+   URL), so the sheen follows the cut-out shape rather than its bounding box.
+   Emoji stickers carry no mask image and so stay plain.
+
+   This CSS pass is the placeholder for the real treatment: swapping in a
+   shader means replacing the backgrounds below (or rendering into a canvas
+   behind the same mask) and leaving everything else — the CMS fields, the
+   placement, the class names — as is. */
+.gp-sticker {
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.25));
+}
+.gp-sticker-holo::after,
+.gp-sticker-foil::after,
+.gp-sticker-polychrome::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image: var(--sticker-mask, none);
+  mask-image: var(--sticker-mask, none);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+}
+.gp-sticker-holo::after {
+  background: linear-gradient(115deg, transparent 20%, #22d3ee 35%, #d946ef 50%, #facc15 65%, transparent 82%);
+}
+.gp-sticker-foil::after {
+  background: linear-gradient(135deg, transparent 25%, #fff 42%, #cbd5e1 50%, #fff 58%, transparent 78%);
+}
+.gp-sticker-polychrome::after {
+  background: conic-gradient(from 210deg, #f43f5e, #facc15, #4ade80, #22d3ee, #a855f7, #f43f5e);
+  opacity: 0.4;
+}
+
 .gp-fade-out {
   animation: gp-fade-out 420ms ease-in both;
 }

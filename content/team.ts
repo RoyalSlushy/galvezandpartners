@@ -4,6 +4,37 @@ import type { Social } from "@/content/site";
  * their answer to it. */
 export type Fact = { prompt: string; answer: string };
 
+/** The finishes a sticker can be given. `plain` is the sticker as-is; the
+ * others are the reflective treatments, applied as a gradient masked to the
+ * sticker's own shape (see .gp-sticker-* in globals.css) — that rule is the
+ * seam where a shader-based treatment would replace the CSS one. */
+export const STICKER_FINISHES = ["plain", "holo", "foil", "polychrome"] as const;
+export type StickerFinish = (typeof STICKER_FINISHES)[number];
+
+/**
+ * A decorative sticker stuck onto one of the profile cards. Position and size
+ * are percentages of the card it lives on, so a sticker holds its spot across
+ * breakpoints. Stickers may run off the edge of the card's content and over
+ * its margin, but are clipped at the card's padding box, so one can never
+ * spill past the border.
+ */
+export type Sticker = {
+  /** Which card it is stuck to. */
+  card: "photo" | "details";
+  /** Image URL or Wix media id. Takes precedence over `emoji` when set. */
+  img: string;
+  /** Emoji glyph, used when `img` is empty. */
+  emoji: string;
+  /** Centre of the sticker, as a percentage of the card's box. */
+  x: number;
+  y: number;
+  /** Width as a percentage of the card's width (emoji: font size). */
+  size: number;
+  /** Rotation in degrees. */
+  rotate: number;
+  finish: StickerFinish;
+};
+
 /** Team members ("Meet Our Storytellers"). Photo = Wix media id (kept on CDN).
  * `socials` are per-person links, empty by default — added from the editor.
  * `emoji`, `facts` and `motto` feed the pop-up profile card; all optional —
@@ -17,6 +48,7 @@ export type Member = {
   emoji?: string;
   facts?: Fact[];
   motto?: string;
+  stickers?: Sticker[];
 };
 
 /**

@@ -28,6 +28,17 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
   }),
   // Questions come from FACT_PROMPTS (content/team.ts), picked in the editor.
   "team.members.*.facts": () => ({ prompt: "Superpower", answer: "Add an answer…" }),
+  // New stickers land in the middle of the details card, ready to be dragged.
+  "team.members.*.stickers": () => ({
+    card: "details",
+    img: "",
+    emoji: "⭐",
+    x: 50,
+    y: 50,
+    size: 18,
+    rotate: -8,
+    finish: "plain",
+  }),
   "team.members.*.socials": () => ({ label: "Instagram", href: "", icon: "instagram" }),
   "home.services": () => ({ title: "New Service", description: "Describe this service.", media: "" }),
   "home.multicultural.cards": () => ({ title: "new card", body: "Card copy goes here." }),
@@ -101,6 +112,9 @@ const FIELD_LABELS: Record<string, string> = {
   "team.members.*.emoji": "favorite emoji",
   "team.members.*.facts.*.prompt": "question",
   "team.members.*.facts.*.answer": "answer",
+  "team.members.*.stickers.*.img": "sticker image",
+  "team.members.*.stickers.*.emoji": "sticker emoji",
+  "team.members.*.stickers.*.finish": "sticker finish",
   "team.members.*.motto": "motto",
   "work.heading": "heading",
   "work.items.*.title": "work title",
