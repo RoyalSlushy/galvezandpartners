@@ -27,6 +27,8 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
   // modal instance serves the whole grid; `members` is draft-aware, so edits
   // made inside the open card re-render it live.
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  // Which tile the cursor is over, so only that one carries a letterform grid.
+  const [hovered, setHovered] = useState<number | null>(null);
 
   // If the open member is deleted in edit mode, close the card.
   useEffect(() => {
@@ -42,10 +44,25 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
           a low-opacity mark in the site's background color, sitting on
           the white card but behind the (cutout) photo. Only shows once
           that letter's SVG is uploaded in the Letters panel. */}
+      {/* On hover, the drifting letterform grid in gold sits behind the cut-out
+          portrait. Mounted only for the tile under the cursor: each grid is
+          hundreds of masked cells with its own animation frame, so keeping one
+          per tile on the page would cost thousands of them for a flourish only
+          ever seen one at a time. */}
+      {hovered === i && (
+        <div className="gp-fade-in pointer-events-none absolute inset-0 z-0">
+          <CtaGrid
+            className="member-glyph-grid"
+            glyphClassName="bg-gold"
+            fontClassName="text-gold"
+            scale={0.85}
+          />
+        </div>
+      )}
       <GlyphMark
         char={lastNameInitial(m.name)}
         tintClassName="bg-navy"
-        className="pointer-events-none absolute right-2 top-2 z-0 h-24 w-24 opacity-25 transition-opacity duration-300 group-hover:opacity-50 sm:h-28 sm:w-28"
+        className="pointer-events-none absolute right-2 top-2 z-[1] aspect-square w-[40%] opacity-25 transition-opacity duration-300 group-hover:opacity-50"
       />
       <EditableImage
         path={`team.members.${i}.photo`}
@@ -60,10 +77,18 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
   return (
     <section className="relative w-full bg-navy py-20 sm:py-28">
       <Container>
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-4">
+        {/* Three across from sm right through xl: the body column is still
+            1200px up to 1920 (see the --site-max tiers), so a fourth column
+            there only shrinks every portrait. The fourth arrives with the
+            wider column at `wide`. */}
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 wide:grid-cols-4">
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
-              <figure className="group relative text-center">
+              <figure
+                className="group relative text-center"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
+              >
                 {editMode && (
                   <ListControls
                     listPath="team.members"
