@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { AnimationEvent, CSSProperties } from "react";
 
 /** Fall + opacity-phase timings for one card. The two cycles are independent so
  * a card's drift and its surfacing/receding never march in step. */
@@ -26,6 +26,7 @@ export default function PhotoCard({
   widthClassName = "",
   motion,
   style,
+  onAnimationIteration,
 }: {
   src: string;
   /** Resting tilt, e.g. "-8deg". */
@@ -36,9 +37,13 @@ export default function PhotoCard({
   motion: PhotoCardMotion;
   /** Placement set at runtime instead of by class, for measured layouts. */
   style?: CSSProperties;
+  /** Fires at each turn of the fall and phase cycles. Callers that re-dress a
+   * card mid-flight watch for the phase cycle, whose turn is its dimmest point. */
+  onAnimationIteration?: (e: AnimationEvent<HTMLElement>) => void;
 }) {
   return (
     <figure
+      onAnimationIteration={onAnimationIteration}
       className={`photocard-fall absolute ${positionClassName} ${widthClassName}`}
       style={
         {

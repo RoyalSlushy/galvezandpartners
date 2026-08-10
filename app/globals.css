@@ -303,8 +303,12 @@
    recede. Fall (transform) and phase (opacity) run as two independent
    animations, each with its own per-card duration/delay set inline via CSS
    vars, so they never fall in sync. */
+/* --phase-min is how dim a card gets at the turn of its cycle. The home hero
+   leaves cards faintly present; the Our Team lander drops them to nothing,
+   because it swaps each card's photograph and moves it at that moment and the
+   change has to happen out of sight. */
 @keyframes photocard-phase {
-  0%, 100% { opacity: 0.08; }
+  0%, 100% { opacity: var(--phase-min, 0.08); }
   50% { opacity: 1; }
 }
 .photocard-fall {

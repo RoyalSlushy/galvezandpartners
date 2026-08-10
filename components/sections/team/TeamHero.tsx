@@ -135,6 +135,17 @@ export default function TeamHero({
         </div>
       )}
 
+      {/* Zero-height marker giving the gallery the span of the body column, so a
+          photograph's centre never strays out into the gutter. It rides in the
+          same Container the copy does, so it tracks the --site-max tiers and the
+          responsive gutters without restating them. Declared before the gallery
+          so it is in the DOM when the cards measure. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0">
+        <Container>
+          <div data-gp-lander-bounds className="h-0" />
+        </Container>
+      </div>
+
       <LanderPhotoCards images={images ?? []} />
 
       {/* The section's own navy shows through the band's faded top edge, so

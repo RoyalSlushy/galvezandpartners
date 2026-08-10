@@ -14,6 +14,7 @@ import ListControls, { AddChip } from "@/components/admin/editable/ListControls"
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import MemberCardModal from "./MemberCardModal";
 import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
+import { resolveImage } from "@/lib/adminClient";
 
 /** The member tiles. The page heading lives on the lander above this. */
 export default function TeamGrid({ members: serverMembers }: { members: Member[] }) {
@@ -53,7 +54,13 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
           alt=""
           aria-hidden
           loading="lazy"
-          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover [clip-path:inset(100%_0_0_0)] transition-[clip-path] duration-700 ease-out group-hover:[clip-path:inset(0_0_0_0)]"
+          className={`pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-[clip-path] duration-700 ease-out ${
+            // Held open in edit mode, so an admin sees what they have chosen
+            // without having to hover every tile in turn.
+            editMode
+              ? "[clip-path:inset(0_0_0_0)]"
+              : "[clip-path:inset(100%_0_0_0)] group-hover:[clip-path:inset(0_0_0_0)]"
+          }`}
         />
       )}
       <GlyphMark
@@ -104,7 +111,26 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
                       profile card
                     </button>
                   </div>
-                ) : (
+                ) : null}
+                {/* The hover backdrop has no click target of its own in the
+                    tile — the portrait sits over it and owns that click — so it
+                    gets a labelled thumbnail of its own, the way the lander's
+                    gallery does. Shows the placeholder until one is chosen. */}
+                {editMode && (
+                  <div className="mt-2 flex items-center gap-2 text-left">
+                    <EditableImage
+                      path={`team.members.${i}.hoverImage`}
+                      raw={m.hoverImage ?? ""}
+                      src={resolveImage(m.hoverImage ?? "", 160, 200)}
+                      alt=""
+                      className="h-12 w-10 shrink-0 border border-white/15 object-cover"
+                    />
+                    <span className="font-din text-[9px] uppercase leading-tight tracking-[0.18em] text-white/40">
+                      hover backdrop
+                    </span>
+                  </div>
+                )}
+                {!editMode && (
                   <button
                     type="button"
                     onClick={() => setOpenIdx(i)}
