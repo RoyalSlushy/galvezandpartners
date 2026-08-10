@@ -345,16 +345,19 @@ export default function MemberCardModal({
             the top where it can't be scrolled to. */}
         {/* Extra bottom room so a card never sits under the nav bar. */}
         <div className="flex min-h-full items-center justify-center p-4 pb-24 sm:p-8 sm:pb-28">
+          {/* On wide screens the pair spreads to nearly the full viewport width
+              rather than sitting in a fixed column. Height is governed by the
+              polaroid, which takes whichever of width or height binds first. */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md sm:max-w-5xl"
+            className="relative w-full max-w-md sm:max-w-[92vw]"
           >
             {/* Keyed by member: navigating remounts the pieces, so their
                 entrance keyframes run again for the incoming person. */}
             <div
               key={index}
               ref={groupRef}
-              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-10"
+              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-10 xl:gap-14"
             >
               {/* Polaroid photo card — the picture stands on its own, with the
                   tape strip, emoji sticker and glyph initial, plus the classic
@@ -363,7 +366,11 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("-2.5deg", "-14deg", 90, 70, exiting)}
-                className={`relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14 ${
+                // The polaroid grows with the viewport too, but takes whichever
+                // of width or height binds first: its photo is 5:6, so sizing
+                // on width alone would push it past the bottom of a wide but
+                // short screen.
+                className={`relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14 xl:w-[max(20rem,min(26vw,46vh))] ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
@@ -404,7 +411,7 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("1.2deg", "12deg", 0, 0, exiting)}
-                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 ${
+                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
