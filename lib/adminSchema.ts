@@ -63,6 +63,8 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
     gallery: [],
   }),
   "case_studies.studies.*.gallery": () => "",
+  // The Our Team lander's own frames — bare media values, like a case gallery.
+  "team.lander.images": () => "",
 };
 
 export function templateFor(listPath: string): unknown {
@@ -107,6 +109,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.instagram.posts.*.img": "post image",
   "home.instagram.posts.*.caption": "post caption",
   "team.heading": "heading",
+  "team.lander.images.*": "lander image",
   "team.members.*.name": "name",
   "team.members.*.role": "role",
   "team.members.*.photo": "photo",

@@ -87,6 +87,16 @@ export const FACT_PROMPTS: string[] = [
 
 export const TEAM_HEADING = "Meet Our Storytellers";
 
+/**
+ * The Our Team lander's own set of images — photographs of the team together,
+ * kept separate from the individual member portraits so the two are managed
+ * (and cropped) independently. Empty by default: the real photographs are
+ * uploaded per site from the editor.
+ */
+export type TeamLander = { images: string[] };
+
+export const TEAM_LANDER: TeamLander = { images: [] };
+
 const TEAM_RAW: Omit<Member, "socials">[] = [
   {
     name: "Hector Galvez",

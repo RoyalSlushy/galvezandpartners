@@ -150,15 +150,16 @@ export function isVideoUrl(raw: string): boolean {
   return !!raw && VIDEO_EXT.test(raw);
 }
 
-/** Resolve a stored media value (full URL or bare Wix media id) to a URL.
- * Videos and any http(s) URL are returned untouched; bare Wix media ids get a
- * server-side crop at the requested size. */
+/** Resolve a stored media value to a URL. Anything that is already a URL — an
+ * http(s) address, an inline data URI, or a path served by the app itself — is
+ * returned untouched, as are videos; only a bare Wix media id is sent through
+ * the CDN for a server-side crop at the requested size. */
 export function resolveImage(raw: string, w = 400, h = 300): string {
   if (!raw) return PLACEHOLDER_IMG;
   // Drop any focal-point suffix before turning the value into a URL.
   const src = stripFocus(raw);
-  if (isVideoUrl(src)) return src;
-  return src.startsWith("http") ? src : wixImage(src, w, h);
+  if (isVideoUrl(src) || /^(https?:|data:|\/)/.test(src)) return src;
+  return wixImage(src, w, h);
 }
 
 /** Every distinct image currently referenced across the site content. */

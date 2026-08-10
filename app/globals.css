@@ -353,6 +353,17 @@
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
 }
 
+/* Our Team, bottom-right above the footer: the same drifting "GALVEZ" letter
+   grid, gathered into the corner and fading away up and to the left. Held
+   fainter than the other placements so it reads as a shift in the navy itself
+   rather than a pattern laid over it. */
+.team-glyph-grid {
+  opacity: 0.07;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
+  mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
+}
+
 /* Card backdrop: the same drifting "GALVEZ" letter grid, held faint and fading
    out toward the LEFT so the card's left-anchored copy stays clean — used on the
    "gallery / explore" hand-off card and the home "there's more" card. */

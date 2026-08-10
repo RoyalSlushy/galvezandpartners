@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import TeamHero from "@/components/sections/team/TeamHero";
 import TeamGrid from "@/components/sections/team/TeamGrid";
 import { getTeam } from "@/lib/cms";
 
@@ -11,5 +12,12 @@ export const metadata: Metadata = {
 
 export default async function OurTeam() {
   const team = await getTeam();
-  return <TeamGrid members={team.members} heading={team.heading} />;
+  return (
+    <>
+      {/* The heading belongs to the lander now, so the grid below runs
+          straight into the member tiles. */}
+      <TeamHero heading={team.heading} images={team.lander?.images ?? []} />
+      <TeamGrid members={team.members} />
+    </>
+  );
 }

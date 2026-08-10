@@ -11,12 +11,9 @@ const DRAG_SLOP = 4;
 
 const clampPct = (n: number) => Math.max(0, Math.min(100, n));
 
-/** Sticker artwork can be an uploaded URL, an inline data URI or a file served
- * from the app itself; only a bare media id needs resolving against the CDN. */
-function stickerSrc(raw: string): string {
-  if (!raw) return "";
-  return /^(https?:|data:|\/)/.test(raw) ? raw : resolveImage(raw, 320, 320);
-}
+/** Empty artwork means "use the emoji", so it must not fall back to the
+ * placeholder image the way a normal media field does. */
+const stickerSrc = (raw: string) => (raw ? resolveImage(raw, 320, 320) : "");
 
 /**
  * The sticker layer for one card. Stickers sit on top of the card rather than

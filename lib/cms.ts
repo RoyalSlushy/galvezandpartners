@@ -26,7 +26,13 @@ import {
   type InstagramPost,
   type HeroGradient,
 } from "@/content/home";
-import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
+import {
+  TEAM,
+  TEAM_HEADING,
+  TEAM_LANDER,
+  type Member,
+  type TeamLander,
+} from "@/content/team";
 import {
   WORK,
   WORK_HEADING,
@@ -86,7 +92,7 @@ export type HomeContent = {
   };
 };
 
-export type TeamContent = { heading: string; members: Member[] };
+export type TeamContent = { heading: string; lander: TeamLander; members: Member[] };
 export type WorkContent = {
   heading: string;
   items: Work[];
@@ -127,6 +133,7 @@ export const DEFAULT_HOME: HomeContent = {
 
 export const DEFAULT_TEAM: TeamContent = {
   heading: TEAM_HEADING,
+  lander: { images: [...TEAM_LANDER.images] },
   members: TEAM.map((m) => ({ ...m, socials: m.socials.map((s) => ({ ...s })) })),
 };
 

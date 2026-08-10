@@ -11,19 +11,13 @@ import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import MemberCardModal from "./MemberCardModal";
 import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
 
-/** "Meet Our Storytellers" team grid. */
-export default function TeamGrid({
-  members: serverMembers,
-  heading: serverHeading,
-}: {
-  members: Member[];
-  heading: string;
-}) {
+/** The member tiles. The page heading lives on the lander above this. */
+export default function TeamGrid({ members: serverMembers }: { members: Member[] }) {
   const members = useCmsValue("team.members", serverMembers);
-  const heading = useCmsValue("team.heading", serverHeading);
   const editMode = useEditMode();
   const t = useT();
   // Admins edit the English source, so translation is suppressed in edit mode.
@@ -64,18 +58,9 @@ export default function TeamGrid({
   );
 
   return (
-    <section className="w-full bg-navy py-20 sm:py-28">
+    <section className="relative w-full bg-navy py-20 sm:py-28">
       <Container>
-        <RevealOnScroll>
-          <EditableText
-            path="team.heading"
-            value={tv(heading)}
-            as="h1"
-            className="font-heading text-f3 leading-none text-white"
-          />
-        </RevealOnScroll>
-
-        <div className="mt-14 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-4">
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
               <figure className="group relative text-center">
@@ -169,6 +154,21 @@ export default function TeamGrid({
           )}
         </div>
       </Container>
+
+      {/* Drifting letterform grid gathered into the bottom-right corner, just
+          above the footer. CtaGrid contains its own paint, so the letters can't
+          spill out of this box. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 right-0 h-[22rem] w-[34rem] max-w-full"
+      >
+        <CtaGrid
+          className="team-glyph-grid"
+          glyphClassName="bg-white"
+          fontClassName="text-white"
+          scale={1.5}
+        />
+      </div>
 
       {openIdx !== null && members[openIdx] && (
         <MemberCardModal
