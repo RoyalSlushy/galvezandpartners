@@ -156,11 +156,13 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
       </Container>
 
       {/* Drifting letterform grid gathered into the bottom-right corner, just
-          above the footer. CtaGrid contains its own paint, so the letters can't
-          spill out of this box. */}
+          above the footer. Held to a corner patch at ordinary widths; once
+          there is more viewport than content column, it grows and bleeds in
+          across the body rather than staying a small tile in the gutter.
+          CtaGrid contains its own paint, so the letters can't spill out. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 right-0 h-[22rem] w-[34rem] max-w-full"
+        className="pointer-events-none absolute bottom-0 right-0 h-[22rem] w-[34rem] max-w-full wide:h-[32rem] wide:w-[min(58vw,72rem)] ultra:h-[40rem] ultra:w-[min(64vw,90rem)]"
       >
         <CtaGrid
           className="team-glyph-grid"

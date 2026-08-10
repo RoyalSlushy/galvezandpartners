@@ -39,12 +39,15 @@ const LANDER_PATH = "team.lander.images";
  */
 export default function TeamHero({
   heading: serverHeading,
+  subtitle: serverSubtitle,
   images: serverImages,
 }: {
   heading: string;
+  subtitle: string;
   images: string[];
 }) {
   const heading = useCmsValue("team.heading", serverHeading);
+  const subtitle = useCmsValue("team.lander.subtitle", serverSubtitle);
   const images = useCmsValue<string[]>(LANDER_PATH, serverImages);
   const editMode = useEditMode();
   const t = useT();
@@ -75,6 +78,13 @@ export default function TeamHero({
             value={heading}
             as="h1"
             className="font-heading text-f3 leading-none text-white"
+          />
+          <EditableText
+            path="team.lander.subtitle"
+            value={subtitle}
+            as="p"
+            label="lander subtitle"
+            className="mt-4 max-w-2xl font-body text-lg text-white/70"
           />
           <p className="mt-6 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
             Lander images — the team together
@@ -143,11 +153,17 @@ export default function TeamHero({
       )}
 
       {/* Big low-opacity letterform, bleeding off the bottom-left behind the
-          copy — carries the lander on its own when no photographs are set. */}
+          copy — carries the lander on its own when no photographs are set. On
+          ultrawide it is anchored to the top of the lander instead, so it
+          reaches all the way up to meet the header. */}
       {initial && (
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-[18vh] -left-[3vw] select-none font-display text-[46vh] leading-none text-white/[0.06] sm:text-[56vh]"
+          // The ultrawide offset is negative by the display face's ascender gap
+          // (~0.18em above the cap line), so it is the letter itself that meets
+          // the header rather than the box around it. Any overshoot is clipped
+          // by the section, the same way the letter bleeds off-edge elsewhere.
+          className="pointer-events-none absolute -bottom-[18vh] -left-[3vw] select-none font-display text-[46vh] leading-none text-white/[0.06] sm:text-[56vh] ultra:bottom-auto ultra:top-[-0.18em] ultra:text-[80vh]"
         >
           <GlyphNumber value={initial} tintClassName="bg-white/[0.06]" />
         </span>
@@ -159,6 +175,11 @@ export default function TeamHero({
             {tv(heading)}
           </h1>
           <span aria-hidden className="mt-5 block h-1 w-16 bg-gold" />
+          {subtitle && (
+            <p className="mt-5 max-w-xl font-body text-base leading-relaxed text-white/80 [text-wrap:pretty] sm:text-lg">
+              {tv(subtitle)}
+            </p>
+          )}
         </Container>
       </div>
     </section>

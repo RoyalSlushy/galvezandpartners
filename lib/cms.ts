@@ -133,7 +133,7 @@ export const DEFAULT_HOME: HomeContent = {
 
 export const DEFAULT_TEAM: TeamContent = {
   heading: TEAM_HEADING,
-  lander: { images: [...TEAM_LANDER.images] },
+  lander: { subtitle: TEAM_LANDER.subtitle, images: [...TEAM_LANDER.images] },
   members: TEAM.map((m) => ({ ...m, socials: m.socials.map((s) => ({ ...s })) })),
 };
 

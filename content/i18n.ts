@@ -110,6 +110,8 @@ const ES: Record<string, string> = {
 
   // --- Team: heading + roles (names are left untranslated) ---
   "Meet Our Storytellers": "Conoce a Nuestros Narradores",
+  "The people who turn your brand into a story worth repeating.":
+    "Las personas que convierten tu marca en una historia que vale la pena repetir.",
   "What we are": "Lo que somos",
   Principal: "Director",
   "Marketing Manager": "Gerente de Marketing",

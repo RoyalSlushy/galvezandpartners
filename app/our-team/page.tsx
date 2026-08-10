@@ -16,7 +16,11 @@ export default async function OurTeam() {
     <>
       {/* The heading belongs to the lander now, so the grid below runs
           straight into the member tiles. */}
-      <TeamHero heading={team.heading} images={team.lander?.images ?? []} />
+      <TeamHero
+        heading={team.heading}
+        subtitle={team.lander?.subtitle ?? ""}
+        images={team.lander?.images ?? []}
+      />
       <TeamGrid members={team.members} />
     </>
   );

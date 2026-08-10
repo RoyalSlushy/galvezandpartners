@@ -93,9 +93,12 @@ export const TEAM_HEADING = "Meet Our Storytellers";
  * (and cropped) independently. Empty by default: the real photographs are
  * uploaded per site from the editor.
  */
-export type TeamLander = { images: string[] };
+export type TeamLander = { subtitle: string; images: string[] };
 
-export const TEAM_LANDER: TeamLander = { images: [] };
+export const TEAM_LANDER: TeamLander = {
+  subtitle: "The people who turn your brand into a story worth repeating.",
+  images: [],
+};
 
 const TEAM_RAW: Omit<Member, "socials">[] = [
   {

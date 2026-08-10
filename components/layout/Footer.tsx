@@ -122,7 +122,7 @@ export default function Footer({
         {/* The logo scales to the exact width of the tagline beneath it: the
             column shrinks to the tagline's single-line width (w-fit) and the
             logo fills it (w-full). */}
-        <div className="w-fit">
+        <div className="w-fit wide:order-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="Galvez & Partners" className="block h-auto w-full" />
           <EditableText
@@ -133,48 +133,60 @@ export default function Footer({
           />
         </div>
 
-        <div className="md:w-72">
-          <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Get in Touch")}</h2>
-          <EditableText
-            path="site.contact.email"
-            value={contact.email}
-            as="a"
-            href={`mailto:${contact.email}`}
-            className="mt-4 block text-white/85 transition hover:text-gold"
-            label="contact email"
-          />
-          <EditableLines
-            path="site.contact.addressLines"
-            values={contact.addressLines}
-            as="address"
-            className="mt-3 not-italic text-white/70"
-            lineClassName={() => "block"}
-            label="address"
-          />
+        {/* Contact. At `wide` this wrapper dissolves (display: contents) so its
+            two halves join the footer row as columns in their own right — the
+            details staying put and the map taking the leftover width at the end
+            of the row. Dissolving the wrapper, rather than rendering the map
+            twice, keeps it to a single iframe and so a single map load. */}
+        <div className="wide:contents">
+          <div className="md:w-72 wide:order-2">
+            <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Get in Touch")}</h2>
+            <EditableText
+              path="site.contact.email"
+              value={contact.email}
+              as="a"
+              href={`mailto:${contact.email}`}
+              className="mt-4 block text-white/85 transition hover:text-gold"
+              label="contact email"
+            />
+            <EditableLines
+              path="site.contact.addressLines"
+              values={contact.addressLines}
+              as="address"
+              className="mt-3 not-italic text-white/70"
+              lineClassName={() => "block"}
+              label="address"
+            />
+          </div>
+
           {/* Office map, aimed at the listing above. The keyless Google embed
               geocodes the query itself, and the treatment below re-tints its
-              stock palette into the site's — see <MapTint>. */}
-          <MapTint className="mt-5 h-44">
-            <iframe
-              title={t("Map to our office")}
-              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="block h-full w-full"
-              style={{ border: 0, filter: MAP_FILTER }}
-            />
-          </MapTint>
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-block font-din text-xs uppercase tracking-[0.2em] text-gold transition hover:text-gold-bright"
-          >
-            {t("get directions")} ↗
-          </a>
+              stock palette into the site's — see <MapTint>. Its own column at
+              `wide`, flexing into whatever width the other columns leave and
+              stretching to the height of the row. */}
+          <div className="wide:order-4 wide:flex wide:min-w-[20rem] wide:flex-1 wide:flex-col">
+            <MapTint className="mt-5 h-44 wide:mt-0 wide:h-full wide:min-h-[18rem]">
+              <iframe
+                title={t("Map to our office")}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="block h-full w-full"
+                style={{ border: 0, filter: MAP_FILTER }}
+              />
+            </MapTint>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block font-din text-xs uppercase tracking-[0.2em] text-gold transition hover:text-gold-bright"
+            >
+              {t("get directions")} ↗
+            </a>
+          </div>
         </div>
 
-        <div className="md:w-56">
+        <div className="md:w-56 wide:order-3">
           <h2 className="font-heading text-lg uppercase tracking-widest text-gold">{t("Menu")}</h2>
           <ul className="mt-4 space-y-2">
             {menu.map((item, i) => (
