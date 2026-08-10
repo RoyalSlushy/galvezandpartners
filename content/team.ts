@@ -47,6 +47,8 @@ export type Member = {
   photo: string;
   socials: Social[];
   emoji?: string;
+  /** Backdrop revealed behind the portrait when the tile is hovered. */
+  hoverImage?: string;
   /** A few sentences on the person and what they do here. Written per member
    * in the editor — no invented copy ships as a default. */
   bio?: string;

@@ -142,7 +142,9 @@ export default function TeamHero({
 
       <div className="relative z-10 flex h-full items-end pb-12 sm:pb-16">
         <Container>
-          <div className="relative">
+          {/* Marked so the gallery's placement treats this block as occupied
+              and never drops a polaroid over the copy. */}
+          <div data-gp-lander-keepout className="relative">
             {/* Big low-opacity letterform. Anchored to the copy rather than to
                 the section, so it hugs the heading — sitting behind it, its
                 foot on the heading's baseline and its left edge just outside

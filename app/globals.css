@@ -353,17 +353,6 @@
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
 }
 
-/* Member tile, on hover: the drifting "GALVEZ" letter grid in gold behind the
-   cut-out portrait, strongest at the foot of the tile and fading out toward the
-   top so it reads as light coming up behind the figure rather than a pattern
-   pasted over the whole card. */
-.member-glyph-grid {
-  opacity: 0.5;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 82%);
-  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 82%);
-}
-
 /* Our Team, bottom-right above the footer: the same drifting "GALVEZ" letter
    grid, gathered into the corner and fading away up and to the left. Held
    fainter than the other placements so it reads as a shift in the navy itself

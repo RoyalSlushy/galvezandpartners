@@ -27,8 +27,6 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
   // modal instance serves the whole grid; `members` is draft-aware, so edits
   // made inside the open card re-render it live.
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  // Which tile the cursor is over, so only that one carries a letterform grid.
-  const [hovered, setHovered] = useState<number | null>(null);
 
   // If the open member is deleted in edit mode, close the card.
   useEffect(() => {
@@ -44,20 +42,19 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
           a low-opacity mark in the site's background color, sitting on
           the white card but behind the (cutout) photo. Only shows once
           that letter's SVG is uploaded in the Letters panel. */}
-      {/* On hover, the drifting letterform grid in gold sits behind the cut-out
-          portrait. Mounted only for the tile under the cursor: each grid is
-          hundreds of masked cells with its own animation frame, so keeping one
-          per tile on the page would cost thousands of them for a flourish only
-          ever seen one at a time. */}
-      {hovered === i && (
-        <div className="gp-fade-in pointer-events-none absolute inset-0 z-0">
-          <CtaGrid
-            className="member-glyph-grid"
-            glyphClassName="bg-gold"
-            fontClassName="text-gold"
-            scale={0.85}
-          />
-        </div>
+      {/* Per-member backdrop behind the cut-out portrait, wiped up into view on
+          hover: the clip is inset from the bottom by its full height at rest and
+          released to nothing, so the picture is uncovered from the floor of the
+          tile upward. Pure CSS off the tile's hover, so it costs nothing when
+          idle. */}
+      {m.hoverImage && (
+        <img
+          src={memberPhotoSrc(m.hoverImage)}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover [clip-path:inset(100%_0_0_0)] transition-[clip-path] duration-700 ease-out group-hover:[clip-path:inset(0_0_0_0)]"
+        />
       )}
       <GlyphMark
         char={lastNameInitial(m.name)}
@@ -76,12 +73,7 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
 
   return (
     <section className="relative w-full bg-navy py-20 sm:py-28">
-      {/* The portraits get their own width past `wide`. The body column tops out
-          well short of an ultrawide screen (2000px on a 21:9 display), which
-          left the grid marooned in the middle with small portraits, so from
-          there it takes a share of the viewport instead — bounded, so it stops
-          growing rather than stretching forever. */}
-      <Container className="wide:max-w-[min(92vw,160rem)]">
+      <Container>
         {/* Three across from sm right through xl: the body column is still
             1200px up to 1920 (see the --site-max tiers), so a fourth column
             there only shrinks every portrait. The fourth arrives with the
@@ -89,11 +81,7 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 wide:grid-cols-4">
           {members.map((m, i) => (
             <RevealOnScroll key={i} delay={0.05 * (i % 4)}>
-              <figure
-                className="group relative text-center"
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
-              >
+              <figure className="group relative text-center">
                 {editMode && (
                   <ListControls
                     listPath="team.members"

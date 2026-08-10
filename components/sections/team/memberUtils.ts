@@ -1,5 +1,4 @@
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { resolveImage } from "@/lib/adminClient";
 
 /** Trailing name suffixes that shouldn't count as the last name. */
 const NAME_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?$/i;
@@ -15,9 +14,8 @@ export function lastNameInitial(name: string): string {
   return last.charAt(0).toUpperCase();
 }
 
-/** Display URL for a member photo: a bare Wix id is resized on the CDN, a full
- * URL is used as-is, and an empty value falls back to the placeholder. */
-export function memberPhotoSrc(photo: string): string {
-  if (!photo) return PLACEHOLDER_IMG;
-  return photo.startsWith("http") ? photo : wixImage(photo, 400, 480);
-}
+/** Display URL for a member photo, at the size the tiles and cards want.
+ * Delegates to the shared resolver, so a data URI or an app-served path works
+ * here exactly as it does in every other media field — this used to handle only
+ * full URLs and bare CDN ids, and quietly mangled anything else. */
+export const memberPhotoSrc = (photo: string) => resolveImage(photo, 400, 480);

@@ -22,17 +22,20 @@ export type PhotoCardMotion = {
 export default function PhotoCard({
   src,
   rot,
-  positionClassName,
-  widthClassName,
+  positionClassName = "",
+  widthClassName = "",
   motion,
+  style,
 }: {
   src: string;
   /** Resting tilt, e.g. "-8deg". */
   rot: string;
   /** Edge anchor + vertical placement, e.g. "left-4 top-[13%]". */
-  positionClassName: string;
-  widthClassName: string;
+  positionClassName?: string;
+  widthClassName?: string;
   motion: PhotoCardMotion;
+  /** Placement set at runtime instead of by class, for measured layouts. */
+  style?: CSSProperties;
 }) {
   return (
     <figure
@@ -43,6 +46,7 @@ export default function PhotoCard({
           "--fall-delay": motion.delay,
           "--phase-dur": motion.phaseDur,
           "--phase-delay": motion.phaseDelay,
+          ...style,
         } as CSSProperties
       }
     >
