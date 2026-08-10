@@ -1,73 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Container from "@/components/ui/Container";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import LanderPhotoCards from "./LanderPhotoCards";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
-
-/** How long each frame is held before crossfading to the next. */
-const SLIDE_MS = 5000;
-/** Cap on the number of frames pulled into the slideshow. */
-const MAX_SLIDES = 8;
 
 const LANDER_PATH = "team.lander.images";
 
 /**
  * The Our Team lander: a full-screen masthead (the viewport below the site
- * header, so header + lander together own the first screen) over a revolving
- * slideshow of the team-together photographs, each crossfading to the next
- * while drifting — the same Ken Burns treatment as the case-study mastheads,
- * reusing their keyframes.
+ * header, so header + lander together own the first screen).
  *
- * The lander's photographs are their own set (team.lander.images), separate
- * from the member portraits, so the two can be chosen and cropped for very
- * different jobs. With none uploaded the lander still reads as designed: the
- * heading over navy with a big low-opacity letterform behind it.
+ * The backdrop is a single still of the office, held steady. Over it, the
+ * team-together photographs are dealt out as polaroids — the same card the home
+ * hero scatters through its gutters — each drifting and fading in and out on
+ * its own cycle, so the gallery turns over without anything sliding or
+ * crossfading underneath it. The backdrop's top edge is masked away from sm+
+ * (see .team-band) so the picture dissolves into the header above it.
  *
- * Drift and auto-advance are stilled under `prefers-reduced-motion` — the
- * first frame simply holds. Edit mode swaps the masthead for a plain editable
- * block (heading plus a thumbnail strip), the same trade the case-study
- * masthead makes, since a cross-fading full-bleed slideshow is no place to
- * manage a list of images.
+ * All three image sets are separate — the office still, the gallery, and the
+ * member portraits — so each can be chosen and cropped for its own job. With
+ * none uploaded the lander still reads as designed: the heading over navy with
+ * a big low-opacity letterform hugging it.
+ *
+ * Edit mode swaps the masthead for a plain editable block (heading, subtitle,
+ * the backdrop and a thumbnail strip), since a drifting full-bleed collage is
+ * no place to manage a list of images.
  */
 export default function TeamHero({
   heading: serverHeading,
   subtitle: serverSubtitle,
+  background: serverBackground,
   images: serverImages,
 }: {
   heading: string;
   subtitle: string;
+  background: string;
   images: string[];
 }) {
   const heading = useCmsValue("team.heading", serverHeading);
   const subtitle = useCmsValue("team.lander.subtitle", serverSubtitle);
+  const background = useCmsValue("team.lander.background", serverBackground);
   const images = useCmsValue<string[]>(LANDER_PATH, serverImages);
   const editMode = useEditMode();
   const t = useT();
-  const reduced = usePrefersReducedMotion();
   // Admins edit the English source, so translation is suppressed in edit mode.
   const tv = (s: string) => (editMode ? s : t(s));
-
-  const slides = (images ?? []).filter(Boolean).slice(0, MAX_SLIDES);
-  const [active, setActive] = useState(0);
-
-  useEffect(() => {
-    if (reduced || slides.length <= 1) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % slides.length), SLIDE_MS);
-    return () => clearInterval(id);
-  }, [reduced, slides.length]);
-
-  // Keep the active frame in range if images are removed while editing.
-  useEffect(() => {
-    if (active >= slides.length) setActive(0);
-  }, [active, slides.length]);
 
   if (editMode) {
     return (
@@ -86,8 +70,19 @@ export default function TeamHero({
             label="lander subtitle"
             className="mt-4 max-w-2xl font-body text-lg text-white/70"
           />
-          <p className="mt-6 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
-            Lander images — the team together
+          <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
+            Backdrop — the office
+          </p>
+          <EditableImage
+            path="team.lander.background"
+            raw={background}
+            src={resolveImage(background, 320, 200)}
+            alt=""
+            className="mt-3 h-32 w-48 border border-white/15 object-cover"
+          />
+
+          <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
+            Gallery — the team together
           </p>
           <div className="mt-3 flex flex-wrap items-start gap-3">
             {(images ?? []).map((img, i) => (
@@ -122,35 +117,26 @@ export default function TeamHero({
       style={{ height: "calc(100svh - var(--header-h))" }}
       className="relative w-full overflow-hidden bg-navy"
     >
-      {slides.length > 0 && (
+      {background && (
         <div aria-hidden className="team-band">
-          {slides.map((raw, i) => (
-            <div
-              key={i}
-              className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
-                i === active ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <div className={`h-full w-full ${i % 2 ? "cs-kenburns-alt" : "cs-kenburns"}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={resolveImage(raw, 1800, 1200)}
-                  alt=""
-                  loading={i === 0 ? "eager" : "lazy"}
-                  // The CMS focal point keeps the important part of the frame in
-                  // view under the crop (defaults to centre when unset).
-                  style={{ objectPosition: focusPosition(raw) }}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
-          ))}
-          {/* Veil so the heading reads over any frame, weighted to the bottom
-              where the copy sits. */}
-          <div className="absolute inset-0 bg-navy/35" />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/40 to-transparent" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={resolveImage(background, 2000, 1300)}
+            alt=""
+            // The CMS focal point keeps the important part of the room in view
+            // under the crop (defaults to centre when unset).
+            style={{ objectPosition: focusPosition(background) }}
+            className="h-full w-full object-cover"
+          />
+          {/* Veil so the copy reads over the room, weighted to the bottom
+              where it sits. */}
+          <div className="absolute inset-0 bg-navy/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/45 to-transparent" />
         </div>
       )}
+
+      <LanderPhotoCards images={images ?? []} />
+
       {/* The section's own navy shows through the band's faded top edge, so
           nothing else is needed to complete the hand-off to the header. */}
 

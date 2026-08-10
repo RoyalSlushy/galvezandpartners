@@ -19,6 +19,7 @@ export default async function OurTeam() {
       <TeamHero
         heading={team.heading}
         subtitle={team.lander?.subtitle ?? ""}
+        background={team.lander?.background ?? ""}
         images={team.lander?.images ?? []}
       />
       <TeamGrid members={team.members} />

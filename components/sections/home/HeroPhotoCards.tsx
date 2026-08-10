@@ -1,6 +1,6 @@
-import type { CSSProperties } from "react";
 import { CASE_STUDIES } from "@/content/caseStudies";
 import { wixImage } from "@/lib/wix";
+import PhotoCard from "@/components/ui/PhotoCard";
 
 /**
  * Small decorative "photocards" of work pulled from the case studies, scattered
@@ -53,30 +53,19 @@ export default function HeroPhotoCards() {
         const id = study?.gallery[card.img];
         if (!id) return null;
         return (
-          <figure
+          <PhotoCard
             key={i}
-            className={`photocard-fall absolute ${card.pos} ${card.w}`}
-            style={
-              {
-                "--fall-dur": card.dur,
-                "--fall-delay": card.delay,
-                "--phase-dur": card.phaseDur,
-                "--phase-delay": card.phaseDelay,
-              } as CSSProperties
-            }
-          >
-            <div
-              className="bg-white/95 p-2 opacity-90 shadow-2xl shadow-black/40 ring-1 ring-black/10"
-              style={{ transform: `rotate(${card.rot})` }}
-            >
-              <img
-                src={wixImage(id, 300, 375)}
-                alt=""
-                loading="lazy"
-                className="block aspect-[4/5] w-full object-cover"
-              />
-            </div>
-          </figure>
+            src={wixImage(id, 300, 375)}
+            rot={card.rot}
+            positionClassName={card.pos}
+            widthClassName={card.w}
+            motion={{
+              dur: card.dur,
+              delay: card.delay,
+              phaseDur: card.phaseDur,
+              phaseDelay: card.phaseDelay,
+            }}
+          />
         );
       })}
     </div>

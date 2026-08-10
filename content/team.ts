@@ -88,15 +88,18 @@ export const FACT_PROMPTS: string[] = [
 export const TEAM_HEADING = "Meet Our Storytellers";
 
 /**
- * The Our Team lander's own set of images — photographs of the team together,
- * kept separate from the individual member portraits so the two are managed
- * (and cropped) independently. Empty by default: the real photographs are
+ * The Our Team lander. `background` is a single still — the office — that fills
+ * the section behind everything; `images` are photographs of the team together,
+ * shown over it as polaroids that fade in and out. Both are kept separate from
+ * the individual member portraits so all three are managed (and cropped)
+ * independently, and both are empty by default: the real photographs are
  * uploaded per site from the editor.
  */
-export type TeamLander = { subtitle: string; images: string[] };
+export type TeamLander = { subtitle: string; background: string; images: string[] };
 
 export const TEAM_LANDER: TeamLander = {
   subtitle: "The people who turn your brand into a story worth repeating.",
+  background: "",
   images: [],
 };
 

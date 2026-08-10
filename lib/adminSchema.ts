@@ -110,6 +110,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.instagram.posts.*.caption": "post caption",
   "team.heading": "heading",
   "team.lander.subtitle": "lander subtitle",
+  "team.lander.background": "lander backdrop",
   "team.lander.images.*": "lander image",
   "team.members.*.name": "name",
   "team.members.*.role": "role",
