@@ -123,7 +123,7 @@ export default function TeamHero({
       className="relative w-full overflow-hidden bg-navy"
     >
       {slides.length > 0 && (
-        <div aria-hidden className="absolute inset-0">
+        <div aria-hidden className="team-band">
           {slides.map((raw, i) => (
             <div
               key={i}
@@ -151,35 +151,36 @@ export default function TeamHero({
           <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/40 to-transparent" />
         </div>
       )}
-
-      {/* Big low-opacity letterform, bleeding off the bottom-left behind the
-          copy — carries the lander on its own when no photographs are set. On
-          ultrawide it is anchored to the top of the lander instead, so it
-          reaches all the way up to meet the header. */}
-      {initial && (
-        <span
-          aria-hidden
-          // The ultrawide offset is negative by the display face's ascender gap
-          // (~0.18em above the cap line), so it is the letter itself that meets
-          // the header rather than the box around it. Any overshoot is clipped
-          // by the section, the same way the letter bleeds off-edge elsewhere.
-          className="pointer-events-none absolute -bottom-[18vh] -left-[3vw] select-none font-display text-[46vh] leading-none text-white/[0.06] sm:text-[56vh] ultra:bottom-auto ultra:top-[-0.18em] ultra:text-[80vh]"
-        >
-          <GlyphNumber value={initial} tintClassName="bg-white/[0.06]" />
-        </span>
-      )}
+      {/* The section's own navy shows through the band's faded top edge, so
+          nothing else is needed to complete the hand-off to the header. */}
 
       <div className="relative z-10 flex h-full items-end pb-12 sm:pb-16">
         <Container>
-          <h1 className="font-heading text-f3 leading-none text-white [text-wrap:balance]">
-            {tv(heading)}
-          </h1>
-          <span aria-hidden className="mt-5 block h-1 w-16 bg-gold" />
-          {subtitle && (
-            <p className="mt-5 max-w-xl font-body text-base leading-relaxed text-white/80 [text-wrap:pretty] sm:text-lg">
-              {tv(subtitle)}
-            </p>
-          )}
+          <div className="relative">
+            {/* Big low-opacity letterform. Anchored to the copy rather than to
+                the section, so it hugs the heading — sitting behind it, its
+                foot on the heading's baseline and its left edge just outside
+                the text's — and travels with the copy at every width. The
+                offsets are in em, so the letter keeps the same grip on the
+                text as it scales. */}
+            {initial && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -z-10 select-none font-display leading-none text-white/[0.06] bottom-[-0.12em] left-[-0.1em] text-[30vh] sm:text-[38vh] ultra:text-[46vh]"
+              >
+                <GlyphNumber value={initial} tintClassName="bg-white/[0.06]" />
+              </span>
+            )}
+            <h1 className="relative font-heading text-f3 leading-none text-white [text-wrap:balance]">
+              {tv(heading)}
+            </h1>
+            <span aria-hidden className="relative mt-5 block h-1 w-16 bg-gold" />
+            {subtitle && (
+              <p className="relative mt-5 max-w-xl font-body text-base leading-relaxed text-white/80 [text-wrap:pretty] sm:text-lg">
+                {tv(subtitle)}
+              </p>
+            )}
+          </div>
         </Container>
       </div>
     </section>

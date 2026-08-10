@@ -628,6 +628,25 @@ html[data-gp-case-snap] {
     mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
   }
 }
+/* Our Team lander: the frames fill the section, and from sm+ the band's top
+   edge is masked away so the picture dissolves into the header sitting directly
+   above it instead of meeting it on a hard line. */
+.team-band {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+@media (min-width: 751px) {
+  .team-band {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+  }
+}
+
+/* Ken Burns drift. INVARIANT: at every keyframe the translation must stay
+   within the overhang the scale creates, i.e. |translate%| <= (scale - 1) / 2
+   * 100 on each axis — otherwise the drift pulls an edge of the (object-fit:
+   cover) frame into view and paints the box behind it. */
 .cs-kenburns {
   animation: cs-kenburns 22s ease-in-out infinite alternate;
   will-change: transform;
@@ -649,7 +668,9 @@ html[data-gp-case-snap] {
     transform: scale(1.2) translate(-2.5%, 2%);
   }
   to {
-    transform: scale(1.05) translate(2%, -2.5%);
+    /* 1.12, not 1.05: at 1.05 the 2.5% translation sits exactly on the overhang
+       the scale allows, so a rounded pixel could expose the frame's edge. */
+    transform: scale(1.12) translate(2%, -2.5%);
   }
 }
 .cs-scroll-cue {

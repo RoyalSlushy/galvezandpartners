@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem, Social } from "@/content/site";
+import type { CaseStudy } from "@/content/caseStudies";
 import DesktopNav from "./DesktopNav";
 import MobileMenu from "./MobileMenu";
 import EditableImage from "@/components/admin/editable/EditableImage";
@@ -15,11 +16,14 @@ export default function Header({
   socials: serverSocials,
   tagline: serverTagline,
   headerImage: serverHeaderImage,
+  caseStudies,
 }: {
   nav: NavItem[];
   socials: Social[];
   tagline: string;
   headerImage: string;
+  /** Feeds the "Our Work" mega menu in the desktop nav. */
+  caseStudies: CaseStudy[];
 }) {
   const nav = useCmsValue("site.nav", serverNav);
   const socials = useCmsValue("site.socials", serverSocials);
@@ -86,7 +90,13 @@ export default function Header({
           />
         </div>
 
-        <DesktopNav nav={nav} socials={socials} tagline={tagline} editMode={editMode} />
+        <DesktopNav
+          nav={nav}
+          socials={socials}
+          tagline={tagline}
+          editMode={editMode}
+          caseStudies={caseStudies}
+        />
 
         <MobileMenu nav={nav} socials={socials} headerImage={serverHeaderImage} />
       </div>
