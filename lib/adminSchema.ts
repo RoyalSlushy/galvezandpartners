@@ -20,6 +20,7 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
     photo: "",
     socials: [],
     emoji: "😀",
+    bio: "Add a few sentences about this person and their role.",
     facts: [
       { prompt: "Superpower", answer: "Add an answer…" },
       { prompt: "Fuel of choice", answer: "Add an answer…" },
@@ -110,6 +111,7 @@ const FIELD_LABELS: Record<string, string> = {
   "team.members.*.role": "role",
   "team.members.*.photo": "photo",
   "team.members.*.emoji": "favorite emoji",
+  "team.members.*.bio": "blurb",
   "team.members.*.facts.*.prompt": "question",
   "team.members.*.facts.*.answer": "answer",
   "team.members.*.stickers.*.img": "sticker image",

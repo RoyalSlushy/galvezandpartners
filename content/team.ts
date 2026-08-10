@@ -47,6 +47,9 @@ export type Member = {
   photo: string;
   socials: Social[];
   emoji?: string;
+  /** A few sentences on the person and what they do here. Written per member
+   * in the editor — no invented copy ships as a default. */
+  bio?: string;
   facts?: Fact[];
   motto?: string;
   stickers?: Sticker[];

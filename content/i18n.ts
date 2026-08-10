@@ -123,7 +123,7 @@ const ES: Record<string, string> = {
   "Digital Marketing": "Marketing Digital",
 
   // --- Team profile cards: chrome ---
-  "Meet me": "Conóceme",
+  "See More": "Ver Más",
   Close: "Cerrar",
   Previous: "Anterior",
   Next: "Siguiente",

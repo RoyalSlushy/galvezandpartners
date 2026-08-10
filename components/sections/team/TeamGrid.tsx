@@ -106,13 +106,13 @@ export default function TeamGrid({
                     type="button"
                     onClick={() => setOpenIdx(i)}
                     aria-haspopup="dialog"
-                    aria-label={`${t("Meet me")} — ${m.name}`}
+                    aria-label={`${t("See More")} — ${m.name}`}
                     className="relative block w-full cursor-pointer overflow-hidden border-b-4 border-gold bg-white"
                   >
                     {photoBlock(m, i)}
                     {/* Hover hint that the tile opens a profile card. */}
                     <span className="absolute bottom-2 right-2 z-20 bg-gold px-2 py-1 font-din text-[10px] uppercase text-navy opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                      {t("Meet me")} {m.emoji || "✦"}
+                      {t("See More")} {m.emoji || "✦"}
                     </span>
                   </button>
                 )}

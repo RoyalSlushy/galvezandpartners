@@ -345,19 +345,22 @@ export default function MemberCardModal({
             the top where it can't be scrolled to. */}
         {/* Extra bottom room so a card never sits under the nav bar. */}
         <div className="flex min-h-full items-center justify-center p-4 pb-24 sm:p-8 sm:pb-28">
-          {/* On wide screens the pair spreads to nearly the full viewport width
-              rather than sitting in a fixed column. Height is governed by the
+          {/* Bounded by the site's own body width (--site-max, which widens on
+              ultrawide displays) rather than the raw viewport, so the card
+              lines up with the page's content column. Height is governed by the
               polaroid, which takes whichever of width or height binds first. */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md sm:max-w-[92vw]"
+            className="relative w-full max-w-md sm:max-w-site"
           >
             {/* Keyed by member: navigating remounts the pieces, so their
                 entrance keyframes run again for the incoming person. */}
             <div
               key={index}
               ref={groupRef}
-              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-10 xl:gap-14"
+              // Centred, because the details card stops widening before the
+              // body does — the slack is split either side rather than left.
+              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:justify-center sm:gap-10 xl:gap-14"
             >
               {/* Polaroid photo card — the picture stands on its own, with the
                   tape strip, emoji sticker and glyph initial, plus the classic
@@ -411,7 +414,9 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("1.2deg", "12deg", 0, 0, exiting)}
-                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
+                // Capped so the card stops growing before its lines get too
+                // long to read, however wide the body gets.
+                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
@@ -449,6 +454,26 @@ export default function MemberCardModal({
                     </div>
                   )}
                 </div>
+
+                {/* The blurb: a few sentences on the person and their role.
+                    Held to a readable measure rather than the card's full
+                    width, and multiline so paragraph breaks can be typed. */}
+                {(editMode || member.bio) && (
+                  <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                    <EditableText
+                      path={`${base}.bio`}
+                      value={
+                        member.bio
+                          ? tv(member.bio)
+                          : "Add a few sentences about this person and their role."
+                      }
+                      as="span"
+                      label="blurb"
+                      multiline
+                      className={member.bio ? undefined : "italic text-navy/40"}
+                    />
+                  </p>
+                )}
 
                 {(shown.length > 0 || editMode) && (
                   <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
