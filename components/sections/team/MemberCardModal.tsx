@@ -80,19 +80,37 @@ function NavButton({
   );
 }
 
-/** One piece's angles and its stagger, which differs between arriving
- * (flowing outward from the centre) and leaving (swept off to the left). */
+/** Which way the pieces are swept off. Going to the next member sends them
+ * left; going back sends them the other way, so the motion reads as retracing
+ * your steps rather than always advancing. */
+type SweepDir = -1 | 1;
+
+/**
+ * One piece's angles and its stagger. Arriving, every piece flows outward from
+ * the same point; leaving, they are swept toward one side, and the piece the
+ * arm reaches first goes first — the right-hand card for a leftward sweep, the
+ * left-hand one when it travels the other way.
+ */
 function piece(
   rot: string,
   spin: string,
   inDelayMs: number,
-  outDelayMs: number,
-  closing: boolean,
+  /** Stagger when swept left, and its mirror when swept right. */
+  outDelays: { left: number; right: number },
+  exiting: boolean,
+  dir: SweepDir,
 ): CSSProperties {
+  const goingLeft = dir < 0;
   return {
     ["--rot" as string]: rot,
     ["--spin" as string]: spin,
-    animationDelay: `${closing ? outDelayMs : inDelayMs}ms`,
+    ...(exiting
+      ? {
+          ["--sweep-x" as string]: goingLeft ? "-130vw" : "130vw",
+          ["--sweep-rot" as string]: goingLeft ? "-16deg" : "16deg",
+        }
+      : null),
+    animationDelay: `${exiting ? (goingLeft ? outDelays.left : outDelays.right) : inDelayMs}ms`,
   };
 }
 
@@ -103,12 +121,14 @@ function piece(
  * as though the whole set came from one source, and settle at slight opposed
  * angles with the emoji sticker arriving last.
  *
- * Leaving sweeps everything off to the left — an arm clearing the table — so
- * the component owns its exit rather than vanishing the moment its parent
- * drops it. Navigating between people plays that sweep and then the entrance,
- * in that order: the current pair is wiped off before the next one rises. All
- * of it is CSS keyframes (gp-emerge / gp-sweep / gp-fade-in / gp-fade-out in
- * globals.css).
+ * Leaving sweeps everything off the side — an arm clearing the table — so the
+ * component owns its exit rather than vanishing the moment its parent drops it.
+ * Navigating between people plays that sweep and then the entrance, in that
+ * order: the current pair is wiped off before the next one rises. Which side
+ * they leave by carries the direction of travel — forward clears to the left,
+ * back to the right, closing to the left — so going back reads as retracing
+ * your steps. All of it is CSS keyframes (gp-emerge / gp-sweep / gp-fade-in /
+ * gp-fade-out in globals.css).
  */
 export default function MemberCardModal({
   members,
@@ -154,11 +174,11 @@ export default function MemberCardModal({
   // screen is either unmounting ("close") or swapping in the next member
   // ("nav"), which then plays the entrance again. Tracked as a kind rather than
   // a flag so the chrome can fade on close but stay put across a navigation.
-  const [exit, setExit] = useState<null | "close" | "nav">(null);
+  const [exit, setExit] = useState<null | { kind: "close" | "nav"; dir: SweepDir }>(null);
   const exitingRef = useRef(false);
   const sweepTimer = useRef<number | undefined>(undefined);
   const runExit = useCallback(
-    (kind: "close" | "nav", after: () => void) => {
+    (kind: "close" | "nav", dir: SweepDir, after: () => void) => {
       if (reducedMotion) {
         after();
         return;
@@ -166,17 +186,17 @@ export default function MemberCardModal({
       // One sweep at a time: further presses mid-exit are ignored.
       if (exitingRef.current) return;
       exitingRef.current = true;
-      setExit(kind);
+      setExit({ kind, dir });
       sweepTimer.current = window.setTimeout(after, SWEEP_MS);
     },
     [reducedMotion],
   );
   useEffect(() => () => window.clearTimeout(sweepTimer.current), []);
 
-  const requestClose = useCallback(() => runExit("close", onClose), [runExit, onClose]);
+  const requestClose = useCallback(() => runExit("close", -1, onClose), [runExit, onClose]);
   const goTo = useCallback(
-    (to: number) =>
-      runExit("nav", () => {
+    (to: number, dir: SweepDir) =>
+      runExit("nav", dir, () => {
         onNavigate(to);
         setExit(null);
         exitingRef.current = false;
@@ -186,7 +206,11 @@ export default function MemberCardModal({
 
   const prevIndex = (index - 1 + count) % count;
   const nextIndex = (index + 1) % count;
+  // Forward clears to the left; back clears to the right.
+  const goNext = useCallback(() => goTo(nextIndex, -1), [goTo, nextIndex]);
+  const goPrev = useCallback(() => goTo(prevIndex, 1), [goTo, prevIndex]);
   const exiting = exit !== null;
+  const sweepDir: SweepDir = exit?.dir ?? -1;
 
   // Every piece flows out of one point below the screen, on the viewport's
   // vertical centre line. Each starts life offset by however far its resting
@@ -231,9 +255,9 @@ export default function MemberCardModal({
         requestClose();
       } else if (e.key === "ArrowLeft") {
         // EditableText stops its own keydowns, so these never fire mid-edit.
-        goTo(prevIndex);
+        goPrev();
       } else if (e.key === "ArrowRight") {
-        goTo(nextIndex);
+        goNext();
       } else if (e.key === "Tab") {
         const card = cardRef.current;
         if (!card) return;
@@ -257,7 +281,7 @@ export default function MemberCardModal({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [requestClose, goTo, prevIndex, nextIndex]);
+  }, [requestClose, goPrev, goNext]);
 
   // Lock body scroll while open — same fixed-body technique as the mobile
   // drawer (keeps iOS Safari from scrolling behind).
@@ -311,7 +335,7 @@ export default function MemberCardModal({
       <div
         aria-hidden
         onClick={requestClose}
-        className={`absolute inset-0 bg-black/60 ${exit === "close" ? "gp-fade-out" : "gp-fade-in"}`}
+        className={`absolute inset-0 bg-black/60 ${exit?.kind === "close" ? "gp-fade-out" : "gp-fade-in"}`}
       />
 
       <button
@@ -320,7 +344,7 @@ export default function MemberCardModal({
         onClick={requestClose}
         aria-label={t("Close")}
         className={`absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center bg-navy/80 text-white shadow-lg transition hover:bg-gold hover:text-navy ${
-          exit === "close" ? "gp-fade-out" : ""
+          exit?.kind === "close" ? "gp-fade-out" : ""
         }`}
       >
         <svg
@@ -368,7 +392,7 @@ export default function MemberCardModal({
                   card first, the way an arm crossing the table reaches it. */}
               <div
                 data-gp-piece
-                style={piece("-2.5deg", "-14deg", 90, 70, exiting)}
+                style={piece("-2.5deg", "-14deg", 90, { left: 70, right: 0 }, exiting, sweepDir)}
                 // The polaroid grows with the viewport too, but takes whichever
                 // of width or height binds first: its photo is 5:6, so sizing
                 // on width alone would push it past the bottom of a wide but
@@ -402,7 +426,7 @@ export default function MemberCardModal({
                     path={`${base}.emoji`}
                     value={member.emoji || "😀"}
                     as="span"
-                    style={piece("-12deg", "-60deg", 260, 0, false)}
+                    style={piece("-12deg", "-60deg", 260, { left: 0, right: 0 }, false, sweepDir)}
                     className="gp-emerge absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
                   />
                 )}
@@ -413,7 +437,7 @@ export default function MemberCardModal({
                   role, the chosen questions and the motto. */}
               <div
                 data-gp-piece
-                style={piece("1.2deg", "12deg", 0, 0, exiting)}
+                style={piece("1.2deg", "12deg", 0, { left: 0, right: 70 }, exiting, sweepDir)}
                 // Capped so the card stops growing before its lines get too
                 // long to read, however wide the body gets.
                 className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
@@ -558,7 +582,7 @@ export default function MemberCardModal({
           wrapper is click-through so it never swallows backdrop presses. */}
       <div
         className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-stretch justify-between gap-3 px-4 pb-5 sm:px-8 sm:pb-7 ${
-          exit === "close" ? "gp-fade-out" : ""
+          exit?.kind === "close" ? "gp-fade-out" : ""
         }`}
       >
         <NavButton
@@ -566,14 +590,14 @@ export default function MemberCardModal({
           name={memberNameAt(prevIndex)}
           label={t("Previous")}
           disabled={exiting}
-          onClick={() => goTo(prevIndex)}
+          onClick={goPrev}
         />
         <NavButton
           dir="next"
           name={memberNameAt(nextIndex)}
           label={t("Next")}
           disabled={exiting}
-          onClick={() => goTo(nextIndex)}
+          onClick={goNext}
         />
       </div>
 

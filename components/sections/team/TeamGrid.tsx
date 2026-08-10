@@ -76,7 +76,12 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
 
   return (
     <section className="relative w-full bg-navy py-20 sm:py-28">
-      <Container>
+      {/* The portraits get their own width past `wide`. The body column tops out
+          well short of an ultrawide screen (2000px on a 21:9 display), which
+          left the grid marooned in the middle with small portraits, so from
+          there it takes a share of the viewport instead — bounded, so it stops
+          growing rather than stretching forever. */}
+      <Container className="wide:max-w-[min(92vw,160rem)]">
         {/* Three across from sm right through xl: the body column is still
             1200px up to 1920 (see the --site-max tiers), so a fourth column
             there only shrinks every portrait. The fourth arrives with the

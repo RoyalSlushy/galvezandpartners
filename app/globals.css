@@ -757,8 +757,11 @@ html[data-gp-case-snap] {
     transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
   }
   100% {
-    transform: translate3d(-130vw, 0, 0) rotate(calc(var(--rot, 0deg) - 16deg))
-      scale(0.92);
+    /* --sweep-x / --sweep-rot carry the direction: the pieces leave toward the
+       side the arm is travelling, and tumble the way that shove would turn
+       them. Defaults are the leftward sweep. */
+    transform: translate3d(var(--sweep-x, -130vw), 0, 0)
+      rotate(calc(var(--rot, 0deg) + var(--sweep-rot, -16deg))) scale(0.92);
   }
 }
 /* Card stickers. The reflective finishes lay a gradient over the sticker and
