@@ -10,8 +10,8 @@ import { STICKER_FINISHES, type Sticker } from "@/content/team";
 
 /**
  * Edit-mode popover for one sticker: its artwork (an uploaded image or an
- * emoji), which card it is stuck to, size, rotation and finish. Position is
- * set by dragging the sticker itself, so it isn't repeated here.
+ * emoji), size, rotation and finish. There is no position to set — a sticker is
+ * dealt a spot down one of the card's margins each time the card opens.
  */
 export default function StickerPopover({
   listPath,
@@ -124,14 +124,6 @@ export default function StickerPopover({
         </label>
       )}
 
-      <Row label="Card">
-        {(["photo", "details"] as const).map((c) => (
-          <Chip key={c} on={(sticker.card ?? "details") === c} onClick={() => set("card", c)}>
-            {c === "photo" ? "Photo" : "Details"}
-          </Chip>
-        ))}
-      </Row>
-
       <Slider
         label="Size"
         value={sticker.size ?? 18}
@@ -158,8 +150,9 @@ export default function StickerPopover({
       </Row>
 
       <p className="mt-3 text-[10px] leading-relaxed text-white/35">
-        Drag the sticker to move it — it sits on top of the card and can hang over the edges.
-        A finish only shows on uploaded artwork, never on an emoji.
+        Stickers are scattered down the margins either side of the card, evenly spaced and in a
+        different arrangement every time it opens. A finish only shows on uploaded artwork, never
+        on an emoji.
       </p>
     </div>,
     document.body,

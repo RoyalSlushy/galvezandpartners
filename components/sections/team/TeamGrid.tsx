@@ -126,7 +126,7 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
                       className="h-12 w-10 shrink-0 border border-white/15 object-cover"
                     />
                     <span className="font-din text-[9px] uppercase leading-tight tracking-[0.18em] text-white/40">
-                      hover backdrop
+                      backdrop
                     </span>
                   </div>
                 )}

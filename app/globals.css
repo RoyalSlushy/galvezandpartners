@@ -757,7 +757,7 @@ html[data-gp-case-snap] {
       rotate(calc(var(--rot, 0deg) + var(--sweep-rot, -16deg))) scale(0.92);
   }
 }
-/* Card stickers. The reflective finishes lay a gradient over the sticker and
+/* Profile-card stickers. The reflective finishes lay a gradient over the sticker and
    mask it to the sticker's own artwork (--sticker-mask is set to the image
    URL), so the sheen follows the cut-out shape rather than its bounding box.
    Emoji stickers carry no mask image and so stay plain.
@@ -767,7 +767,21 @@ html[data-gp-case-snap] {
    behind the same mask) and leaving everything else — the CMS fields, the
    placement, the class names — as is. */
 .gp-sticker {
-  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.25));
+  /* The die-cut white border every printed sticker has, drawn as a chain of
+     hard drop-shadows: each one applies to the result of the last, so four
+     axis-aligned offsets dilate the artwork's own alpha outward into a ring —
+     corners included — with no second copy of the image and no knowledge of its
+     shape. It works the same on an emoji glyph as on a cut-out PNG.
+
+     Thickness follows the sticker's own width (--sticker-w, set where it is
+     placed), so a small one isn't ringed as heavily as a big one; the last
+     shadow is the sticker's lift off the surface. */
+  --sticker-edge: clamp(2px, calc(var(--sticker-w, 4.5rem) * 0.055), 7px);
+  filter: drop-shadow(var(--sticker-edge) 0 0 #fff)
+    drop-shadow(calc(var(--sticker-edge) * -1) 0 0 #fff)
+    drop-shadow(0 var(--sticker-edge) 0 #fff)
+    drop-shadow(0 calc(var(--sticker-edge) * -1) 0 #fff)
+    drop-shadow(0 3px 5px rgb(0 0 0 / 0.35));
 }
 .gp-sticker-holo::after,
 .gp-sticker-foil::after,

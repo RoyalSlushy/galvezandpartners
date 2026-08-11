@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GlyphMark } from "@/components/ui/Glyph";
 import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
@@ -17,8 +10,9 @@ import EditableText from "@/components/admin/editable/EditableText";
 import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
 import PromptPicker from "./PromptPicker";
-import CardStickers from "./CardStickers";
-import { lastNameInitial, memberPhotoSrc } from "./memberUtils";
+import SideStickers from "./SideStickers";
+import { lastNameInitial, memberPhotoSrc, piece, type SweepDir } from "./memberUtils";
+import { resolveImage } from "@/lib/adminClient";
 
 /** Shown in edit mode for a fact whose answer hasn't been filled in yet
  * (visible on purpose, matching the CMS list-template convention). */
@@ -80,40 +74,6 @@ function NavButton({
   );
 }
 
-/** Which way the pieces are swept off. Going to the next member sends them
- * left; going back sends them the other way, so the motion reads as retracing
- * your steps rather than always advancing. */
-type SweepDir = -1 | 1;
-
-/**
- * One piece's angles and its stagger. Arriving, every piece flows outward from
- * the same point; leaving, they are swept toward one side, and the piece the
- * arm reaches first goes first — the right-hand card for a leftward sweep, the
- * left-hand one when it travels the other way.
- */
-function piece(
-  rot: string,
-  spin: string,
-  inDelayMs: number,
-  /** Stagger when swept left, and its mirror when swept right. */
-  outDelays: { left: number; right: number },
-  exiting: boolean,
-  dir: SweepDir,
-): CSSProperties {
-  const goingLeft = dir < 0;
-  return {
-    ["--rot" as string]: rot,
-    ["--spin" as string]: spin,
-    ...(exiting
-      ? {
-          ["--sweep-x" as string]: goingLeft ? "-130vw" : "130vw",
-          ["--sweep-rot" as string]: goingLeft ? "-16deg" : "16deg",
-        }
-      : null),
-    animationDelay: `${exiting ? (goingLeft ? outDelays.left : outDelays.right) : inDelayMs}ms`,
-  };
-}
-
 /**
  * Pop-up profile for one team member: an isolated polaroid photo card and a
  * separate details card, side by side on desktop and stacked on mobile. They
@@ -143,6 +103,7 @@ export default function MemberCardModal({
   onClose: () => void;
 }) {
   const member = members[index];
+  const stickers = member.stickers ?? [];
   const count = members.length;
   const memberNameAt = (i: number) => members[i]?.name ?? "";
   const editMode = useEditMode();
@@ -217,28 +178,30 @@ export default function MemberCardModal({
   // place sits from there.
   //
   // The offset has to be measured rather than assumed, since the two cards sit
-  // side by side on desktop and stacked on mobile. A piece's own
-  // getBoundingClientRect is no use here — it includes the animation's starting
-  // transform, which would feed back into the measurement — so its layout
-  // position is taken from offsetLeft/offsetTop (which ignore transforms) and
-  // converted to viewport coordinates through the group, the nearest ancestor
-  // that is positioned and never animated.
+  // side by side on desktop and stacked on mobile, and the stickers are dealt to
+  // wherever they like down the margins. A piece's own getBoundingClientRect is
+  // no use here — it includes the animation's starting transform, which would
+  // feed back into the measurement — so its layout position is taken from
+  // offsetLeft/offsetTop (which ignore transforms) and converted to viewport
+  // coordinates through its offset parent: for the cards the group, for a
+  // sticker its own placement wrapper, neither of which is ever animated.
   const groupRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const group = groupRef.current;
-    if (!group) return;
-    // Re-measured per member: the group is keyed by index, so navigating
-    // remounts these pieces and replays their entrance.
-    const groupBox = group.getBoundingClientRect();
+    const root = cardRef.current;
+    if (!root) return;
+    // Re-measured per member: these pieces are keyed by index, so navigating
+    // remounts them and replays their entrance.
     const originX = window.innerWidth / 2;
     const originY = window.innerHeight * ORIGIN_VH;
-    group.querySelectorAll<HTMLElement>("[data-gp-piece]").forEach((el) => {
-      const cx = groupBox.left + el.offsetLeft + el.offsetWidth / 2;
-      const cy = groupBox.top + el.offsetTop + el.offsetHeight / 2;
+    root.querySelectorAll<HTMLElement>("[data-gp-piece]").forEach((el) => {
+      const parent = el.offsetParent as HTMLElement | null;
+      const box = parent?.getBoundingClientRect();
+      const cx = (box?.left ?? 0) + el.offsetLeft + el.offsetWidth / 2;
+      const cy = (box?.top ?? 0) + el.offsetTop + el.offsetHeight / 2;
       el.style.setProperty("--from-x", `${originX - cx}px`);
       el.style.setProperty("--from-y", `${originY - cy}px`);
     });
-  }, [index]);
+  }, [index, stickers.length]);
 
   // Focus the close button on open; hand focus back to the opener on close.
   useEffect(() => {
@@ -314,7 +277,6 @@ export default function MemberCardModal({
   const base = `team.members.${index}`;
   const factsPath = `${base}.facts`;
   const stickersPath = `${base}.stickers`;
-  const stickers = member.stickers ?? [];
   const titleId = `member-card-${index}-name`;
   const facts = member.facts ?? [];
   // Visitors only ever see answered lines; admins see every line so they can
@@ -332,11 +294,32 @@ export default function MemberCardModal({
       aria-labelledby={titleId}
       className="fixed inset-0 z-[60]"
     >
+      {/* The member's own backdrop fills the screen behind everything — the same
+          picture their tile wipes up on hover, so one upload dresses both. It is
+          keyed by member, so navigating cross-fades from one person's room to the
+          next. Veiled heavily: this is the surface the cards lie on, and the
+          white cards have to keep their contrast against it. With none uploaded
+          the plain dim backdrop below is all there is, exactly as before. */}
       <div
         aria-hidden
         onClick={requestClose}
-        className={`absolute inset-0 bg-black/60 ${exit?.kind === "close" ? "gp-fade-out" : "gp-fade-in"}`}
-      />
+        className={`absolute inset-0 overflow-hidden bg-black/60 ${
+          exit?.kind === "close" ? "gp-fade-out" : "gp-fade-in"
+        }`}
+      >
+        {member.hoverImage && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={index}
+              src={resolveImage(member.hoverImage, 1600, 1000)}
+              alt=""
+              className="gp-fade-in h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-navy/55" />
+          </>
+        )}
+      </div>
 
       <button
         ref={closeRef}
@@ -430,7 +413,6 @@ export default function MemberCardModal({
                     className="gp-emerge absolute -left-3 top-6 z-20 text-5xl drop-shadow-md sm:-left-5 sm:text-6xl"
                   />
                 )}
-                <CardStickers stickers={stickers} listPath={stickersPath} card="photo" />
               </div>
 
               {/* Details card — a separate horizontal card carrying the name,
@@ -567,12 +549,23 @@ export default function MemberCardModal({
                     />
                   </div>
                 )}
-                <CardStickers stickers={stickers} listPath={stickersPath} card="details" />
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* The member's stickers, scattered down the margins either side of the
+          card. Keyed by member so each one's set is dealt afresh and rises with
+          their cards. Outside the scrolling layer, since they belong to the
+          screen's edges rather than to the cards. */}
+      <SideStickers
+        key={index}
+        stickers={stickers}
+        listPath={stickersPath}
+        exiting={exiting}
+        sweepDir={sweepDir}
+      />
 
       {/* Person-to-person navigation, pinned across the bottom of the viewport
           with the previous member at one end and the next at the other (both

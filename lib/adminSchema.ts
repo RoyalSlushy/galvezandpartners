@@ -30,13 +30,11 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
   }),
   // Questions come from FACT_PROMPTS (content/team.ts), picked in the editor.
   "team.members.*.facts": () => ({ prompt: "Superpower", answer: "Add an answer…" }),
-  // New stickers land in the middle of the details card, ready to be dragged.
+  // Where a sticker lands is decided when the card opens, so a new one carries
+  // only its look.
   "team.members.*.stickers": () => ({
-    card: "details",
     img: "",
     emoji: "⭐",
-    x: 50,
-    y: 50,
     size: 18,
     rotate: -8,
     finish: "plain",
@@ -116,7 +114,7 @@ const FIELD_LABELS: Record<string, string> = {
   "team.members.*.name": "name",
   "team.members.*.role": "role",
   "team.members.*.photo": "photo",
-  "team.members.*.hoverImage": "hover backdrop",
+  "team.members.*.hoverImage": "backdrop photo",
   "team.members.*.emoji": "favorite emoji",
   "team.members.*.bio": "blurb",
   "team.members.*.facts.*.prompt": "question",

@@ -12,24 +12,21 @@ export const STICKER_FINISHES = ["plain", "holo", "foil", "polychrome"] as const
 export type StickerFinish = (typeof STICKER_FINISHES)[number];
 
 /**
- * A decorative sticker stuck onto one of the profile cards. It sits on top of
- * the card rather than inside it, so it overhangs the edges the way a real
- * sticker would instead of being sliced off at the border. Position and size
- * are percentages of the card it is anchored to, so a sticker holds its spot
- * across breakpoints; the anchor is clamped to the card, which keeps a
- * sticker's centre on the card while its edges hang past it.
+ * A decorative sticker on an open profile card. Stickers are scattered down the
+ * margins either side of the card — outside the body column the page is written
+ * to — one per side in turn and evenly spaced down their side, so they frame the
+ * card without ever covering what it says. Where exactly each one lands is
+ * decided when the card opens rather than stored, so the arrangement is never
+ * twice the same; only how a sticker *looks* is authored here.
  */
 export type Sticker = {
-  /** Which card it is stuck to. */
-  card: "photo" | "details";
   /** Image URL or Wix media id. Takes precedence over `emoji` when set. */
   img: string;
   /** Emoji glyph, used when `img` is empty. */
   emoji: string;
-  /** Centre of the sticker, as a percentage of the card's box. */
-  x: number;
-  y: number;
-  /** Width as a percentage of the card's width (emoji: font size). */
+  /** Width as a percentage of a fixed reference (see SIZE_REF_REM), rather than
+   * of the margin it sits in — those run from a sliver to a few hundred pixels
+   * wide, so a sticker sized against one would change size with the viewport. */
   size: number;
   /** Rotation in degrees. */
   rotate: number;
@@ -47,7 +44,9 @@ export type Member = {
   photo: string;
   socials: Social[];
   emoji?: string;
-  /** Backdrop revealed behind the portrait when the tile is hovered. */
+  /** The member's own backdrop: wiped up behind the portrait when their tile is
+   * hovered, and shown behind the whole screen once their card is opened. Named
+   * for the first of those, which is where it started. */
   hoverImage?: string;
   /** A few sentences on the person and what they do here. Written per member
    * in the editor — no invented copy ships as a default. */
