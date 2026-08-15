@@ -287,6 +287,14 @@ export default function MemberCardModal({
   // profile out; down folds it away again, and down on a folded card closes it.
   // Only clearly one-axis gestures count.
   //
+  // Touch events rather than pointer events, and `touch-action: none` on the
+  // dialog to go with them (see the root element). A browser watching a pointer
+  // stream decides part-way through a drag that it is a pan, takes the gesture
+  // for itself and fires pointercancel — which killed every real swipe on a
+  // phone while looking perfect against synthetic events, since nothing
+  // synthetic ever gets taken away. Touch events plus a declaration that this
+  // surface pans nothing leaves the gesture where it belongs.
+  //
   // A swipe ends in a click on whatever was under the finger, and most of what
   // is under it here closes the card — so a recognised gesture is remembered and
   // that click swallowed.
@@ -296,9 +304,11 @@ export default function MemberCardModal({
     if (!card) return;
     let start: { x: number; y: number; scrolled: boolean } | null = null;
 
-    const onDown = (e: PointerEvent) => {
+    const onStart = (e: TouchEvent) => {
       swipedRef.current = false;
-      if (e.pointerType !== "touch") {
+      const touch = e.changedTouches[0];
+      // Ignore a second finger: a pinch is not a swipe.
+      if (!touch || e.touches.length > 1) {
         start = null;
         return;
       }
@@ -307,18 +317,19 @@ export default function MemberCardModal({
       const extra = extraRef.current;
       const inExtra = !!extra?.contains(e.target as Node);
       start = {
-        x: e.clientX,
-        y: e.clientY,
+        x: touch.clientX,
+        y: touch.clientY,
         scrolled: inExtra && (extra?.scrollTop ?? 0) > 0,
       };
     };
 
-    const onUp = (e: PointerEvent) => {
+    const onEnd = (e: TouchEvent) => {
       const from = start;
+      const touch = e.changedTouches[0];
       start = null;
-      if (!from) return;
-      const dx = e.clientX - from.x;
-      const dy = e.clientY - from.y;
+      if (!from || !touch) return;
+      const dx = touch.clientX - from.x;
+      const dy = touch.clientY - from.y;
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
       const act = (run: () => void) => {
@@ -349,14 +360,14 @@ export default function MemberCardModal({
       e.preventDefault();
     };
 
-    card.addEventListener("pointerdown", onDown);
-    card.addEventListener("pointerup", onUp);
-    card.addEventListener("pointercancel", onCancel);
+    card.addEventListener("touchstart", onStart, { passive: true });
+    card.addEventListener("touchend", onEnd, { passive: true });
+    card.addEventListener("touchcancel", onCancel, { passive: true });
     card.addEventListener("click", onClick, true);
     return () => {
-      card.removeEventListener("pointerdown", onDown);
-      card.removeEventListener("pointerup", onUp);
-      card.removeEventListener("pointercancel", onCancel);
+      card.removeEventListener("touchstart", onStart);
+      card.removeEventListener("touchend", onEnd);
+      card.removeEventListener("touchcancel", onCancel);
       card.removeEventListener("click", onClick, true);
     };
   }, [goNext, goPrev, phone, opened, requestClose]);
@@ -407,6 +418,12 @@ export default function MemberCardModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      // Nothing on this surface pans on a phone — the body is locked and the
+      // card is folded or opened rather than scrolled — so say so, and the
+      // browser stops competing for the drag. Without it a real swipe is taken
+      // for a pan half-way through and the gesture never arrives. From sm up the
+      // layer below does scroll, so panning is left alone there.
+      style={phone ? { touchAction: "none" } : undefined}
       className="fixed inset-0 z-[60]"
     >
       {/* The member's own backdrop fills the screen behind everything — the same
@@ -596,48 +613,54 @@ export default function MemberCardModal({
                   )}
                 </div>
 
-                {/* Everything past the name is what a swipe up brings in. Folded
-                    away it is clipped to nothing, so the card reads as finished
-                    rather than cut off — there is no torn edge, no handle and no
-                    caption inviting the gesture. Opened out it takes as much of
-                    the screen as it can without burying the photograph, and
-                    scrolls within itself past that.
+                {/* The blurb: a few sentences on the person and their role.
+                    Held to a readable measure rather than the card's full
+                    width, and multiline so paragraph breaks can be typed. Part of
+                    the card at rest on every screen — it is what the profile is
+                    for, and a card that opens on a name and a job title says
+                    nothing about the person. */}
+                {(editMode || member.bio) && (
+                  <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                    <EditableText
+                      path={`${base}.bio`}
+                      value={
+                        member.bio
+                          ? tv(member.bio)
+                          : "Add a few sentences about this person and their role."
+                      }
+                      as="span"
+                      label="blurb"
+                      multiline
+                      className={member.bio ? undefined : "italic text-navy/40"}
+                    />
+                  </p>
+                )}
+
+                {/* The short answers and the motto — the small print of the
+                    profile — are what a swipe up brings in. Folded away they are
+                    clipped to nothing, so the card reads as finished rather than
+                    cut off: no torn edge, no handle, no caption inviting the
+                    gesture. Opened out this takes as much of the screen as it can
+                    without burying the photograph, and scrolls within itself past
+                    that (hence pan-y here, against the dialog's touch-action:
+                    none).
                     Focus moving into it opens it: without a visible control,
                     that is what keeps the contents reachable from a keyboard.
                     On a wider screen the whole thing simply shows. */}
                 <div
                   ref={extraRef}
                   onFocusCapture={phone ? () => setOpened(true) : undefined}
+                  style={phone ? { touchAction: "pan-y" } : undefined}
                   className={
                     phone
                       ? `transition-[max-height] duration-300 ease-out motion-reduce:transition-none ${
                           opened
-                            ? "max-h-[46dvh] overflow-y-auto overscroll-contain"
+                            ? "max-h-[38dvh] overflow-y-auto overscroll-contain"
                             : "max-h-0 overflow-hidden"
                         }`
                       : undefined
                   }
                 >
-                  {/* The blurb: a few sentences on the person and their role.
-                      Held to a readable measure rather than the card's full
-                      width, and multiline so paragraph breaks can be typed. */}
-                  {(editMode || member.bio) && (
-                    <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
-                      <EditableText
-                        path={`${base}.bio`}
-                        value={
-                          member.bio
-                            ? tv(member.bio)
-                            : "Add a few sentences about this person and their role."
-                        }
-                        as="span"
-                        label="blurb"
-                        multiline
-                        className={member.bio ? undefined : "italic text-navy/40"}
-                      />
-                    </p>
-                  )}
-
                   {(shown.length > 0 || editMode) && (
                     <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
                       {shown.map((fact, fi) => (
