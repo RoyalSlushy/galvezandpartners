@@ -77,8 +77,12 @@ export default async function RootLayout({
           <style>{`[data-gp-veil]{display:none}`}</style>
         </noscript>
         <ScrollToTopOnHome />
-        <LocaleProvider>
-          <AdminProvider>
+        {/* The editor sits outside the language, not inside it: its own
+            translations are content like any other, so the locale has to be able
+            to read them from the draft session. Nothing in the admin chrome is
+            translated, so it loses nothing by being on the far side. */}
+        <AdminProvider>
+          <LocaleProvider translations={site.translations}>
             <GlyphProvider glyphs={site.glyphs}>
               <Header
                 nav={site.nav}
@@ -108,8 +112,8 @@ export default async function RootLayout({
                 </div>
               </div>
             </GlyphProvider>
-          </AdminProvider>
-        </LocaleProvider>
+          </LocaleProvider>
+        </AdminProvider>
       </body>
     </html>
   );

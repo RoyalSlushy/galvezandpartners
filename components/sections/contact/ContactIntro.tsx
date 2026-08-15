@@ -2,7 +2,7 @@
 
 import type { ContactPageContent } from "@/lib/cms";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 
 /** Contact page heading + intro (editable in the in-page CMS). */
@@ -10,8 +10,7 @@ export default function ContactIntro({ contact: serverContact }: { contact: Cont
   const contact = useCmsValue("contact", serverContact);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   return (
     <>
       <EditableText

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { GlyphMark } from "@/components/ui/Glyph";
 import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import EditableText from "@/components/admin/editable/EditableText";
 import SocialIcons from "@/components/ui/SocialIcons";
@@ -114,8 +114,7 @@ export default function MemberCardModal({
   const memberNameAt = (i: number) => members[i]?.name ?? "";
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
 
   const cardRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);

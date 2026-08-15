@@ -182,6 +182,20 @@ export function GlyphsIcon({ className }: IconProps) {
   );
 }
 
+/** Two scripts side by side — the standard "translate" mark. */
+export function LanguagesIcon({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <path d="M3 5h9" />
+      <path d="M7.5 5V3.5" />
+      <path d="M10 5c0 4-3 7-7 7" />
+      <path d="M5.5 8.5c1 1.8 2.7 3 4.5 3.5" />
+      <path d="M12.5 20.5 17 10l4.5 10.5" />
+      <path d="M14 17h6" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg {...base(`${className ?? "h-5 w-5"} animate-spin`)}>

@@ -11,7 +11,7 @@ import { wixImageFit } from "@/lib/wix";
 import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { XIcon } from "@/components/admin/icons";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -78,9 +78,8 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const gallery = useCmsValue("work.gallery", serverGallery);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode
-  // (matches WorkGrid). Author-entered tags are CMS content and stay as-is.
-  const tv = (s: string) => (editMode ? s : t(s));
+  // Author-entered tags are CMS content and stay as-is.
+  const tv = useEditableT();
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());

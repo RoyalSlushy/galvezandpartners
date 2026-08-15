@@ -3,7 +3,7 @@
 import Container from "@/components/ui/Container";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -53,8 +53,7 @@ export default function TeamHero({
   const images = useCmsValue<string[]>(LANDER_PATH, serverImages);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   // A trail needs a cursor to follow, and a phone has none — a drag paints one,
   // but nothing at all is shown to a visitor who only scrolls. Below the
   // breakpoint the photographs are dealt out and left to drift instead, which

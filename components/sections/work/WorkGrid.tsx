@@ -7,7 +7,7 @@ import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -24,9 +24,8 @@ export default function WorkGrid({
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  // Only the section heading is translated; work titles are brand names.
-  const tv = (s: string) => (editMode ? s : t(s));
+  // Work titles are brand names and stay untranslated.
+  const tv = useEditableT();
 
   return (
     <section className="w-full bg-navy py-20 sm:py-28">

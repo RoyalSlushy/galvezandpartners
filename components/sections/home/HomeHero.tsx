@@ -11,7 +11,7 @@ import { heroGradientCss, heroBottomBandCss } from "@/lib/heroGradient";
 import HeroPhotoCards from "@/components/sections/home/HeroPhotoCards";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { resolveImage } from "@/lib/adminClient";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls from "@/components/admin/editable/ListControls";
@@ -55,8 +55,7 @@ export default function HomeHero({
   );
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
 
   const slides = services.map((s, i) => (
     <HeroServiceSlide

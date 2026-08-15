@@ -8,7 +8,7 @@ import type { InstagramPost } from "@/content/home";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import LinkChip from "@/components/admin/editable/LinkChipPopover";
@@ -53,8 +53,7 @@ export default function InstagramFeed({
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
 
   const posts = !editMode && livePosts && livePosts.length > 0 ? livePosts : ig.posts;
 

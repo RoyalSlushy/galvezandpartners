@@ -7,7 +7,7 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
@@ -40,8 +40,7 @@ export default function ServicesGrid({
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   const deckRef = useRef<HTMLDivElement>(null);
 
   const stacked = !editMode && !reduced;

@@ -296,8 +296,33 @@ const ES: Record<string, string> = {
 
 const TABLES: Record<Locale, Record<string, string>> = { en: {}, es: ES };
 
+/**
+ * Translations kept in the CMS rather than in this file, keyed the same way: by
+ * English source string. Copy written in the editor can't have an entry here —
+ * nobody knew the wording when this file was written — so the editor keeps its
+ * own table alongside it, and that one is consulted first. It also lets a client
+ * correct any translation below without touching code.
+ */
+export type TranslationTable = Partial<Record<Locale, Record<string, string>>>;
+
+export const DEFAULT_TRANSLATIONS: TranslationTable = { es: {} };
+
 /** Translate an English source string into `locale`, falling back to the source. */
-export function translate(locale: Locale, source: string): string {
+export function translate(
+  locale: Locale,
+  source: string,
+  overrides?: TranslationTable,
+): string {
   if (locale === "en") return source;
-  return TABLES[locale]?.[source] ?? source;
+  return overrides?.[locale]?.[source] || TABLES[locale]?.[source] || source;
+}
+
+/** Whether anything — the editor's table or this file's — translates `source`. */
+export function hasTranslation(
+  locale: Locale,
+  source: string,
+  overrides?: TranslationTable,
+): boolean {
+  if (locale === "en") return true;
+  return Boolean(overrides?.[locale]?.[source] || TABLES[locale]?.[source]);
 }

@@ -8,7 +8,7 @@ import type { CaseStudy } from "@/content/caseStudies";
 import { wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls from "@/components/admin/editable/ListControls";
@@ -28,8 +28,7 @@ export default function CaseStudyBody({
   const editMode = useEditMode();
   const admin = useAdmin();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   const draftStudies = useCmsValue<CaseStudy[] | null>("case_studies.studies", null);
 
   // While editing, follow the draft: locate this study by slug (stable across

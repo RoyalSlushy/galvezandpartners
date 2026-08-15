@@ -7,7 +7,7 @@ import { GlyphMark } from "@/components/ui/Glyph";
 import SocialIcons from "@/components/ui/SocialIcons";
 import type { Member } from "@/content/team";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -21,8 +21,7 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
   const members = useCmsValue("team.members", serverMembers);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
 
   // Which member's profile card is open (null = none). Lives here so a single
   // modal instance serves the whole grid; `members` is draft-aware, so edits

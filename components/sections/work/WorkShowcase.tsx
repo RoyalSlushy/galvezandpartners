@@ -13,7 +13,7 @@ import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -67,9 +67,8 @@ export default function WorkShowcase({
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode
-  // (matches WorkGrid). Case-study titles are brand names and stay untranslated.
-  const tv = (s: string) => (editMode ? s : t(s));
+  // Case-study titles are brand names and stay untranslated.
+  const tv = useEditableT();
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);

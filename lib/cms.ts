@@ -44,6 +44,7 @@ import {
 import { CASE_STUDIES, type CaseStudy } from "@/content/caseStudies";
 import { PARTNERS, type PartnersContent } from "@/content/partners";
 import { CONTACT_PAGE, type ContactPageContent } from "@/content/contact";
+import { DEFAULT_TRANSLATIONS, type TranslationTable } from "@/content/i18n";
 
 export type SiteContent = {
   nav: NavItem[];
@@ -55,6 +56,10 @@ export type SiteContent = {
   theme: string;
   glyphs: Glyph[];
   headerImage: string;
+  /** Translations for copy written in the editor, which content/i18n.ts can't
+   * know about. Kept with the rest of the site-wide settings rather than in a
+   * section of its own, since it belongs to no one page. */
+  translations: TranslationTable;
 };
 
 export type HomeContent = {
@@ -111,6 +116,7 @@ export const DEFAULT_SITE: SiteContent = {
   theme: THEME,
   glyphs: GLYPHS.map((g) => ({ ...g })),
   headerImage: HEADER_IMAGE,
+  translations: structuredClone(DEFAULT_TRANSLATIONS),
 };
 
 export const DEFAULT_HOME: HomeContent = {

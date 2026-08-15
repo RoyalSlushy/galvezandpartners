@@ -900,6 +900,20 @@ html[data-gp-case-snap] {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* The two pictures are taken a moment apart, so anything still moving is in a
+   different place in each and ghosts against itself as they cross-fade — the
+   drifting letterforms behind the mobile menu especially, being a repeating
+   pattern. Everything holds still from before the first picture until after the
+   last, then carries on from where it was (paused, not reset). Scoped to the
+   body so the transition's own animations, which hang off the document root,
+   are left to run. */
+html[data-gp-swapping] body,
+html[data-gp-swapping] body *,
+html[data-gp-swapping] body *::before,
+html[data-gp-swapping] body *::after {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-in {
     transition: none !important;

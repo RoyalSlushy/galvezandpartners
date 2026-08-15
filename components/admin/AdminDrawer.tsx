@@ -5,10 +5,12 @@ import { useAdmin } from "./AdminProvider";
 import SiteMetaPopover from "./SiteMetaPopover";
 import ThemePopover from "./ThemePopover";
 import GlyphsPopover from "./GlyphsPopover";
+import TranslationsPopover from "./TranslationsPopover";
 import {
   ChevronDownIcon,
   EyeIcon,
   GlyphsIcon,
+  LanguagesIcon,
   PaletteIcon,
   PencilIcon,
   PowerIcon,
@@ -29,6 +31,7 @@ export default function AdminDrawer() {
   const [metaOpen, setMetaOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [glyphsOpen, setGlyphsOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // The footer gear (or anything else) can ask the drawer to open itself.
@@ -50,6 +53,7 @@ export default function AdminDrawer() {
         setMetaOpen(false);
         setThemeOpen(false);
         setGlyphsOpen(false);
+        setLangOpen(false);
         setOpen(false);
       }
     };
@@ -81,6 +85,7 @@ export default function AdminDrawer() {
       {metaOpen && <SiteMetaPopover onClose={() => setMetaOpen(false)} />}
       {themeOpen && <ThemePopover onClose={() => setThemeOpen(false)} />}
       {glyphsOpen && <GlyphsPopover onClose={() => setGlyphsOpen(false)} />}
+      {langOpen && <TranslationsPopover onClose={() => setLangOpen(false)} />}
       <div className="flex items-center gap-1 border border-white/10 bg-navy-soft p-1.5 shadow-xl">
         <DrawerButton
           label={admin.editMode ? "Preview site (edit mode off)" : "Edit site content"}
@@ -102,6 +107,7 @@ export default function AdminDrawer() {
           onClick={() => {
             setThemeOpen(false);
             setGlyphsOpen(false);
+            setLangOpen(false);
             setMetaOpen((v) => !v);
           }}
         >
@@ -114,6 +120,7 @@ export default function AdminDrawer() {
           onClick={() => {
             setMetaOpen(false);
             setGlyphsOpen(false);
+            setLangOpen(false);
             setThemeOpen((v) => !v);
           }}
         >
@@ -126,10 +133,24 @@ export default function AdminDrawer() {
           onClick={() => {
             setMetaOpen(false);
             setThemeOpen(false);
+            setLangOpen(false);
             setGlyphsOpen((v) => !v);
           }}
         >
           <GlyphsIcon className="h-5 w-5" />
+        </DrawerButton>
+
+        <DrawerButton
+          label="Español (translations)"
+          active={langOpen}
+          onClick={() => {
+            setMetaOpen(false);
+            setThemeOpen(false);
+            setGlyphsOpen(false);
+            setLangOpen((v) => !v);
+          }}
+        >
+          <LanguagesIcon className="h-5 w-5" />
         </DrawerButton>
 
         <span className="mx-0.5 h-6 w-px bg-white/10" aria-hidden />

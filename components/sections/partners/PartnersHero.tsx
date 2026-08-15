@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { PartnersContent } from "@/lib/cms";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 
 /** "Our partners" band (also used by /o). */
@@ -13,8 +13,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
   const partners = useCmsValue("partners", serverPartners);
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   return (
     <section className="flex min-h-[70vh] w-full items-center bg-gradient-to-b from-navy to-blue-muted/40 py-24">
       <Container>
