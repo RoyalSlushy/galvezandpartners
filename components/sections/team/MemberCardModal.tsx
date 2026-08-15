@@ -12,7 +12,7 @@ import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
 import PromptPicker from "./PromptPicker";
 import SideStickers from "./SideStickers";
-import { lastNameInitial, memberPhotoSrc, piece, type SweepDir } from "./memberUtils";
+import { lastNameInitial, memberPhotoSrc, piece, shortName, type SweepDir } from "./memberUtils";
 import { resolveImage } from "@/lib/adminClient";
 
 /** Shown in edit mode for a fact whose answer hasn't been filled in yet
@@ -37,10 +37,13 @@ const SWIPE_DOMINANCE = 1.5;
  * One end of the bottom navigation: a chevron plus the name of the person it
  * leads to, anchored to its own side of the viewport.
  *
+ * The name shows as a first name and a last initial — enough to know who is
+ * next without a long one running the button across half the screen.
+ *
  * `compact` drops it to the chevron alone. The name is worth its space while
  * there is space; once a phone's profile is opened out there isn't, and the
  * button steps back to the smallest thing that still says which way it goes.
- * The name stays in the button's label either way, so nothing is lost to a
+ * The full name stays in the button's label either way, so nothing is lost to a
  * screen reader.
  */
 function NavButton({
@@ -86,7 +89,9 @@ function NavButton({
           <span className="block font-din text-[10px] uppercase tracking-[0.15em] text-gold">
             {label}
           </span>
-          <span className="block truncate font-heading text-sm tracking-tight">{name}</span>
+          <span className="block truncate font-heading text-sm tracking-tight">
+            {shortName(name)}
+          </span>
         </span>
       )}
     </button>
@@ -492,7 +497,7 @@ export default function MemberCardModal({
         {/* Extra bottom room so a card never sits under the nav bar. */}
         <div
           className={`flex justify-center p-4 pb-24 sm:p-8 sm:pb-28 ${
-            phone ? "h-full items-end" : "min-h-full items-center"
+            phone ? "h-full items-stretch" : "min-h-full items-center"
           }`}
         >
           {/* Bounded by the site's own body width (--site-max, which widens on
@@ -501,7 +506,7 @@ export default function MemberCardModal({
               polaroid, which takes whichever of width or height binds first. */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md sm:max-w-site"
+            className={`relative w-full max-w-md sm:max-w-site ${phone ? "h-full" : ""}`}
           >
             {/* Keyed by member: navigating remounts the pieces, so their
                 entrance keyframes run again for the incoming person. */}
@@ -510,9 +515,17 @@ export default function MemberCardModal({
               ref={groupRef}
               // Centred, because the details card stops widening before the
               // body does — the slack is split either side rather than left.
-              // Stacked on a phone with no gap: there the details card is pulled
-              // up over the foot of the polaroid instead (see below).
-              className="relative flex flex-col items-center sm:flex-row sm:items-stretch sm:justify-center sm:gap-10 xl:gap-14"
+              //
+              // On a phone the two are pinned to opposite ends of the screen
+              // rather than stacked: the picture hangs from the top, the details
+              // card stands on the bottom, and the card rides up over the
+              // picture's foot as it opens out. That way the top of the
+              // photograph is never the thing that goes — on a tall screen the
+              // whole polaroid shows, and on a short one it is covered from the
+              // bottom, which is the end that can spare it.
+              className={`relative flex flex-col items-center sm:flex-row sm:items-stretch sm:justify-center sm:gap-10 xl:gap-14 ${
+                phone ? "h-full" : ""
+              }`}
             >
               {/* Polaroid photo card — the picture stands on its own, with the
                   tape strip, emoji sticker and glyph initial, plus the classic
@@ -521,12 +534,12 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("-2.5deg", "-14deg", 90, { left: 70, right: 0 }, exiting, sweepDir)}
-                // On a phone it takes nearly the full width — the two cards are
-                // stacked there, so the picture has the whole column to itself
-                // and the details card covers its foot. From sm it grows with
-                // the viewport but takes whichever of width or height binds
-                // first: its photo is 5:6, so sizing on width alone would push
-                // it past the bottom of a wide but short screen.
+                // On a phone it takes nearly the full width — the picture has
+                // the whole column to itself and the details card covers its
+                // foot. From sm it grows with the viewport but takes whichever
+                // of width or height binds first: its photo is 5:6, so sizing on
+                // width alone would push it past the bottom of a wide but short
+                // screen.
                 className={`relative w-[min(20rem,82vw)] shrink-0 self-center bg-white pb-14 shadow-2xl sm:w-80 sm:pb-14 xl:w-[max(20rem,min(26vw,46vh))] ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
@@ -570,13 +583,15 @@ export default function MemberCardModal({
                 // Capped so the card stops growing before its lines get too
                 // long to read, however wide the body gets.
                 //
-                // On a phone it is pulled up over the foot of the polaroid, so
-                // the picture runs behind it and is cut off there rather than
-                // sitting in its own box — it comes later in the group, and both
-                // are positioned, so it covers rather than is covered.
-                className={`relative -mt-14 w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:mt-0 sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
-                  exiting ? "gp-sweep" : "gp-emerge"
-                }`}
+                // On a phone it stands on the bottom of the screen and grows
+                // upward over the foot of the polaroid, so the picture runs
+                // behind it and is cut off there rather than sitting in its own
+                // box. Taken out of the flow to do it: in the flow the two would
+                // push each other around instead of overlapping, and the
+                // photograph would be the one to give way.
+                className={`w-full min-w-0 flex-1 border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
+                  phone ? "absolute inset-x-0 bottom-0" : "relative -mt-14 self-center sm:mt-0"
+                } ${exiting ? "gp-sweep" : "gp-emerge"}`}
               >
                 {/* Name and role sit at the left, their social links pushed
                     out to the right edge of the same block. */}

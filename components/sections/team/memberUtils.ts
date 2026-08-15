@@ -7,12 +7,31 @@ const NAME_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?$/i;
 /** First letter of a member's last name, upper-cased. Skips a trailing suffix
  * (e.g. "Cesar Salas Jr" -> "S", "Hector Galvez" -> "G"). */
 export function lastNameInitial(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  while (parts.length > 1 && NAME_SUFFIX.test(parts[parts.length - 1])) {
-    parts.pop();
+  return lastName(name.trim().split(/\s+/).filter(Boolean)).charAt(0).toUpperCase();
+}
+
+/** The last of `parts` that isn't a suffix. */
+function lastName(parts: string[]): string {
+  const kept = parts.slice();
+  while (kept.length > 1 && NAME_SUFFIX.test(kept[kept.length - 1])) {
+    kept.pop();
   }
-  const last = parts[parts.length - 1] ?? "";
-  return last.charAt(0).toUpperCase();
+  return kept[kept.length - 1] ?? "";
+}
+
+/** A member's name cut down to a first name and a last initial ("Antonio
+ * Casian" -> "Antonio C."), for places where the full name would crowd out what
+ * is around it. Skips a trailing suffix the same way lastNameInitial does, and
+ * hands back a one-word name untouched. */
+export function shortName(name: string): string {
+  const trimmed = name.trim();
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  // One word is its own last name; leave it whole rather than reduce it to an
+  // initial. Same when everything after the first word is a suffix.
+  if (parts.length < 2) return trimmed;
+  const last = lastName(parts);
+  if (!last || last === parts[0]) return trimmed;
+  return `${parts[0]} ${last.charAt(0).toUpperCase()}.`;
 }
 
 /** Display URL for a member photo, at the size the tiles and cards want.
