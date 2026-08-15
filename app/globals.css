@@ -888,6 +888,18 @@ html[data-gp-case-snap] {
 }
 
 /* Respect reduced-motion globally for our scroll-reveal utility */
+/* Changing language (see LocaleProvider). The browser cross-fades a picture of
+   the page before the swap with one after it; the two are identical everywhere
+   except the copy that changed, so only that copy is seen to move. Slower than
+   the 250ms default — a language change is a deliberate act and reads better
+   unhurried — and the page is held still for that long, which is why it isn't
+   slower still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-in {
     transition: none !important;

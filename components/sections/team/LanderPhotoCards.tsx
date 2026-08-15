@@ -215,8 +215,13 @@ export default function LanderPhotoCards({ images }: { images: string[] }) {
       ?.querySelector<HTMLElement>("[data-gp-lander-bounds]")
       ?.getBoundingClientRect();
     const narrow = box.width <= NARROW_MAX;
+    // A phone gets a far larger share of its width than a desktop does of its
+    // own: there are only three photographs there and a whole column of empty
+    // masthead above the copy, so a small share leaves them looking like
+    // stamps. The cap keeps two side by side, which is what lets all three find
+    // a spot rather than queueing up in a single column.
     const cardW = narrow
-      ? Math.max(92, Math.min(150, box.width * 0.3))
+      ? Math.max(110, Math.min(168, box.width * 0.38))
       : Math.max(140, Math.min(240, box.width * 0.13));
     return {
       boxW: box.width,
