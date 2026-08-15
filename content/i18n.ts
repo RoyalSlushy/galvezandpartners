@@ -129,8 +129,6 @@ const ES: Record<string, string> = {
   Close: "Cerrar",
   Previous: "Anterior",
   Next: "Siguiente",
-  "Show details": "Ver detalles",
-  "Hide details": "Ocultar detalles",
 
   // --- Team profile cards: the FACT_PROMPTS question library (content/team.ts).
   //     Every prompt admins can pick needs an entry here. ---

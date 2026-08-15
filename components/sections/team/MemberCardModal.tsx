@@ -6,7 +6,6 @@ import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
-import { useMinWidth } from "@/components/ui/useMinWidth";
 import EditableText from "@/components/admin/editable/EditableText";
 import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
@@ -27,9 +26,9 @@ const SWEEP_MS = 540;
  * its top edge — 2 puts the source a full screen below the bottom edge. */
 const ORIGIN_VH = 2;
 
-/** How far a touch must travel to count as a swipe, and how much more it has to
- * travel along one axis than the other before that axis wins — enough that a
- * wandering thumb never triggers the wrong thing. */
+/** How far a touch must travel sideways to count as a swipe between people, and
+ * how much more sideways than up-and-down it has to be — enough that scrolling a
+ * card taller than the screen is never read as one. */
 const SWIPE_MIN_PX = 56;
 const SWIPE_DOMINANCE = 1.5;
 
@@ -119,19 +118,6 @@ export default function MemberCardModal({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  // On a phone the profile is a drawer rather than a page: the picture stands
-  // above a sheet showing just the name and the first line of the blurb, and the
-  // rest is pulled up when it is wanted. 751px is `sm`, the same line the lander
-  // and the grid change over at.
-  const drawer = !useMinWidth(751);
-  // Open from the start in an edit session: half the fields an admin has come to
-  // fill in live inside the drawer, and they shouldn't have to know to pull it
-  // open first.
-  const [sheetOpen, setSheetOpen] = useState(editMode);
-  const sheetBodyRef = useRef<HTMLDivElement>(null);
-  // Each person arrives with their drawer as it starts, however the last one was
-  // left.
-  useEffect(() => setSheetOpen(editMode), [index, editMode]);
   // Which fact's question picker is open, and where to anchor it.
   const [picking, setPicking] = useState<{ i: number; top: number; left: number } | null>(null);
 
@@ -265,86 +251,43 @@ export default function MemberCardModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose, goPrev, goNext]);
 
-  // Touch gestures. Sideways always moves between people — left brings the next
-  // person in, following the direction the current pair is swept off, and right
-  // goes back. On a phone the up-and-down axis works the drawer: up pulls the
-  // rest of the profile into view, down puts it away, and down again on a shut
-  // drawer closes the whole thing. Only clearly one-axis gestures count, so a
-  // wandering thumb doesn't fire something unintended.
-  //
-  // A swipe usually ends in a click on whatever was under the finger, and much
-  // of what is under it here closes the card — so a recognised gesture is
-  // remembered and that click swallowed (see below).
-  const swipedRef = useRef(false);
+  // Swipe between people on a touch screen, where the nav buttons sit at the far
+  // corners and there is no keyboard: swiping left brings the next person in
+  // (following the direction the current pair is swept off), swiping right goes
+  // back. Only clearly sideways gestures count, so scrolling a tall card is
+  // never mistaken for a swipe.
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-    let start: { x: number; y: number; scrolled: boolean } | null = null;
+    let start: { x: number; y: number } | null = null;
 
     const onDown = (e: PointerEvent) => {
-      swipedRef.current = false;
-      if (e.pointerType !== "touch") {
-        start = null;
-        return;
-      }
-      // A drag that starts on the profile's own text, already scrolled down, is
-      // that text being read — not the drawer being pulled shut.
-      const body = sheetBodyRef.current;
-      const inBody = !!body?.contains(e.target as Node);
-      start = {
-        x: e.clientX,
-        y: e.clientY,
-        scrolled: inBody && (body?.scrollTop ?? 0) > 0,
-      };
+      start = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY } : null;
     };
-
     const onUp = (e: PointerEvent) => {
       const from = start;
       start = null;
       if (!from) return;
       const dx = e.clientX - from.x;
       const dy = e.clientY - from.y;
-      const ax = Math.abs(dx);
-      const ay = Math.abs(dy);
-      const act = (run: () => void) => {
-        swipedRef.current = true;
-        run();
-      };
-
-      if (ax >= SWIPE_MIN_PX && ax >= ay * SWIPE_DOMINANCE) {
-        act(dx < 0 ? goNext : goPrev);
-        return;
-      }
-      if (!drawer || from.scrolled) return;
-      if (ay < SWIPE_MIN_PX || ay < ax * SWIPE_DOMINANCE) return;
-      if (dy < 0) act(() => setSheetOpen(true));
-      else act(() => (sheetOpen ? setSheetOpen(false) : requestClose()));
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_DOMINANCE) return;
+      if (dx < 0) goNext();
+      else goPrev();
     };
 
     const onCancel = () => {
       start = null;
     };
 
-    // Capture, so the click is stopped before it reaches the layers that close
-    // the card on a press.
-    const onClick = (e: MouseEvent) => {
-      if (!swipedRef.current) return;
-      swipedRef.current = false;
-      e.stopPropagation();
-      e.preventDefault();
-    };
-
     card.addEventListener("pointerdown", onDown);
     card.addEventListener("pointerup", onUp);
     card.addEventListener("pointercancel", onCancel);
-    card.addEventListener("click", onClick, true);
     return () => {
       card.removeEventListener("pointerdown", onDown);
       card.removeEventListener("pointerup", onUp);
       card.removeEventListener("pointercancel", onCancel);
-      card.removeEventListener("click", onClick, true);
     };
-  }, [goNext, goPrev, drawer, sheetOpen, requestClose]);
+  }, [goNext, goPrev]);
 
   // Lock body scroll while open — same fixed-body technique as the mobile
   // drawer (keeps iOS Safari from scrolling behind).
@@ -445,26 +388,13 @@ export default function MemberCardModal({
 
       <div
         onClick={requestClose}
-        // As a drawer nothing scrolls out here — the sheet owns what moves, and
-        // the picture is meant to slide up behind the top edge as it opens.
-        className={`absolute inset-0 ${
-          drawer ? "overflow-hidden" : landed ? "overflow-y-auto" : "overflow-hidden"
-        }`}
+        className={`absolute inset-0 ${landed ? "overflow-y-auto" : "overflow-hidden"}`}
       >
         {/* min-h-full + centering keeps a card pair taller than the screen
             fully reachable once scrolling is on, instead of overflowing off
-            the top where it can't be scrolled to. As a drawer the stack sits on
-            the bottom edge instead and grows upward, the way a sheet does. */}
+            the top where it can't be scrolled to. */}
         {/* Extra bottom room so a card never sits under the nav bar. */}
-        <div
-          className={`flex justify-center p-4 pb-24 sm:p-8 sm:pb-28 ${
-            // As a drawer the stack is exactly one screen tall and sits on the
-            // bottom edge, so an open sheet grows upward and pushes the
-            // photograph off the *top* — not past the bottom, where it would
-            // take the card's own foot out of sight behind the nav bar.
-            drawer ? "h-full items-end" : "min-h-full items-center"
-          }`}
-        >
+        <div className="flex min-h-full items-center justify-center p-4 pb-24 sm:p-8 sm:pb-28">
           {/* Bounded by the site's own body width (--site-max, which widens on
               ultrawide displays) rather than the raw viewport, so the card
               lines up with the page's content column. Height is governed by the
@@ -545,30 +475,11 @@ export default function MemberCardModal({
                 // sitting in its own box — it comes later in the group, and both
                 // are positioned, so it covers rather than is covered.
                 className={`relative -mt-14 w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:mt-0 sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
-                  drawer ? "pt-9" : ""
-                } ${exiting ? "gp-sweep" : "gp-emerge"}`}
+                  exiting ? "gp-sweep" : "gp-emerge"
+                }`}
               >
-                {/* The drawer's grab handle. A swipe is the gesture it is built
-                    around, but a handle says so, and gives the same reach to a
-                    tap and to the keyboard. */}
-                {drawer && (
-                  <button
-                    type="button"
-                    onClick={() => setSheetOpen((v) => !v)}
-                    aria-expanded={sheetOpen}
-                    aria-label={sheetOpen ? t("Hide details") : t("Show details")}
-                    className="group absolute inset-x-0 top-0 z-20 flex h-8 items-center justify-center"
-                  >
-                    <span
-                      aria-hidden
-                      className="h-1 w-10 rounded-full bg-navy/25 transition group-hover:bg-navy/45"
-                    />
-                  </button>
-                )}
-
                 {/* Name and role sit at the left, their social links pushed
-                    out to the right edge of the same block. This block is the
-                    part of the sheet that always shows. */}
+                    out to the right edge of the same block. */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <h2
@@ -602,145 +513,93 @@ export default function MemberCardModal({
                   )}
                 </div>
 
-                {/* A hint under the name while the drawer is shut. Not a control
-                    of its own — the handle above is the labelled one, and a
-                    swipe does the same — just a line saying which way to pull.
-                    Hidden the moment the drawer opens. */}
-                {drawer && !sheetOpen && (
-                  <p
-                    aria-hidden
-                    className="mt-4 flex items-center justify-center gap-1.5 font-din text-[10px] uppercase tracking-[0.18em] text-navy/35"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-3 w-3"
-                    >
-                      <path d="M18 15l-6-6-6 6" />
-                    </svg>
-                    {t("Show details")}
+                {/* The blurb: a few sentences on the person and their role.
+                    Held to a readable measure rather than the card's full
+                    width, and multiline so paragraph breaks can be typed. */}
+                {(editMode || member.bio) && (
+                  <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                    <EditableText
+                      path={`${base}.bio`}
+                      value={
+                        member.bio
+                          ? tv(member.bio)
+                          : "Add a few sentences about this person and their role."
+                      }
+                      as="span"
+                      label="blurb"
+                      multiline
+                      className={member.bio ? undefined : "italic text-navy/40"}
+                    />
                   </p>
                 )}
 
-                {/* Everything below the name is what the drawer hides and
-                    reveals — the blurb, the questions, the motto. Open, it takes
-                    as much of the screen as it can without burying the
-                    photograph, and scrolls within itself once it runs out. On a
-                    wider screen the whole thing simply shows. */}
-                <div
-                  ref={sheetBodyRef}
-                  className={
-                    drawer
-                      ? `transition-[max-height] duration-300 ease-out motion-reduce:transition-none ${
-                          sheetOpen
-                            ? "max-h-[46dvh] overflow-y-auto overscroll-contain"
-                            : "max-h-0 overflow-hidden"
-                        }`
-                      : undefined
-                  }
-                >
-                  {/* The blurb: a few sentences on the person and their role.
-                      Held to a readable measure rather than the card's full
-                      width, and multiline so paragraph breaks can be typed. */}
-                  {(editMode || member.bio) && (
-                    <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
-                      <EditableText
-                        path={`${base}.bio`}
-                        value={
-                          member.bio
-                            ? tv(member.bio)
-                            : "Add a few sentences about this person and their role."
-                        }
-                        as="span"
-                        label="blurb"
-                        multiline
-                        className={member.bio ? undefined : "italic text-navy/40"}
-                      />
-                    </p>
-                  )}
+                {(shown.length > 0 || editMode) && (
+                  <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
+                    {shown.map((fact, fi) => (
+                      <div key={fi}>
+                        {/* 1.2x the base 11px. */}
+                        <dt className="font-display text-[13.2px] uppercase tracking-[0.15em] text-gold">
+                          {editMode ? (
+                            // The question comes from the shared library, so it's
+                            // picked rather than typed.
+                            <button
+                              type="button"
+                              title="Choose a question"
+                              onClick={(e) => {
+                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setPicking({
+                                  i: fi,
+                                  top: Math.min(r.bottom + 6, window.innerHeight - 340),
+                                  left: Math.min(r.left, window.innerWidth - 300),
+                                });
+                              }}
+                              className="border-b border-dashed border-gold/60 uppercase transition hover:text-gold-dark"
+                            >
+                              {fact.prompt || "Choose a question"} ▾
+                            </button>
+                          ) : (
+                            tv(fact.prompt)
+                          )}
+                        </dt>
+                        <dd className="mt-1 text-base text-navy sm:text-lg">
+                          <EditableText
+                            path={`${factsPath}.${fi}.answer`}
+                            value={fact.answer ? tv(fact.answer) : ANSWER_PLACEHOLDER}
+                            as="span"
+                            label="answer"
+                            className={fact.answer ? undefined : "italic text-navy/40"}
+                          />
+                        </dd>
+                      </div>
+                    ))}
+                    {editMode && (
+                      <div className="self-end">
+                        <AddChip listPath={factsPath} label="line" className="!px-3 !py-1.5 !text-xs" />
+                      </div>
+                    )}
+                  </dl>
+                )}
 
-                  {(shown.length > 0 || editMode) && (
-                    <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
-                      {shown.map((fact, fi) => (
-                        <div key={fi}>
-                          {/* 1.2x the base 11px. */}
-                          <dt className="font-display text-[13.2px] uppercase tracking-[0.15em] text-gold">
-                            {editMode ? (
-                              // The question comes from the shared library, so it's
-                              // picked rather than typed.
-                              <button
-                                type="button"
-                                title="Choose a question"
-                                onClick={(e) => {
-                                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                  setPicking({
-                                    i: fi,
-                                    top: Math.min(r.bottom + 6, window.innerHeight - 340),
-                                    left: Math.min(r.left, window.innerWidth - 300),
-                                  });
-                                }}
-                                className="border-b border-dashed border-gold/60 uppercase transition hover:text-gold-dark"
-                              >
-                                {fact.prompt || "Choose a question"} ▾
-                              </button>
-                            ) : (
-                              tv(fact.prompt)
-                            )}
-                          </dt>
-                          <dd className="mt-1 text-base text-navy sm:text-lg">
-                            <EditableText
-                              path={`${factsPath}.${fi}.answer`}
-                              value={fact.answer ? tv(fact.answer) : ANSWER_PLACEHOLDER}
-                              as="span"
-                              label="answer"
-                              className={fact.answer ? undefined : "italic text-navy/40"}
-                            />
-                          </dd>
-                        </div>
-                      ))}
-                      {editMode && (
-                        <div className="self-end">
-                          <AddChip listPath={factsPath} label="line" className="!px-3 !py-1.5 !text-xs" />
-                        </div>
-                      )}
-                    </dl>
-                  )}
-
-                  {(editMode || member.motto) && (
-                    <p className="mt-6 border-t border-navy/10 pt-4 text-center font-display text-lg italic text-navy/80 sm:text-xl">
-                      “
-                      <EditableText
-                        path={`${base}.motto`}
-                        value={member.motto ? tv(member.motto) : "Add a motto…"}
-                        as="span"
-                        className={member.motto ? undefined : "text-navy/40"}
-                      />
-                      ”
-                    </p>
-                  )}
-                  {editMode && (
-                    <div className="relative z-40 mt-5 flex justify-center border-t border-navy/10 pt-4">
-                      <AddChip
-                        listPath={stickersPath}
-                        label="sticker"
-                        className="!px-3 !py-1.5 !text-xs"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Softens the open drawer's bottom edge, where a long profile
-                    runs on past it — a cut-off line under a fade reads as "keep
-                    going" in a way a hard edge doesn't. */}
-                {drawer && sheetOpen && (
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 bottom-6 h-10 bg-gradient-to-t from-white via-white/85 to-transparent"
-                  />
+                {(editMode || member.motto) && (
+                  <p className="mt-6 border-t border-navy/10 pt-4 text-center font-display text-lg italic text-navy/80 sm:text-xl">
+                    “
+                    <EditableText
+                      path={`${base}.motto`}
+                      value={member.motto ? tv(member.motto) : "Add a motto…"}
+                      as="span"
+                      className={member.motto ? undefined : "text-navy/40"}
+                    />
+                    ”
+                  </p>
+                )}
+                {editMode && (
+                  <div className="relative z-40 mt-5 flex justify-center border-t border-navy/10 pt-4">
+                    <AddChip
+                      listPath={stickersPath}
+                      label="sticker"
+                      className="!px-3 !py-1.5 !text-xs"
+                    />
+                  </div>
                 )}
               </div>
             </div>
