@@ -150,6 +150,23 @@ export default function MemberCardModal({
   const extraRef = useRef<HTMLDivElement>(null);
   useEffect(() => setOpened(editMode), [index, editMode]);
 
+  // How tall the photograph is, so the folded card can come up to meet it and no
+  // further — the gap between the two is space the profile may as well use.
+  // Measured rather than assumed: the polaroid's height follows its width, which
+  // follows the viewport. offsetHeight, since the entrance animation puts a
+  // transform on the card that a bounding rect would fold in.
+  const photoRef = useRef<HTMLDivElement>(null);
+  const [photoH, setPhotoH] = useState(0);
+  useLayoutEffect(() => {
+    const el = photoRef.current;
+    if (!phone || !el) return;
+    const measure = () => setPhotoH(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phone, index]);
+
   // Which fact's question picker is open, and where to anchor it.
   const [picking, setPicking] = useState<{ i: number; top: number; left: number } | null>(null);
 
@@ -533,6 +550,7 @@ export default function MemberCardModal({
                   card first, the way an arm crossing the table reaches it. */}
               <div
                 data-gp-piece
+                ref={photoRef}
                 style={piece("-2.5deg", "-14deg", 90, { left: 70, right: 0 }, exiting, sweepDir)}
                 // On a phone it takes nearly the full width — the picture has
                 // the whole column to itself and the details card covers its
@@ -579,7 +597,17 @@ export default function MemberCardModal({
                   role, the chosen questions and the motto. */}
               <div
                 data-gp-piece
-                style={piece("1.2deg", "12deg", 0, { left: 0, right: 70 }, exiting, sweepDir)}
+                style={{
+                  ...piece("1.2deg", "12deg", 0, { left: 0, right: 70 }, exiting, sweepDir),
+                  // Folded, the card rises to the foot of the photograph and
+                  // stops — the gap between them is space the profile may as
+                  // well be using, so as much of it shows as fits and the rest
+                  // fades off the bottom. Opened, it keeps a band of the
+                  // photograph in view and takes the rest.
+                  ...(phone
+                    ? { maxHeight: opened ? "calc(100% - 15rem)" : `calc(100% - ${photoH}px)` }
+                    : null),
+                }}
                 // Capped so the card stops growing before its lines get too
                 // long to read, however wide the body gets.
                 //
@@ -590,12 +618,17 @@ export default function MemberCardModal({
                 // push each other around instead of overlapping, and the
                 // photograph would be the one to give way.
                 className={`w-full min-w-0 flex-1 border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
-                  phone ? "absolute inset-x-0 bottom-0" : "relative -mt-14 self-center sm:mt-0"
+                  phone
+                    ? "absolute inset-x-0 bottom-0 flex flex-col overflow-hidden transition-[max-height] duration-300 ease-out motion-reduce:transition-none"
+                    : "relative -mt-14 self-center sm:mt-0"
                 } ${exiting ? "gp-sweep" : "gp-emerge"}`}
               >
                 {/* Name and role sit at the left, their social links pushed
-                    out to the right edge of the same block. */}
-                <div className="flex items-center justify-between gap-4">
+                    out to the right edge of the same block. `shrink-0` here and
+                    on the blurb so a capped card gives up its small print rather
+                    than squeezing the two things it is really for (inert off a
+                    phone, where the card isn't a flex column). */}
+                <div className="flex shrink-0 items-center justify-between gap-4">
                   <div className="min-w-0">
                     <h2
                       id={titleId}
@@ -635,7 +668,7 @@ export default function MemberCardModal({
                     for, and a card that opens on a name and a job title says
                     nothing about the person. */}
                 {(editMode || member.bio) && (
-                  <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                  <p className="mt-5 max-w-prose shrink-0 font-body text-base leading-relaxed text-navy/75 sm:text-lg">
                     <EditableText
                       path={`${base}.bio`}
                       value={
@@ -652,26 +685,22 @@ export default function MemberCardModal({
                 )}
 
                 {/* The short answers and the motto — the small print of the
-                    profile — are what a swipe up brings in. Folded away they are
-                    clipped to nothing, so the card reads as finished rather than
-                    cut off: no torn edge, no handle, no caption inviting the
-                    gesture. Opened out this takes as much of the screen as it can
-                    without burying the photograph, and scrolls within itself past
-                    that (hence pan-y here, against the dialog's touch-action:
-                    none).
-                    Focus moving into it opens it: without a visible control,
-                    that is what keeps the contents reachable from a keyboard.
-                    On a wider screen the whole thing simply shows. */}
+                    profile. This takes whatever the card has left after the name
+                    and the blurb: as much as the gap above allows while folded,
+                    and the greater part of the screen once opened, scrolling
+                    within itself past that (hence pan-y here, against the
+                    dialog's touch-action: none).
+                    Focus moving into it opens the card: without a visible
+                    control, that is what keeps the contents reachable from a
+                    keyboard. On a wider screen the whole thing simply shows. */}
                 <div
                   ref={extraRef}
                   onFocusCapture={phone ? () => setOpened(true) : undefined}
                   style={phone ? { touchAction: "pan-y" } : undefined}
                   className={
                     phone
-                      ? `transition-[max-height] duration-300 ease-out motion-reduce:transition-none ${
-                          opened
-                            ? "max-h-[38dvh] overflow-y-auto overscroll-contain"
-                            : "max-h-0 overflow-hidden"
+                      ? `min-h-0 flex-1 ${
+                          opened ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
                         }`
                       : undefined
                   }
@@ -746,10 +775,12 @@ export default function MemberCardModal({
                   )}
                 </div>
 
-                {/* Softens the opened-out card's bottom edge, where a long
-                    profile runs on past it. Only there while it is open — folded
-                    away there is nothing under it to fade. */}
-                {phone && opened && (
+                {/* Softens the card's bottom edge, where a profile longer than
+                    the card runs on past it — which is now the usual case in
+                    both states, since the folded card fills the gap rather than
+                    hiding its small print outright. Invisible when nothing is
+                    cut off: white over white. */}
+                {phone && (
                   <div
                     aria-hidden
                     className="pointer-events-none absolute inset-x-0 bottom-6 h-10 bg-gradient-to-t from-white via-white/85 to-transparent"
