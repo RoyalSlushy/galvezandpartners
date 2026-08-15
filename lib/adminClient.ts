@@ -58,6 +58,69 @@ export async function uploadImage(password: string, file: File): Promise<string>
   return res.url as string;
 }
 
+/** Per translate request: small enough that one request is quick and a failure
+ * costs little, big enough that the translator sees a page's copy together and
+ * keeps a consistent voice across it. Bounded by length as well as by count,
+ * since a batch of paragraphs is a very different request from a batch of button
+ * labels. Both sit well inside the edge function's own limits. */
+const TRANSLATE_BATCH = 40;
+const TRANSLATE_BATCH_CHARS = 12_000;
+
+/** Split `sources` into batches, breaking on either bound. A single string over
+ * the length bound still goes out on its own rather than being dropped. */
+function batchSources(sources: string[]): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let chars = 0;
+  for (const source of sources) {
+    if (batch.length > 0 && (batch.length >= TRANSLATE_BATCH || chars + source.length > TRANSLATE_BATCH_CHARS)) {
+      batches.push(batch);
+      batch = [];
+      chars = 0;
+    }
+    batch.push(source);
+    chars += source.length;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
+}
+
+/**
+ * A machine first pass at the translations for `sources`. Returns a map keyed by
+ * the English source, the same shape the translation table itself uses; strings
+ * the translator skipped are simply absent, so nothing is filled in blindly. The
+ * API key lives in the edge function's environment and never comes near the
+ * browser.
+ *
+ * Sent in batches, and a batch that fails doesn't lose the ones that worked —
+ * whatever came back is returned, with the failure reported once at the end.
+ */
+export async function translateSources(
+  password: string,
+  locale: string,
+  sources: string[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ translations: Record<string, string>; missed: number; error?: string }> {
+  const translations: Record<string, string> = {};
+  let error: string | undefined;
+  let done = 0;
+
+  for (const batch of batchSources(sources)) {
+    try {
+      const res = await callAdmin(password, { action: "translate", locale, sources: batch });
+      Object.assign(translations, (res.translations as Record<string, string>) ?? {});
+    } catch (err) {
+      // Keep going: a later batch may well succeed, and the ones already
+      // translated are worth having.
+      error = err instanceof Error ? err.message : "Could not translate";
+    }
+    done += batch.length;
+    onProgress?.(done, sources.length);
+  }
+
+  return { translations, missed: sources.length - Object.keys(translations).length, error };
+}
+
 export async function listUploadedImages(password: string): Promise<string[]> {
   const res = await callAdmin(password, { action: "list_images" });
   return (res.urls as string[]) ?? [];
