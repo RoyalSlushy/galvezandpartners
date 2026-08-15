@@ -53,7 +53,10 @@ export default function TeamGrid({ members: serverMembers }: { members: Member[]
           src={memberPhotoSrc(m.hoverImage)}
           alt=""
           aria-hidden
-          loading="lazy"
+          // Fetched up front rather than lazily: it is revealed on hover, and a
+          // backdrop that only starts loading once the pointer arrives wipes up
+          // into an empty frame.
+          loading="eager"
           className={`pointer-events-none absolute inset-0 z-0 h-full w-full object-cover transition-[clip-path] duration-700 ease-out ${
             // Held open in edit mode, so an admin sees what they have chosen
             // without having to hover every tile in turn.

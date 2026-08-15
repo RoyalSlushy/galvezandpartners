@@ -308,29 +308,38 @@
   50% { opacity: 1; }
 }
 
-/* One photograph of the Our Team lander's cursor trail: laid down where the
-   pointer is, it snaps up to size, holds, then sinks away — so a moving cursor
-   draws a line of pictures behind it that closes up again once it stops. The
-   centring offset is part of every keyframe, since the animation owns the
-   transform outright. Nothing suppresses this under reduced motion because
-   nothing is drawn at all there (see LanderPhotoTrail). */
+/* One photograph of the Our Team lander's cursor trail. It snaps up where the
+   pointer is and then holds — a picture only leaves once newer ones have pushed
+   it out of the held window (see HOLD in LanderPhotoTrail), so a cursor coming
+   to a stop leaves its last few pictures behind rather than an empty masthead.
+   The centring offset is part of every keyframe, since the animations own the
+   transform outright, and leaving picks up exactly where arriving finished.
+   Nothing suppresses this under reduced motion because nothing is drawn at all
+   there. */
 .gp-trail-card {
-  animation: gp-trail 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gp-trail-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-@keyframes gp-trail {
+.gp-trail-card.is-leaving {
+  animation: gp-trail-out 620ms ease-in both;
+}
+@keyframes gp-trail-in {
   0% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.55);
   }
-  12% {
+  55% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.04);
   }
-  26% {
+  100% {
+    opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
-  55% {
+}
+@keyframes gp-trail-out {
+  0% {
     opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
     opacity: 0;
