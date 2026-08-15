@@ -8,6 +8,8 @@ import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import LanderPhotoTrail from "./LanderPhotoTrail";
+import LanderPhotoCards from "./LanderPhotoCards";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
 
@@ -18,9 +20,11 @@ const LANDER_PATH = "team.lander.images";
  * header, so header + lander together own the first screen).
  *
  * The backdrop is a single still of the office, held steady. Over it — and under
- * the copy, always — the team-together photographs follow the cursor, laid down
- * as polaroids one after another as the pointer crosses the lander and sinking
- * away behind it. The backdrop's top edge is masked away from sm+ (see
+ * the copy, always — go the team-together photographs, as polaroids: on a
+ * pointer they follow the cursor, laid down one after another as it crosses the
+ * lander and sinking away behind it; on a phone, where there is no cursor to
+ * follow, they are dealt out into the clear space instead and left to drift and
+ * fade on their own. The backdrop's top edge is masked away from sm+ (see
  * .team-band) so the picture dissolves into the header above it.
  *
  * All three image sets are separate — the office still, the gallery, and the
@@ -51,6 +55,11 @@ export default function TeamHero({
   const t = useT();
   // Admins edit the English source, so translation is suppressed in edit mode.
   const tv = (s: string) => (editMode ? s : t(s));
+  // A trail needs a cursor to follow, and a phone has none — a drag paints one,
+  // but nothing at all is shown to a visitor who only scrolls. Below the
+  // breakpoint the photographs are dealt out and left to drift instead, which
+  // asks nothing of the visitor. 751px is `sm`, where the copy grows too.
+  const hasCursor = useMinWidth(751);
 
   if (editMode) {
     return (
@@ -133,7 +142,22 @@ export default function TeamHero({
         </div>
       )}
 
-      <LanderPhotoTrail images={images ?? []} />
+      {/* Zero-height marker giving the dealt gallery the span of the body
+          column, so a photograph's centre never strays out into the gutter. It
+          rides in the same Container the copy does, so it tracks the --site-max
+          tiers and the responsive gutters without restating them. Declared
+          before the gallery so it is in the DOM when the cards measure. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0">
+        <Container>
+          <div data-gp-lander-bounds className="h-0" />
+        </Container>
+      </div>
+
+      {hasCursor ? (
+        <LanderPhotoTrail images={images ?? []} />
+      ) : (
+        <LanderPhotoCards images={images ?? []} />
+      )}
 
       {/* Veil over the trail and the room alike, weighted to the bottom where
           the copy sits: the photographs pass behind the heading, and this is
@@ -150,7 +174,10 @@ export default function TeamHero({
 
       <div className="relative z-10 flex h-full items-end pb-12 sm:pb-16">
         <Container>
-          <div className="relative">
+          {/* Marked so the dealt gallery treats this block as occupied and never
+              drops a polaroid over the copy. The trail has no such rule — it
+              goes where the cursor goes, and passes behind the copy instead. */}
+          <div data-gp-lander-keepout className="relative">
             {/* Big low-opacity letterform. Anchored to the copy rather than to
                 the section, so it hugs the heading — sitting behind it, its
                 foot on the heading's baseline and its left edge just outside

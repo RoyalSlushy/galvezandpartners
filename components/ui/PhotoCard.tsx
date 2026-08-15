@@ -1,3 +1,5 @@
+import type { AnimationEvent, CSSProperties } from "react";
+
 /** Fall + opacity-phase timings for one card. The two cycles are independent so
  * a card's drift and its surfacing/receding never march in step. */
 export type PhotoCardMotion = {
@@ -30,7 +32,8 @@ export function PhotoFrame({ src, rot }: { src: string; rot: string }) {
 /**
  * One decorative "polaroid", drifting slowly and phasing in and out (see
  * .photocard-fall in globals.css, which also stills it under reduced motion).
- * Used for the scattered cards in the home hero.
+ * Used for the scattered cards in the home hero and, on narrow screens, for the
+ * Our Team lander's gallery.
  */
 export default function PhotoCard({
   src,
@@ -38,6 +41,8 @@ export default function PhotoCard({
   positionClassName = "",
   widthClassName = "",
   motion,
+  style,
+  onAnimationIteration,
 }: {
   src: string;
   /** Resting tilt, e.g. "-8deg". */
@@ -46,9 +51,15 @@ export default function PhotoCard({
   positionClassName?: string;
   widthClassName?: string;
   motion: PhotoCardMotion;
+  /** Placement set at runtime instead of by class, for measured layouts. */
+  style?: CSSProperties;
+  /** Fires at each turn of the fall and phase cycles. Callers that re-dress a
+   * card mid-flight watch for the phase cycle, whose turn is its dimmest point. */
+  onAnimationIteration?: (e: AnimationEvent<HTMLElement>) => void;
 }) {
   return (
     <figure
+      onAnimationIteration={onAnimationIteration}
       className={`photocard-fall absolute ${positionClassName} ${widthClassName}`}
       style={
         {
@@ -56,7 +67,8 @@ export default function PhotoCard({
           "--fall-delay": motion.delay,
           "--phase-dur": motion.phaseDur,
           "--phase-delay": motion.phaseDelay,
-        } as React.CSSProperties
+          ...style,
+        } as CSSProperties
       }
     >
       <PhotoFrame src={src} rot={rot} />

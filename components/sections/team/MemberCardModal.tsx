@@ -26,6 +26,12 @@ const SWEEP_MS = 540;
  * its top edge — 2 puts the source a full screen below the bottom edge. */
 const ORIGIN_VH = 2;
 
+/** How far a touch must travel sideways to count as a swipe between people, and
+ * how much more sideways than up-and-down it has to be — enough that scrolling a
+ * card taller than the screen is never read as one. */
+const SWIPE_MIN_PX = 56;
+const SWIPE_DOMINANCE = 1.5;
+
 /** One end of the bottom navigation: a chevron plus the name of the person it
  * leads to, anchored to its own side of the viewport. */
 function NavButton({
@@ -246,6 +252,44 @@ export default function MemberCardModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose, goPrev, goNext]);
 
+  // Swipe between people on a touch screen, where the nav buttons sit at the far
+  // corners and there is no keyboard: swiping left brings the next person in
+  // (following the direction the current pair is swept off), swiping right goes
+  // back. Only clearly sideways gestures count, so scrolling a tall card is
+  // never mistaken for a swipe.
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    let start: { x: number; y: number } | null = null;
+
+    const onDown = (e: PointerEvent) => {
+      start = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY } : null;
+    };
+    const onUp = (e: PointerEvent) => {
+      const from = start;
+      start = null;
+      if (!from) return;
+      const dx = e.clientX - from.x;
+      const dy = e.clientY - from.y;
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_DOMINANCE) return;
+      if (dx < 0) goNext();
+      else goPrev();
+    };
+
+    const onCancel = () => {
+      start = null;
+    };
+
+    card.addEventListener("pointerdown", onDown);
+    card.addEventListener("pointerup", onUp);
+    card.addEventListener("pointercancel", onCancel);
+    return () => {
+      card.removeEventListener("pointerdown", onDown);
+      card.removeEventListener("pointerup", onUp);
+      card.removeEventListener("pointercancel", onCancel);
+    };
+  }, [goNext, goPrev]);
+
   // Lock body scroll while open — same fixed-body technique as the mobile
   // drawer (keeps iOS Safari from scrolling behind).
   useEffect(() => {
@@ -367,7 +411,9 @@ export default function MemberCardModal({
               ref={groupRef}
               // Centred, because the details card stops widening before the
               // body does — the slack is split either side rather than left.
-              className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:justify-center sm:gap-10 xl:gap-14"
+              // Stacked on a phone with no gap: there the details card is pulled
+              // up over the foot of the polaroid instead (see below).
+              className="relative flex flex-col items-center sm:flex-row sm:items-stretch sm:justify-center sm:gap-10 xl:gap-14"
             >
               {/* Polaroid photo card — the picture stands on its own, with the
                   tape strip, emoji sticker and glyph initial, plus the classic
@@ -376,11 +422,13 @@ export default function MemberCardModal({
               <div
                 data-gp-piece
                 style={piece("-2.5deg", "-14deg", 90, { left: 70, right: 0 }, exiting, sweepDir)}
-                // The polaroid grows with the viewport too, but takes whichever
-                // of width or height binds first: its photo is 5:6, so sizing
-                // on width alone would push it past the bottom of a wide but
-                // short screen.
-                className={`relative w-52 shrink-0 self-center bg-white pb-10 shadow-2xl sm:w-80 sm:pb-14 xl:w-[max(20rem,min(26vw,46vh))] ${
+                // On a phone it takes nearly the full width — the two cards are
+                // stacked there, so the picture has the whole column to itself
+                // and the details card covers its foot. From sm it grows with
+                // the viewport but takes whichever of width or height binds
+                // first: its photo is 5:6, so sizing on width alone would push
+                // it past the bottom of a wide but short screen.
+                className={`relative w-[min(20rem,82vw)] shrink-0 self-center bg-white pb-14 shadow-2xl sm:w-80 sm:pb-14 xl:w-[max(20rem,min(26vw,46vh))] ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >
@@ -422,7 +470,12 @@ export default function MemberCardModal({
                 style={piece("1.2deg", "12deg", 0, { left: 0, right: 70 }, exiting, sweepDir)}
                 // Capped so the card stops growing before its lines get too
                 // long to read, however wide the body gets.
-                className={`relative w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
+                //
+                // On a phone it is pulled up over the foot of the polaroid, so
+                // the picture runs behind it and is cut off there rather than
+                // sitting in its own box — it comes later in the group, and both
+                // are positioned, so it covers rather than is covered.
+                className={`relative -mt-14 w-full min-w-0 flex-1 self-center border-b-4 border-gold bg-white px-6 py-6 shadow-2xl sm:mt-0 sm:max-w-[56rem] sm:px-10 sm:py-9 xl:px-14 xl:py-12 ${
                   exiting ? "gp-sweep" : "gp-emerge"
                 }`}
               >

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 import GutterRail from "@/components/ui/GutterRail";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
@@ -35,22 +36,6 @@ const END_CARD_FIT =
 // progress line it ends on stays readable and the strip below it belongs to the
 // gallery section, whose band unrolls straight off the line.
 const BAND_LEAD = 32; // px
-
-/**
- * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
- * the first paint match the wide layout, correcting on mount for narrow screens.
- */
-function useMinWidth(px: number): boolean {
-  const [match, setMatch] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${px}px)`);
-    const on = () => setMatch(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, [px]);
-  return match;
-}
 
 /**
  * /our-works hero: everything fits in one viewport. The section pins while
