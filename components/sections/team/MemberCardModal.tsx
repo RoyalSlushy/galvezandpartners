@@ -6,6 +6,7 @@ import type { Member } from "@/content/team";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 import EditableText from "@/components/admin/editable/EditableText";
 import SocialIcons from "@/components/ui/SocialIcons";
 import { AddChip } from "@/components/admin/editable/ListControls";
@@ -26,25 +27,35 @@ const SWEEP_MS = 540;
  * its top edge — 2 puts the source a full screen below the bottom edge. */
 const ORIGIN_VH = 2;
 
-/** How far a touch must travel sideways to count as a swipe between people, and
- * how much more sideways than up-and-down it has to be — enough that scrolling a
- * card taller than the screen is never read as one. */
+/** How far a touch must travel to count as a swipe, and how much further it has
+ * to go along one axis than the other before that axis wins — enough that a
+ * wandering thumb never fires the wrong thing. */
 const SWIPE_MIN_PX = 56;
 const SWIPE_DOMINANCE = 1.5;
 
-/** One end of the bottom navigation: a chevron plus the name of the person it
- * leads to, anchored to its own side of the viewport. */
+/**
+ * One end of the bottom navigation: a chevron plus the name of the person it
+ * leads to, anchored to its own side of the viewport.
+ *
+ * `compact` drops it to the chevron alone. The name is worth its space while
+ * there is space; once a phone's profile is opened out there isn't, and the
+ * button steps back to the smallest thing that still says which way it goes.
+ * The name stays in the button's label either way, so nothing is lost to a
+ * screen reader.
+ */
 function NavButton({
   dir,
   name,
   label,
   disabled,
+  compact,
   onClick,
 }: {
   dir: "prev" | "next";
   name: string;
   label: string;
   disabled: boolean;
+  compact: boolean;
   onClick: () => void;
 }) {
   const isPrev = dir === "prev";
@@ -54,9 +65,9 @@ function NavButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={`${label}: ${name}`}
-      className={`pointer-events-auto flex min-w-0 max-w-[45%] items-center gap-2 border border-white/15 bg-navy/80 px-3 py-2 text-white shadow-lg backdrop-blur transition hover:border-gold hover:text-gold disabled:opacity-40 sm:px-4 sm:py-2.5 ${
-        isPrev ? "" : "flex-row-reverse"
-      }`}
+      className={`pointer-events-auto flex min-w-0 items-center gap-2 border border-white/15 bg-navy/80 text-white shadow-lg backdrop-blur transition-all hover:border-gold hover:text-gold disabled:opacity-40 ${
+        compact ? "p-2.5" : "max-w-[45%] px-3 py-2 sm:px-4 sm:py-2.5"
+      } ${isPrev ? "" : "flex-row-reverse"}`}
     >
       <svg
         viewBox="0 0 24 24"
@@ -70,12 +81,14 @@ function NavButton({
       >
         <path d="M15 5l-7 7 7 7" />
       </svg>
-      <span className={`min-w-0 ${isPrev ? "text-left" : "text-right"}`}>
-        <span className="block font-din text-[10px] uppercase tracking-[0.15em] text-gold">
-          {label}
+      {!compact && (
+        <span className={`min-w-0 ${isPrev ? "text-left" : "text-right"}`}>
+          <span className="block font-din text-[10px] uppercase tracking-[0.15em] text-gold">
+            {label}
+          </span>
+          <span className="block truncate font-heading text-sm tracking-tight">{name}</span>
         </span>
-        <span className="block truncate font-heading text-sm tracking-tight">{name}</span>
-      </span>
+      )}
     </button>
   );
 }
@@ -118,6 +131,20 @@ export default function MemberCardModal({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  // On a phone the profile arrives as a finished card — the picture, the name,
+  // the role — and the rest of it is there for whoever goes looking. Nothing on
+  // screen says so: the whole viewport answers to a swipe, and the card is
+  // complete enough at rest that it doesn't read as something withheld. 751px is
+  // `sm`, the same line the lander and the grid change over at.
+  const phone = !useMinWidth(751);
+  // Open from the start in an edit session: half the fields an admin has come to
+  // fill in live in the opened-out part, and they shouldn't have to find a
+  // gesture first.
+  const [opened, setOpened] = useState(editMode);
+  const extraRef = useRef<HTMLDivElement>(null);
+  useEffect(() => setOpened(editMode), [index, editMode]);
+
   // Which fact's question picker is open, and where to anchor it.
   const [picking, setPicking] = useState<{ i: number; top: number; left: number } | null>(null);
 
@@ -251,43 +278,88 @@ export default function MemberCardModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose, goPrev, goNext]);
 
-  // Swipe between people on a touch screen, where the nav buttons sit at the far
-  // corners and there is no keyboard: swiping left brings the next person in
-  // (following the direction the current pair is swept off), swiping right goes
-  // back. Only clearly sideways gestures count, so scrolling a tall card is
-  // never mistaken for a swipe.
+  // The whole viewport takes the gesture — the listeners are on the dialog
+  // itself, which is the full screen, so a swipe works wherever the thumb
+  // happens to land rather than only on the card.
+  //
+  // Sideways moves between people: left brings the next person in, following the
+  // direction the current pair is swept off, and right goes back. Up opens the
+  // profile out; down folds it away again, and down on a folded card closes it.
+  // Only clearly one-axis gestures count.
+  //
+  // A swipe ends in a click on whatever was under the finger, and most of what
+  // is under it here closes the card — so a recognised gesture is remembered and
+  // that click swallowed.
+  const swipedRef = useRef(false);
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-    let start: { x: number; y: number } | null = null;
+    let start: { x: number; y: number; scrolled: boolean } | null = null;
 
     const onDown = (e: PointerEvent) => {
-      start = e.pointerType === "touch" ? { x: e.clientX, y: e.clientY } : null;
+      swipedRef.current = false;
+      if (e.pointerType !== "touch") {
+        start = null;
+        return;
+      }
+      // A drag begun on the profile's own text, already scrolled down, is that
+      // text being read — not the card being folded away.
+      const extra = extraRef.current;
+      const inExtra = !!extra?.contains(e.target as Node);
+      start = {
+        x: e.clientX,
+        y: e.clientY,
+        scrolled: inExtra && (extra?.scrollTop ?? 0) > 0,
+      };
     };
+
     const onUp = (e: PointerEvent) => {
       const from = start;
       start = null;
       if (!from) return;
       const dx = e.clientX - from.x;
       const dy = e.clientY - from.y;
-      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_DOMINANCE) return;
-      if (dx < 0) goNext();
-      else goPrev();
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      const act = (run: () => void) => {
+        swipedRef.current = true;
+        run();
+      };
+
+      if (ax >= SWIPE_MIN_PX && ax >= ay * SWIPE_DOMINANCE) {
+        act(dx < 0 ? goNext : goPrev);
+        return;
+      }
+      if (!phone || from.scrolled) return;
+      if (ay < SWIPE_MIN_PX || ay < ax * SWIPE_DOMINANCE) return;
+      if (dy < 0) act(() => setOpened(true));
+      else act(() => (opened ? setOpened(false) : requestClose()));
     };
 
     const onCancel = () => {
       start = null;
     };
 
+    // Capture, so the click is stopped before it reaches the layers that close
+    // the card on a press.
+    const onClick = (e: MouseEvent) => {
+      if (!swipedRef.current) return;
+      swipedRef.current = false;
+      e.stopPropagation();
+      e.preventDefault();
+    };
+
     card.addEventListener("pointerdown", onDown);
     card.addEventListener("pointerup", onUp);
     card.addEventListener("pointercancel", onCancel);
+    card.addEventListener("click", onClick, true);
     return () => {
       card.removeEventListener("pointerdown", onDown);
       card.removeEventListener("pointerup", onUp);
       card.removeEventListener("pointercancel", onCancel);
+      card.removeEventListener("click", onClick, true);
     };
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, phone, opened, requestClose]);
 
   // Lock body scroll while open — same fixed-body technique as the mobile
   // drawer (keeps iOS Safari from scrolling behind).
@@ -388,13 +460,24 @@ export default function MemberCardModal({
 
       <div
         onClick={requestClose}
-        className={`absolute inset-0 ${landed ? "overflow-y-auto" : "overflow-hidden"}`}
+        // On a phone nothing scrolls out here: the card is either folded or
+        // opened out, and what runs past the screen scrolls inside the card.
+        className={`absolute inset-0 ${
+          phone ? "overflow-hidden" : landed ? "overflow-y-auto" : "overflow-hidden"
+        }`}
       >
         {/* min-h-full + centering keeps a card pair taller than the screen
             fully reachable once scrolling is on, instead of overflowing off
-            the top where it can't be scrolled to. */}
+            the top where it can't be scrolled to. On a phone the stack is
+            exactly one screen tall and stands on the bottom edge, so opening it
+            out pushes the photograph off the *top* — not past the bottom, where
+            it would take the card's own foot out of sight behind the nav. */}
         {/* Extra bottom room so a card never sits under the nav bar. */}
-        <div className="flex min-h-full items-center justify-center p-4 pb-24 sm:p-8 sm:pb-28">
+        <div
+          className={`flex justify-center p-4 pb-24 sm:p-8 sm:pb-28 ${
+            phone ? "h-full items-end" : "min-h-full items-center"
+          }`}
+        >
           {/* Bounded by the site's own body width (--site-max, which widens on
               ultrawide displays) rather than the raw viewport, so the card
               lines up with the page's content column. Height is governed by the
@@ -513,93 +596,126 @@ export default function MemberCardModal({
                   )}
                 </div>
 
-                {/* The blurb: a few sentences on the person and their role.
-                    Held to a readable measure rather than the card's full
-                    width, and multiline so paragraph breaks can be typed. */}
-                {(editMode || member.bio) && (
-                  <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
-                    <EditableText
-                      path={`${base}.bio`}
-                      value={
-                        member.bio
-                          ? tv(member.bio)
-                          : "Add a few sentences about this person and their role."
-                      }
-                      as="span"
-                      label="blurb"
-                      multiline
-                      className={member.bio ? undefined : "italic text-navy/40"}
-                    />
-                  </p>
-                )}
+                {/* Everything past the name is what a swipe up brings in. Folded
+                    away it is clipped to nothing, so the card reads as finished
+                    rather than cut off — there is no torn edge, no handle and no
+                    caption inviting the gesture. Opened out it takes as much of
+                    the screen as it can without burying the photograph, and
+                    scrolls within itself past that.
+                    Focus moving into it opens it: without a visible control,
+                    that is what keeps the contents reachable from a keyboard.
+                    On a wider screen the whole thing simply shows. */}
+                <div
+                  ref={extraRef}
+                  onFocusCapture={phone ? () => setOpened(true) : undefined}
+                  className={
+                    phone
+                      ? `transition-[max-height] duration-300 ease-out motion-reduce:transition-none ${
+                          opened
+                            ? "max-h-[46dvh] overflow-y-auto overscroll-contain"
+                            : "max-h-0 overflow-hidden"
+                        }`
+                      : undefined
+                  }
+                >
+                  {/* The blurb: a few sentences on the person and their role.
+                      Held to a readable measure rather than the card's full
+                      width, and multiline so paragraph breaks can be typed. */}
+                  {(editMode || member.bio) && (
+                    <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                      <EditableText
+                        path={`${base}.bio`}
+                        value={
+                          member.bio
+                            ? tv(member.bio)
+                            : "Add a few sentences about this person and their role."
+                        }
+                        as="span"
+                        label="blurb"
+                        multiline
+                        className={member.bio ? undefined : "italic text-navy/40"}
+                      />
+                    </p>
+                  )}
 
-                {(shown.length > 0 || editMode) && (
-                  <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
-                    {shown.map((fact, fi) => (
-                      <div key={fi}>
-                        {/* 1.2x the base 11px. */}
-                        <dt className="font-display text-[13.2px] uppercase tracking-[0.15em] text-gold">
-                          {editMode ? (
-                            // The question comes from the shared library, so it's
-                            // picked rather than typed.
-                            <button
-                              type="button"
-                              title="Choose a question"
-                              onClick={(e) => {
-                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                setPicking({
-                                  i: fi,
-                                  top: Math.min(r.bottom + 6, window.innerHeight - 340),
-                                  left: Math.min(r.left, window.innerWidth - 300),
-                                });
-                              }}
-                              className="border-b border-dashed border-gold/60 uppercase transition hover:text-gold-dark"
-                            >
-                              {fact.prompt || "Choose a question"} ▾
-                            </button>
-                          ) : (
-                            tv(fact.prompt)
-                          )}
-                        </dt>
-                        <dd className="mt-1 text-base text-navy sm:text-lg">
-                          <EditableText
-                            path={`${factsPath}.${fi}.answer`}
-                            value={fact.answer ? tv(fact.answer) : ANSWER_PLACEHOLDER}
-                            as="span"
-                            label="answer"
-                            className={fact.answer ? undefined : "italic text-navy/40"}
-                          />
-                        </dd>
-                      </div>
-                    ))}
-                    {editMode && (
-                      <div className="self-end">
-                        <AddChip listPath={factsPath} label="line" className="!px-3 !py-1.5 !text-xs" />
-                      </div>
-                    )}
-                  </dl>
-                )}
+                  {(shown.length > 0 || editMode) && (
+                    <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
+                      {shown.map((fact, fi) => (
+                        <div key={fi}>
+                          {/* 1.2x the base 11px. */}
+                          <dt className="font-display text-[13.2px] uppercase tracking-[0.15em] text-gold">
+                            {editMode ? (
+                              // The question comes from the shared library, so it's
+                              // picked rather than typed.
+                              <button
+                                type="button"
+                                title="Choose a question"
+                                onClick={(e) => {
+                                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setPicking({
+                                    i: fi,
+                                    top: Math.min(r.bottom + 6, window.innerHeight - 340),
+                                    left: Math.min(r.left, window.innerWidth - 300),
+                                  });
+                                }}
+                                className="border-b border-dashed border-gold/60 uppercase transition hover:text-gold-dark"
+                              >
+                                {fact.prompt || "Choose a question"} ▾
+                              </button>
+                            ) : (
+                              tv(fact.prompt)
+                            )}
+                          </dt>
+                          <dd className="mt-1 text-base text-navy sm:text-lg">
+                            <EditableText
+                              path={`${factsPath}.${fi}.answer`}
+                              value={fact.answer ? tv(fact.answer) : ANSWER_PLACEHOLDER}
+                              as="span"
+                              label="answer"
+                              className={fact.answer ? undefined : "italic text-navy/40"}
+                            />
+                          </dd>
+                        </div>
+                      ))}
+                      {editMode && (
+                        <div className="self-end">
+                          <AddChip listPath={factsPath} label="line" className="!px-3 !py-1.5 !text-xs" />
+                        </div>
+                      )}
+                    </dl>
+                  )}
 
-                {(editMode || member.motto) && (
-                  <p className="mt-6 border-t border-navy/10 pt-4 text-center font-display text-lg italic text-navy/80 sm:text-xl">
-                    “
-                    <EditableText
-                      path={`${base}.motto`}
-                      value={member.motto ? tv(member.motto) : "Add a motto…"}
-                      as="span"
-                      className={member.motto ? undefined : "text-navy/40"}
-                    />
-                    ”
-                  </p>
-                )}
-                {editMode && (
-                  <div className="relative z-40 mt-5 flex justify-center border-t border-navy/10 pt-4">
-                    <AddChip
-                      listPath={stickersPath}
-                      label="sticker"
-                      className="!px-3 !py-1.5 !text-xs"
-                    />
-                  </div>
+                  {(editMode || member.motto) && (
+                    <p className="mt-6 border-t border-navy/10 pt-4 text-center font-display text-lg italic text-navy/80 sm:text-xl">
+                      “
+                      <EditableText
+                        path={`${base}.motto`}
+                        value={member.motto ? tv(member.motto) : "Add a motto…"}
+                        as="span"
+                        className={member.motto ? undefined : "text-navy/40"}
+                      />
+                      ”
+                    </p>
+                  )}
+                  {editMode && (
+                    <div className="relative z-40 mt-5 flex justify-center border-t border-navy/10 pt-4">
+                      <AddChip
+                        listPath={stickersPath}
+                        label="sticker"
+                        className="!px-3 !py-1.5 !text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Softens the opened-out card's bottom edge, where a long
+                    profile runs on past it. Only there while it is open — folded
+                    away there is nothing under it to fade. */}
+                {phone && opened && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-6 h-10 bg-gradient-to-t from-white via-white/85 to-transparent"
+                  />
                 )}
               </div>
             </div>
@@ -635,6 +751,7 @@ export default function MemberCardModal({
           name={memberNameAt(prevIndex)}
           label={t("Previous")}
           disabled={exiting}
+          compact={phone && opened}
           onClick={goPrev}
         />
         <NavButton
@@ -642,6 +759,7 @@ export default function MemberCardModal({
           name={memberNameAt(nextIndex)}
           label={t("Next")}
           disabled={exiting}
+          compact={phone && opened}
           onClick={goNext}
         />
       </div>
