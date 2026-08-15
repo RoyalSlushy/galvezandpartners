@@ -163,8 +163,19 @@ export default function CtaGrid({
     card?.addEventListener("mouseenter", onEnter);
     card?.addEventListener("mouseleave", onLeave);
 
+    const root = document.documentElement;
     const tick = (t: number) => {
       raf = 0;
+      // The drift is driven here rather than by a CSS animation, so pausing
+      // animations doesn't reach it: hold it by hand while the page is being
+      // pictured for a view transition (see [data-gp-swapping] in globals.css).
+      // Advancing `last` without advancing `pos` is what makes it a pause rather
+      // than a skip — otherwise it would jump the whole held interval at once.
+      if (root.hasAttribute("data-gp-swapping")) {
+        last = t;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       if (last == null) last = t;
       const dt = t - last;
       last = t;

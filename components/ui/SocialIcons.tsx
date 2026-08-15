@@ -22,11 +22,15 @@ export default function SocialIcons({
   socials,
   className = "",
   iconClassName = "",
+  linkClassName = "",
   editPathBase,
 }: {
   socials: Social[];
   className?: string;
   iconClassName?: string;
+  /** Colour classes for the links themselves. Defaults to the white-on-dark
+   * treatment; pass this where the icons sit on a light surface. */
+  linkClassName?: string;
   editPathBase?: string;
 }) {
   const editMode = useEditMode();
@@ -46,7 +50,7 @@ export default function SocialIcons({
             target="_blank"
             rel="noreferrer noopener"
             aria-label={s.label}
-            className="block text-white transition hover:text-gold"
+            className={`block transition ${linkClassName || "text-white hover:text-gold"}`}
             {...(editable
               ? {
                   "data-gp-editable": "",

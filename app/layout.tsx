@@ -7,7 +7,7 @@ import LocaleProvider from "@/components/i18n/LocaleProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
 import PageReveal from "@/components/ui/PageReveal";
 import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
-import { getSite, getHome } from "@/lib/cms";
+import { getSite, getHome, getCaseStudies } from "@/lib/cms";
 import { getTheme, themeCssVars } from "@/lib/themes";
 import { heroTopColor, heroBorderGradientCss } from "@/lib/heroGradient";
 
@@ -38,7 +38,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [site, home] = await Promise.all([getSite(), getHome()]);
+  const [site, home, caseStudies] = await Promise.all([
+    getSite(),
+    getHome(),
+    getCaseStudies(),
+  ]);
   const theme = getTheme(site.theme);
   // The homepage header is painted with the hero's top color (see Header.tsx) so
   // the two share one seamless surface. The hero gradient uses literal colors,
@@ -73,14 +77,19 @@ export default async function RootLayout({
           <style>{`[data-gp-veil]{display:none}`}</style>
         </noscript>
         <ScrollToTopOnHome />
-        <LocaleProvider>
-          <AdminProvider>
+        {/* The editor sits outside the language, not inside it: its own
+            translations are content like any other, so the locale has to be able
+            to read them from the draft session. Nothing in the admin chrome is
+            translated, so it loses nothing by being on the far side. */}
+        <AdminProvider>
+          <LocaleProvider translations={site.translations}>
             <GlyphProvider glyphs={site.glyphs}>
               <Header
                 nav={site.nav}
                 socials={site.socials}
                 tagline={site.tagline}
                 headerImage={site.headerImage}
+                caseStudies={caseStudies.studies}
               />
               {/* The load veil covers the body content only — it lives inside
                   this wrapper (below the header in the DOM and in geometry), so
@@ -103,8 +112,8 @@ export default async function RootLayout({
                 </div>
               </div>
             </GlyphProvider>
-          </AdminProvider>
-        </LocaleProvider>
+          </LocaleProvider>
+        </AdminProvider>
       </body>
     </html>
   );

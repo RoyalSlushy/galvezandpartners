@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import type { NavItem, Social } from "@/content/site";
+import type { CaseStudy } from "@/content/caseStudies";
 import NavLinks from "./NavLinks";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
@@ -29,11 +30,13 @@ export default function DesktopNav({
   socials,
   tagline,
   editMode,
+  caseStudies,
 }: {
   nav: NavItem[];
   socials: Social[];
   tagline: string;
   editMode: boolean;
+  caseStudies: CaseStudy[];
 }) {
   const { t, locale } = useLocale();
   const active = !editMode;
@@ -94,7 +97,12 @@ export default function DesktopNav({
     >
       <div ref={contentRef} className="flex flex-none items-center gap-8">
         <div className="flex h-16 flex-col items-end justify-between sm:h-24">
-          <NavLinks nav={nav} hideHome={hideHome} condenseMore={condenseMore} />
+          <NavLinks
+            nav={nav}
+            hideHome={hideHome}
+            condenseMore={condenseMore}
+            caseStudies={caseStudies}
+          />
           <div className="flex items-center gap-5">
             <EditableText
               path="site.tagline"

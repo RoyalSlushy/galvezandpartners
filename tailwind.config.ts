@@ -65,6 +65,11 @@ export default {
         // Wix breakpoints: mobile <= 750, tablet <= 1000
         sm: "751px",
         md: "1001px",
+        // The two widths where the site's own content column steps up (see the
+        // --site-max media queries in globals.css), so layout that should only
+        // change once there is genuinely more room to fill can hang off them.
+        wide: "1920px",
+        ultra: "2400px",
       },
     },
   },

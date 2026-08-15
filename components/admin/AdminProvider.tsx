@@ -54,6 +54,11 @@ type AdminContextValue = {
   logout: () => void;
   toggleEditMode: () => Promise<void>;
   setValue: (path: string, value: unknown) => void;
+  /** Set (or clear, with an empty string) the editor's translation of one
+   * English source string. */
+  setTranslation: (locale: string, source: string, text: string) => void;
+  /** Write a batch of translations in one draft edit (the auto-translate pass). */
+  setTranslations: (locale: string, entries: Record<string, string>) => void;
   listOp: (listPath: string, op: ListOp) => void;
   discardAll: () => void;
   saveAll: () => Promise<void>;
@@ -244,6 +249,51 @@ export default function AdminProvider({ children }: { children: React.ReactNode 
     [markPath],
   );
 
+  // Translations are keyed by the English source string, which is prose — full
+  // of the dots the content paths are split on — so this writes the map itself
+  // rather than addressing an entry by path. The path it marks dirty is the map,
+  // which is all the save needs to know.
+  const setTranslation = useCallback(
+    (locale: string, source: string, text: string) => {
+      const prev = draftsRef.current;
+      if (!prev) return;
+      const path = `site.translations.${locale}`;
+      const table = { ...((getByPath(prev, path) as Record<string, string> | undefined) ?? {}) };
+      if (text) table[source] = text;
+      else delete table[source];
+      const next = setByPath(prev, path, table);
+      draftsRef.current = next;
+      setDrafts(next);
+      markPath(next, path);
+    },
+    [markPath],
+  );
+
+  // The same write as setTranslation, for a whole batch at once: an
+  // auto-translate pass fills dozens of entries, and doing them one at a time
+  // would re-render the site for each.
+  const setTranslations = useCallback(
+    (locale: string, entries: Record<string, string>) => {
+      const prev = draftsRef.current;
+      if (!prev) return;
+      const path = `site.translations.${locale}`;
+      const table = { ...((getByPath(prev, path) as Record<string, string> | undefined) ?? {}) };
+      let changed = false;
+      for (const [source, text] of Object.entries(entries)) {
+        const value = text.trim();
+        if (!value || table[source] === value) continue;
+        table[source] = value;
+        changed = true;
+      }
+      if (!changed) return;
+      const next = setByPath(prev, path, table);
+      draftsRef.current = next;
+      setDrafts(next);
+      markPath(next, path);
+    },
+    [markPath],
+  );
+
   const listOp = useCallback(
     (listPath: string, op: ListOp) => {
       const prev = draftsRef.current;
@@ -328,6 +378,8 @@ export default function AdminProvider({ children }: { children: React.ReactNode 
       logout,
       toggleEditMode,
       setValue,
+      setTranslation,
+      setTranslations,
       listOp,
       discardAll,
       saveAll,
@@ -356,6 +408,8 @@ export default function AdminProvider({ children }: { children: React.ReactNode 
       logout,
       toggleEditMode,
       setValue,
+      setTranslation,
+      setTranslations,
       listOp,
       discardAll,
       saveAll,

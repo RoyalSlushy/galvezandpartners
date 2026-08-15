@@ -5,6 +5,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 import GutterRail from "@/components/ui/GutterRail";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
@@ -12,7 +13,7 @@ import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -35,22 +36,6 @@ const END_CARD_FIT =
 // progress line it ends on stays readable and the strip below it belongs to the
 // gallery section, whose band unrolls straight off the line.
 const BAND_LEAD = 32; // px
-
-/**
- * Live min-width media-query flag. Defaults to true (desktop-first) so SSR and
- * the first paint match the wide layout, correcting on mount for narrow screens.
- */
-function useMinWidth(px: number): boolean {
-  const [match, setMatch] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia(`(min-width: ${px}px)`);
-    const on = () => setMatch(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, [px]);
-  return match;
-}
 
 /**
  * /our-works hero: everything fits in one viewport. The section pins while
@@ -82,9 +67,8 @@ export default function WorkShowcase({
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode
-  // (matches WorkGrid). Case-study titles are brand names and stay untranslated.
-  const tv = (s: string) => (editMode ? s : t(s));
+  // Case-study titles are brand names and stay untranslated.
+  const tv = useEditableT();
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { NavItem } from "@/content/site";
+import type { CaseStudy } from "@/content/caseStudies";
+import WorkMegaMenu from "./WorkMegaMenu";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -12,6 +14,8 @@ import { ChevronDownIcon } from "@/components/admin/icons";
 
 /** The two links that collapse into the "More" dropdown when space is tight. */
 const MORE_HREFS = ["/our-team", "/our-partners"];
+/** The nav item that opens the case-study mega menu instead of a plain link. */
+const MEGA_HREF = "/our-works";
 
 /** Shared link styling: an active-page gold underline that scales in from its
  * center (transform-only, so the 2px stroke weight stays constant); the active
@@ -35,11 +39,14 @@ export default function NavLinks({
   className = "",
   hideHome = false,
   condenseMore = false,
+  caseStudies = [],
 }: {
   nav: NavItem[];
   className?: string;
   hideHome?: boolean;
   condenseMore?: boolean;
+  /** Case studies for the "Our Work" mega menu. */
+  caseStudies?: CaseStudy[];
 }) {
   const pathname = usePathname();
   const editMode = useEditMode();
@@ -62,7 +69,19 @@ export default function NavLinks({
   return (
     <nav aria-label="Site" className={className}>
       <ul className="flex items-center gap-10">
-        {mainItems.map(({ item, i }) => (
+        {mainItems.map(({ item, i }) =>
+          // "Our Work" carries the case-study mega menu — but not in edit mode,
+          // where the link has to stay a plain editable label.
+          item.href === MEGA_HREF && !editMode && caseStudies.length > 0 ? (
+            <WorkMegaMenu
+              key={item.href}
+              href={item.href}
+              label={t(item.label)}
+              studies={caseStudies}
+              linkClassName={linkClass(isActive(item.href))}
+              active={isActive(item.href)}
+            />
+          ) : (
           <li key={item.href} className={editMode ? "relative" : undefined}>
             {editMode && (
               <ListControls
@@ -89,7 +108,8 @@ export default function NavLinks({
               )}
             </Link>
           </li>
-        ))}
+          ),
+        )}
 
         {moreItems.length > 0 && (
           <MoreMenu items={moreItems.map(({ item }) => item)} active={moreItems.some(({ item }) => isActive(item.href))} />

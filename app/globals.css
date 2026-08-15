@@ -303,9 +303,52 @@
    recede. Fall (transform) and phase (opacity) run as two independent
    animations, each with its own per-card duration/delay set inline via CSS
    vars, so they never fall in sync. */
+/* --phase-min is how dim a card gets at the turn of its cycle. The home hero
+   leaves cards faintly present; the Our Team lander's narrow-screen gallery
+   drops them to nothing, because it swaps each card's photograph and moves it at
+   that moment and the change has to happen out of sight. */
 @keyframes photocard-phase {
-  0%, 100% { opacity: 0.08; }
+  0%, 100% { opacity: var(--phase-min, 0.08); }
   50% { opacity: 1; }
+}
+
+/* One photograph of the Our Team lander's cursor trail. It snaps up where the
+   pointer is and then holds — a picture only leaves once newer ones have pushed
+   it out of the held window (see HOLD in LanderPhotoTrail), so a cursor coming
+   to a stop leaves its last few pictures behind rather than an empty masthead.
+   The centring offset is part of every keyframe, since the animations own the
+   transform outright, and leaving picks up exactly where arriving finished.
+   Nothing suppresses this under reduced motion because nothing is drawn at all
+   there. */
+.gp-trail-card {
+  animation: gp-trail-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gp-trail-card.is-leaving {
+  animation: gp-trail-out 620ms ease-in both;
+}
+@keyframes gp-trail-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes gp-trail-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -44%) scale(0.9);
+  }
 }
 .photocard-fall {
   animation:
@@ -351,6 +394,17 @@
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
+}
+
+/* Our Team, bottom-right above the footer: the same drifting "GALVEZ" letter
+   grid, gathered into the corner and fading away up and to the left. Held
+   fainter than the other placements so it reads as a shift in the navy itself
+   rather than a pattern laid over it. */
+.team-glyph-grid {
+  opacity: 0.07;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
+  mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
 }
 
 /* Card backdrop: the same drifting "GALVEZ" letter grid, held faint and fading
@@ -617,6 +671,25 @@ html[data-gp-case-snap] {
     mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
   }
 }
+/* Our Team lander: the frames fill the section, and from sm+ the band's top
+   edge is masked away so the picture dissolves into the header sitting directly
+   above it instead of meeting it on a hard line. */
+.team-band {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+@media (min-width: 751px) {
+  .team-band {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+  }
+}
+
+/* Ken Burns drift. INVARIANT: at every keyframe the translation must stay
+   within the overhang the scale creates, i.e. |translate%| <= (scale - 1) / 2
+   * 100 on each axis — otherwise the drift pulls an edge of the (object-fit:
+   cover) frame into view and paints the box behind it. */
 .cs-kenburns {
   animation: cs-kenburns 22s ease-in-out infinite alternate;
   will-change: transform;
@@ -638,7 +711,9 @@ html[data-gp-case-snap] {
     transform: scale(1.2) translate(-2.5%, 2%);
   }
   to {
-    transform: scale(1.05) translate(2%, -2.5%);
+    /* 1.12, not 1.05: at 1.05 the 2.5% translation sits exactly on the overhang
+       the scale allows, so a rounded pixel could expose the frame's edge. */
+    transform: scale(1.12) translate(2%, -2.5%);
   }
 }
 .cs-scroll-cue {
@@ -653,6 +728,142 @@ html[data-gp-case-snap] {
   50% {
     transform: translateY(4px);
     opacity: 1;
+  }
+}
+
+/* Team profile pop-up: the backdrop fades in, then each piece is dealt onto
+   the surface — it comes in from off-screen past the bottom edge of the
+   viewport, skims up with a spin, slides a touch past its mark and settles,
+   the way a dealt card skids on a table. Each element sets where it comes in
+   from (--deal-x / --deal-y / --deal-spin), the angle it lands at
+   (--deal-rot) and an animation-delay, so the pieces are dealt in turn.
+   Nothing between these elements and the viewport may clip (see the modal's
+   scroll container), so the travel reads as entering through the screen edge.
+   All run once on mount — closing unmounts the modal, so there is no exit
+   animation. */
+.gp-fade-in {
+  animation: gp-fade-in 250ms ease-out both;
+}
+@keyframes gp-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.gp-emerge {
+  /* Resting state, so a piece keeps its angle once the animation ends (and
+     when animation is suppressed for reduced motion). */
+  transform: rotate(var(--rot, 0deg));
+  /* Each piece starts stacked on the bottom centre of the viewport —
+     --from-x/--from-y are measured per piece at mount — and flows up and
+     outward to its place, so the whole spread reads as rising from one
+     source. A single decelerating move with no keyframe between the start
+     and the rest: wherever it slows to a stop is where it stays, since
+     anything pulling it back onto a mark would read as a snap. */
+  animation: gp-emerge 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform;
+}
+@keyframes gp-emerge {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--from-x, 0px), var(--from-y, 0px), 0)
+      rotate(var(--spin, 0deg)) scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+}
+
+/* Exit: an arm sweeps across the table and wipes everything off to the left.
+   The pieces accelerate away (rather than easing to a halt) and tumble as
+   they go, clearing the viewport before the card unmounts. */
+.gp-sweep {
+  animation: gp-sweep 460ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  will-change: transform;
+}
+@keyframes gp-sweep {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+  100% {
+    /* --sweep-x / --sweep-rot carry the direction: the pieces leave toward the
+       side the arm is travelling, and tumble the way that shove would turn
+       them. Defaults are the leftward sweep. */
+    transform: translate3d(var(--sweep-x, -130vw), 0, 0)
+      rotate(calc(var(--rot, 0deg) + var(--sweep-rot, -16deg))) scale(0.92);
+  }
+}
+/* Profile-card stickers. The reflective finishes lay a gradient over the sticker and
+   mask it to the sticker's own artwork (--sticker-mask is set to the image
+   URL), so the sheen follows the cut-out shape rather than its bounding box.
+   Emoji stickers carry no mask image and so stay plain.
+
+   This CSS pass is the placeholder for the real treatment: swapping in a
+   shader means replacing the backgrounds below (or rendering into a canvas
+   behind the same mask) and leaving everything else — the CMS fields, the
+   placement, the class names — as is. */
+.gp-sticker {
+  /* The die-cut white border every printed sticker has, drawn as a chain of
+     hard drop-shadows: each one applies to the result of the last, so four
+     axis-aligned offsets dilate the artwork's own alpha outward into a ring —
+     corners included — with no second copy of the image and no knowledge of its
+     shape. It works the same on an emoji glyph as on a cut-out PNG.
+
+     Thickness follows the sticker's own width (--sticker-w, set where it is
+     placed), so a small one isn't ringed as heavily as a big one; the last
+     shadow is the sticker's lift off the surface. */
+  --sticker-edge: clamp(2px, calc(var(--sticker-w, 4.5rem) * 0.055), 7px);
+  filter: drop-shadow(var(--sticker-edge) 0 0 #fff)
+    drop-shadow(calc(var(--sticker-edge) * -1) 0 0 #fff)
+    drop-shadow(0 var(--sticker-edge) 0 #fff)
+    drop-shadow(0 calc(var(--sticker-edge) * -1) 0 #fff)
+    drop-shadow(0 3px 5px rgb(0 0 0 / 0.35));
+}
+.gp-sticker-holo::after,
+.gp-sticker-foil::after,
+.gp-sticker-polychrome::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* The finish is masked by the artwork's own alpha, so it paints only where
+     the sticker has opaque pixels — never across the transparent parts of a
+     PNG or SVG, and never as a rectangle around a cut-out shape. The default
+     is a fully transparent mask, so a sticker with no artwork (an emoji, which
+     has no image to mask against) shows no finish at all rather than a block. */
+  -webkit-mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+}
+.gp-sticker-holo::after {
+  background: linear-gradient(115deg, transparent 20%, #22d3ee 35%, #d946ef 50%, #facc15 65%, transparent 82%);
+}
+.gp-sticker-foil::after {
+  background: linear-gradient(135deg, transparent 25%, #fff 42%, #cbd5e1 50%, #fff 58%, transparent 78%);
+}
+.gp-sticker-polychrome::after {
+  background: conic-gradient(from 210deg, #f43f5e, #facc15, #4ade80, #22d3ee, #a855f7, #f43f5e);
+  opacity: 0.4;
+}
+
+.gp-fade-out {
+  animation: gp-fade-out 420ms ease-in both;
+}
+@keyframes gp-fade-out {
+  to {
+    opacity: 0;
   }
 }
 
@@ -677,6 +888,32 @@ html[data-gp-case-snap] {
 }
 
 /* Respect reduced-motion globally for our scroll-reveal utility */
+/* Changing language (see LocaleProvider). The browser cross-fades a picture of
+   the page before the swap with one after it; the two are identical everywhere
+   except the copy that changed, so only that copy is seen to move. Slower than
+   the 250ms default — a language change is a deliberate act and reads better
+   unhurried — and the page is held still for that long, which is why it isn't
+   slower still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The two pictures are taken a moment apart, so anything still moving is in a
+   different place in each and ghosts against itself as they cross-fade — the
+   drifting letterforms behind the mobile menu especially, being a repeating
+   pattern. Everything holds still from before the first picture until after the
+   last, then carries on from where it was (paused, not reset). Scoped to the
+   body so the transition's own animations, which hang off the document root,
+   are left to run. */
+html[data-gp-swapping] body,
+html[data-gp-swapping] body *,
+html[data-gp-swapping] body *::before,
+html[data-gp-swapping] body *::after {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-in {
     transition: none !important;
@@ -719,6 +956,15 @@ html[data-gp-case-snap] {
     animation: none !important;
     transform: none;
     opacity: 0.25;
+  }
+  /* Team profile cards: the pieces are simply already on the table (they keep
+     their resting angle, which is layout rather than motion), and the card
+     closes outright rather than being swept off. */
+  .gp-fade-in,
+  .gp-fade-out,
+  .gp-emerge,
+  .gp-sweep {
+    animation: none !important;
   }
 }
 

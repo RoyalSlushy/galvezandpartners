@@ -5,7 +5,7 @@ import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -34,8 +34,7 @@ export default function MulticulturalReveal({
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
   const fillRef = useRef<HTMLDivElement>(null);
 
   // Scroll-linked word fill: p=0 when the block's top enters at 90% of the

@@ -26,7 +26,13 @@ import {
   type InstagramPost,
   type HeroGradient,
 } from "@/content/home";
-import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
+import {
+  TEAM,
+  TEAM_HEADING,
+  TEAM_LANDER,
+  type Member,
+  type TeamLander,
+} from "@/content/team";
 import {
   WORK,
   WORK_HEADING,
@@ -38,6 +44,7 @@ import {
 import { CASE_STUDIES, type CaseStudy } from "@/content/caseStudies";
 import { PARTNERS, type PartnersContent } from "@/content/partners";
 import { CONTACT_PAGE, type ContactPageContent } from "@/content/contact";
+import { DEFAULT_TRANSLATIONS, type TranslationTable } from "@/content/i18n";
 
 export type SiteContent = {
   nav: NavItem[];
@@ -49,6 +56,10 @@ export type SiteContent = {
   theme: string;
   glyphs: Glyph[];
   headerImage: string;
+  /** Translations for copy written in the editor, which content/i18n.ts can't
+   * know about. Kept with the rest of the site-wide settings rather than in a
+   * section of its own, since it belongs to no one page. */
+  translations: TranslationTable;
 };
 
 export type HomeContent = {
@@ -86,7 +97,7 @@ export type HomeContent = {
   };
 };
 
-export type TeamContent = { heading: string; members: Member[] };
+export type TeamContent = { heading: string; lander: TeamLander; members: Member[] };
 export type WorkContent = {
   heading: string;
   items: Work[];
@@ -105,6 +116,7 @@ export const DEFAULT_SITE: SiteContent = {
   theme: THEME,
   glyphs: GLYPHS.map((g) => ({ ...g })),
   headerImage: HEADER_IMAGE,
+  translations: structuredClone(DEFAULT_TRANSLATIONS),
 };
 
 export const DEFAULT_HOME: HomeContent = {
@@ -127,6 +139,11 @@ export const DEFAULT_HOME: HomeContent = {
 
 export const DEFAULT_TEAM: TeamContent = {
   heading: TEAM_HEADING,
+  lander: {
+    subtitle: TEAM_LANDER.subtitle,
+    background: TEAM_LANDER.background,
+    images: [...TEAM_LANDER.images],
+  },
   members: TEAM.map((m) => ({ ...m, socials: m.socials.map((s) => ({ ...s })) })),
 };
 

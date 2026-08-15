@@ -14,7 +14,31 @@ export function normalizePath(path: string): string {
 /** Templates for "+ add" on each editable list. Placeholder copy is visible on
  * purpose so freshly added items can be clicked and edited in place. */
 const LIST_TEMPLATES: Record<string, () => unknown> = {
-  "team.members": () => ({ name: "New Member", role: "Role", photo: "", socials: [] }),
+  "team.members": () => ({
+    name: "New Member",
+    role: "Role",
+    photo: "",
+    hoverImage: "",
+    socials: [],
+    emoji: "😀",
+    bio: "Add a few sentences about this person and their role.",
+    facts: [
+      { prompt: "Superpower", answer: "Add an answer…" },
+      { prompt: "Fuel of choice", answer: "Add an answer…" },
+    ],
+    motto: "Add a motto…",
+  }),
+  // Questions come from FACT_PROMPTS (content/team.ts), picked in the editor.
+  "team.members.*.facts": () => ({ prompt: "Superpower", answer: "Add an answer…" }),
+  // Where a sticker lands is decided when the card opens, so a new one carries
+  // only its look.
+  "team.members.*.stickers": () => ({
+    img: "",
+    emoji: "⭐",
+    size: 18,
+    rotate: -8,
+    finish: "plain",
+  }),
   "team.members.*.socials": () => ({ label: "Instagram", href: "", icon: "instagram" }),
   "home.services": () => ({ title: "New Service", description: "Describe this service.", media: "" }),
   "home.multicultural.cards": () => ({ title: "new card", body: "Card copy goes here." }),
@@ -38,6 +62,8 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
     gallery: [],
   }),
   "case_studies.studies.*.gallery": () => "",
+  // The Our Team lander's own frames — bare media values, like a case gallery.
+  "team.lander.images": () => "",
 };
 
 export function templateFor(listPath: string): unknown {
@@ -82,9 +108,21 @@ const FIELD_LABELS: Record<string, string> = {
   "home.instagram.posts.*.img": "post image",
   "home.instagram.posts.*.caption": "post caption",
   "team.heading": "heading",
+  "team.lander.subtitle": "lander subtitle",
+  "team.lander.background": "lander backdrop",
+  "team.lander.images.*": "lander image",
   "team.members.*.name": "name",
   "team.members.*.role": "role",
   "team.members.*.photo": "photo",
+  "team.members.*.hoverImage": "backdrop photo",
+  "team.members.*.emoji": "favorite emoji",
+  "team.members.*.bio": "blurb",
+  "team.members.*.facts.*.prompt": "question",
+  "team.members.*.facts.*.answer": "answer",
+  "team.members.*.stickers.*.img": "sticker image",
+  "team.members.*.stickers.*.emoji": "sticker emoji",
+  "team.members.*.stickers.*.finish": "sticker finish",
+  "team.members.*.motto": "motto",
   "work.heading": "heading",
   "work.items.*.title": "work title",
   "work.items.*.img": "work image",
