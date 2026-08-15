@@ -91,7 +91,7 @@ export const TEAM_HEADING = "Meet Our Storytellers";
 /**
  * The Our Team lander. `background` is a single still — the office — that fills
  * the section behind everything; `images` are photographs of the team together,
- * shown over it as polaroids that fade in and out. Both are kept separate from
+ * laid down over it as polaroids trailing the cursor. Both are kept separate from
  * the individual member portraits so all three are managed (and cropped)
  * independently, and both are empty by default: the real photographs are
  * uploaded per site from the editor.

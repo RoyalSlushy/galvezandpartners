@@ -303,13 +303,39 @@
    recede. Fall (transform) and phase (opacity) run as two independent
    animations, each with its own per-card duration/delay set inline via CSS
    vars, so they never fall in sync. */
-/* --phase-min is how dim a card gets at the turn of its cycle. The home hero
-   leaves cards faintly present; the Our Team lander drops them to nothing,
-   because it swaps each card's photograph and moves it at that moment and the
-   change has to happen out of sight. */
 @keyframes photocard-phase {
-  0%, 100% { opacity: var(--phase-min, 0.08); }
+  0%, 100% { opacity: 0.08; }
   50% { opacity: 1; }
+}
+
+/* One photograph of the Our Team lander's cursor trail: laid down where the
+   pointer is, it snaps up to size, holds, then sinks away — so a moving cursor
+   draws a line of pictures behind it that closes up again once it stops. The
+   centring offset is part of every keyframe, since the animation owns the
+   transform outright. Nothing suppresses this under reduced motion because
+   nothing is drawn at all there (see LanderPhotoTrail). */
+.gp-trail-card {
+  animation: gp-trail 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes gp-trail {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  26% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -44%) scale(0.9);
+  }
 }
 .photocard-fall {
   animation:

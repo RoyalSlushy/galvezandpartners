@@ -7,7 +7,7 @@ import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import LanderPhotoCards from "./LanderPhotoCards";
+import LanderPhotoTrail from "./LanderPhotoTrail";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
 
@@ -17,12 +17,11 @@ const LANDER_PATH = "team.lander.images";
  * The Our Team lander: a full-screen masthead (the viewport below the site
  * header, so header + lander together own the first screen).
  *
- * The backdrop is a single still of the office, held steady. Over it, the
- * team-together photographs are dealt out as polaroids — the same card the home
- * hero scatters through its gutters — each drifting and fading in and out on
- * its own cycle, so the gallery turns over without anything sliding or
- * crossfading underneath it. The backdrop's top edge is masked away from sm+
- * (see .team-band) so the picture dissolves into the header above it.
+ * The backdrop is a single still of the office, held steady. Over it — and under
+ * the copy, always — the team-together photographs follow the cursor, laid down
+ * as polaroids one after another as the pointer crosses the lander and sinking
+ * away behind it. The backdrop's top edge is masked away from sm+ (see
+ * .team-band) so the picture dissolves into the header above it.
  *
  * All three image sets are separate — the office still, the gallery, and the
  * member portraits — so each can be chosen and cropped for its own job. With
@@ -30,8 +29,8 @@ const LANDER_PATH = "team.lander.images";
  * a big low-opacity letterform hugging it.
  *
  * Edit mode swaps the masthead for a plain editable block (heading, subtitle,
- * the backdrop and a thumbnail strip), since a drifting full-bleed collage is
- * no place to manage a list of images.
+ * the backdrop and a thumbnail strip), since a full-bleed masthead is no place
+ * to manage a list of images.
  */
 export default function TeamHero({
   heading: serverHeading,
@@ -128,34 +127,30 @@ export default function TeamHero({
             style={{ objectPosition: focusPosition(background) }}
             className="h-full w-full object-cover"
           />
-          {/* Veil so the copy reads over the room, weighted to the bottom
-              where it sits. */}
+          {/* Knocks the room back so it reads as a backdrop rather than a
+              picture in its own right. */}
           <div className="absolute inset-0 bg-navy/45" />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/45 to-transparent" />
         </div>
       )}
 
-      {/* Zero-height marker giving the gallery the span of the body column, so a
-          photograph's centre never strays out into the gutter. It rides in the
-          same Container the copy does, so it tracks the --site-max tiers and the
-          responsive gutters without restating them. Declared before the gallery
-          so it is in the DOM when the cards measure. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0">
-        <Container>
-          <div data-gp-lander-bounds className="h-0" />
-        </Container>
-      </div>
+      <LanderPhotoTrail images={images ?? []} />
 
-      <LanderPhotoCards images={images ?? []} />
+      {/* Veil over the trail and the room alike, weighted to the bottom where
+          the copy sits: the photographs pass behind the heading, and this is
+          what keeps the heading readable while they do. Above the trail rather
+          than inside the band, so it works whether or not a backdrop has been
+          uploaded. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-navy via-navy/55 to-transparent"
+      />
 
       {/* The section's own navy shows through the band's faded top edge, so
           nothing else is needed to complete the hand-off to the header. */}
 
       <div className="relative z-10 flex h-full items-end pb-12 sm:pb-16">
         <Container>
-          {/* Marked so the gallery's placement treats this block as occupied
-              and never drops a polaroid over the copy. */}
-          <div data-gp-lander-keepout className="relative">
+          <div className="relative">
             {/* Big low-opacity letterform. Anchored to the copy rather than to
                 the section, so it hugs the heading — sitting behind it, its
                 foot on the heading's baseline and its left edge just outside
