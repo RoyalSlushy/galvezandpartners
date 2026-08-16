@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
@@ -57,6 +57,64 @@ export default function ServicesGrid({
   const animate = !editMode && !reduced;
   const stacked = animate && !phone;
   const sweep = animate && phone;
+
+  // Index of the card sitting most centrally in the viewport — the only one
+  // whose backdrop clip is allowed to run (see CardBackdrop). null when the
+  // deck is off-screen entirely.
+  const [centered, setCentered] = useState<number | null>(null);
+  const hasMedia = services.some((s) => s.media);
+
+  useEffect(() => {
+    if (!animate || !hasMedia) return;
+    const deck = deckRef.current;
+    if (!deck) return;
+
+    let raf = 0;
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const mid = window.innerHeight / 2;
+      let best: number | null = null;
+      // Ranked on two keys: cards crossing the middle of the viewport beat
+      // cards that don't (a card taller than the screen has its own center
+      // off-screen, and the sticky stack overlaps cards, so "nearest center"
+      // alone picks the wrong one), then nearest to the middle.
+      let bestCrosses = false;
+      let bestDist = Infinity;
+
+      Array.from(deck.children).forEach((el, i) => {
+        if (!services[i]?.media) return;
+        const r = el.getBoundingClientRect();
+        if (r.bottom <= 0 || r.top >= window.innerHeight) return;
+        const crosses = r.top <= mid && r.bottom >= mid;
+        const dist = crosses
+          ? Math.abs((r.top + r.bottom) / 2 - mid)
+          : Math.min(Math.abs(r.top - mid), Math.abs(r.bottom - mid));
+        if (best === null || (crosses && !bestCrosses) || (crosses === bestCrosses && dist < bestDist)) {
+          best = i;
+          bestCrosses = crosses;
+          bestDist = dist;
+        }
+      });
+      setCentered((prev) => (prev === best ? prev : best));
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        raf = requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [animate, hasMedia, services]);
 
   // As card i+1 approaches card i's pinned position, ease card i back.
   useEffect(() => {
@@ -177,7 +235,9 @@ export default function ServicesGrid({
                 {/* Same decorative backdrop the service's hero carousel slide
                     carries (one CMS field, `home.services.N.media`), so a clip
                     set once shows up in both places. */}
-                {s.media ? <CardBackdrop index={i} media={s.media} /> : null}
+                {s.media ? (
+                  <CardBackdrop index={i} media={s.media} active={centered === i} />
+                ) : null}
                 {/* Faint sheen so stacked cards read as separate layers */}
                 <div
                   aria-hidden
@@ -238,32 +298,44 @@ export default function ServicesGrid({
  * result as blending onto the card itself. The tilted layer bleeds past the
  * card; the card's overflow-hidden masks it.
  *
- * A clip only plays while its card is on screen (and never under reduced
- * motion), so an off-screen card in the deck isn't decoding video.
+ * Only the card sitting most centrally in the viewport plays, and only with
+ * motion allowed — so at most one clip runs at a time and cards waiting
+ * elsewhere in the deck aren't decoding video. Playback is never cut off
+ * mid-pass: once the card loses the center the clip simply stops looping and
+ * runs to its end, then rests on the first frame.
  */
-function CardBackdrop({ index, media }: { index: number; media: string }) {
+function CardBackdrop({ index, media, active }: { index: number; media: string; active: boolean }) {
   const reduced = usePrefersReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { ref, inView } = useInView<HTMLDivElement>({ once: false, threshold: 0 });
+
+  // Rewind once a pass finishes. Only reached after the card loses the center,
+  // since an active clip loops instead of ending.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onEnded = () => {
+      v.pause();
+      v.currentTime = 0;
+    };
+    v.addEventListener("ended", onEnded);
+    return () => v.removeEventListener("ended", onEnded);
+  }, [media]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (inView && !reduced) {
+    if (active && !reduced) {
+      v.loop = true;
       v.play().catch(() => {});
       return;
     }
-    v.pause();
-    try {
-      v.currentTime = 0;
-    } catch {
-      /* not seekable yet — the first frame shows anyway */
-    }
-  }, [inView, reduced]);
+    // Stop looping but let the current pass finish — `ended` above rests it
+    // back on the first frame.
+    v.loop = false;
+  }, [active, reduced]);
 
   return (
     <div
-      ref={ref}
       aria-hidden
       className="pointer-events-none absolute inset-y-[-18%] right-[-8%] z-0 w-[62%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-4 sm:w-auto sm:aspect-[4/5]"
     >
@@ -277,6 +349,8 @@ function CardBackdrop({ index, media }: { index: number; media: string }) {
           className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
           playbackRate={0.75}
           autoPlayVideo={false}
+          // Looping is driven imperatively above, not by the element's attribute.
+          loopVideo={false}
           videoRef={videoRef}
         />
       </div>
