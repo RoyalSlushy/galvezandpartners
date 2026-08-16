@@ -7,6 +7,8 @@ import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { InstagramPost } from "@/content/home";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { instagramEmbedUrl } from "@/lib/instagramEmbed";
+import InstagramEmbedModal from "@/components/sections/home/InstagramEmbedModal";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -41,6 +43,12 @@ const DRIFT_SPEED = 32; // px/s idle leftward drift
  * so it remains curatable, and is the fallback whenever there is no live feed.
  * Edit mode renders a static editable grid; reduced motion gets a
  * hand-scrollable strip.
+ *
+ * A card whose link is a real post URL — which is what the live feed supplies,
+ * and what an admin can paste onto a curated card — opens that post in
+ * Instagram's own embed (see InstagramEmbedModal) instead of navigating away.
+ * A card linking anywhere else, including the account's profile (the default),
+ * is just a link, exactly as before.
  */
 export default function InstagramFeed({
   instagram: serverIg,
@@ -163,6 +171,9 @@ export default function InstagramFeed({
   const postSrc = (p: InstagramPost) =>
     p.img ? (p.img.startsWith("http") ? p.img : wixImage(p.img, 600, 600)) : PLACEHOLDER_IMG;
 
+  // The post currently framed in the lightbox, if any.
+  const [embed, setEmbed] = useState<{ url: string; post: InstagramPost } | null>(null);
+
   const postCard = (p: InstagramPost, i: number, interactive: boolean, clone = false) => {
     const media = (
       <>
@@ -186,11 +197,25 @@ export default function InstagramFeed({
       </>
     );
     if (!interactive) return media;
+    // Real post links open Instagram's embed in place; everything else (and
+    // edit mode, where a click belongs to the CMS) stays a plain link. The
+    // element is a link either way, so middle-click, "open in new tab" and
+    // no-JS all still reach the post.
+    const embedUrl = editMode ? null : instagramEmbedUrl(p.href);
     return (
       <a
         href={p.href || ig.href}
         target="_blank"
         rel="noreferrer noopener"
+        onClick={
+          embedUrl
+            ? (e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                setEmbed({ url: embedUrl, post: p });
+              }
+            : undefined
+        }
         tabIndex={clone ? -1 : undefined}
         aria-label={p.caption ? `Instagram: ${tv(p.caption)}` : t("Open Instagram post")}
         className={`group relative block aspect-square w-44 shrink-0 overflow-hidden bg-navy-soft shadow-lg transition-transform duration-300 hover:z-10 hover:rotate-0 hover:scale-[1.06] focus-visible:z-10 focus-visible:rotate-0 focus-visible:scale-[1.06] sm:w-56 ${
@@ -333,6 +358,15 @@ export default function InstagramFeed({
           </Button>
         </div>
       </Container>
+
+      {embed && (
+        <InstagramEmbedModal
+          embedUrl={embed.url}
+          postUrl={embed.post.href}
+          caption={embed.post.caption ? tv(embed.post.caption) : undefined}
+          onClose={() => setEmbed(null)}
+        />
+      )}
     </section>
   );
 }

@@ -91,6 +91,8 @@ const ES: Record<string, string> = {
   "Adelante Scholars with Helios": "Adelante Scholars con Helios",
   "Instagram post": "Publicación de Instagram",
   "Open Instagram post": "Abrir publicación de Instagram",
+  "Open on Instagram": "Ver en Instagram",
+  "Loading…": "Cargando…",
 
   // --- Multicultural manifesto ---
   "the multi-cultural": "la agencia multicultural",
