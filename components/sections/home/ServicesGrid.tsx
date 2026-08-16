@@ -6,8 +6,10 @@ import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { resolveImage } from "@/lib/adminClient";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
+import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 import { useMediaQuery } from "@/components/ui/useMediaQuery";
@@ -172,6 +174,10 @@ export default function ServicesGrid({
                 style={stacked ? { transformOrigin: "top center" } : undefined}
                 className="relative overflow-hidden border border-white/10 bg-navy-soft p-8 sm:p-12"
               >
+                {/* Same decorative backdrop the service's hero carousel slide
+                    carries (one CMS field, `home.services.N.media`), so a clip
+                    set once shows up in both places. */}
+                {s.media ? <CardBackdrop index={i} media={s.media} /> : null}
                 {/* Faint sheen so stacked cards read as separate layers */}
                 <div
                   aria-hidden
@@ -186,7 +192,7 @@ export default function ServicesGrid({
                     className="right-2 top-2"
                   />
                 )}
-                <div className="relative flex flex-col items-start">
+                <div className="relative z-[1] flex flex-col items-start">
                   <EditableText
                     path={`home.services.${i}.title`}
                     value={tv(s.title)}
@@ -200,14 +206,18 @@ export default function ServicesGrid({
                     multiline
                     className="mt-4 max-w-3xl whitespace-pre-line font-body text-f9 text-white/75"
                   />
-                  <Button href="/contact-us" variant="outline" className="mt-8 text-sm">
-                    {t("View More")}
-                  </Button>
                 </div>
               </article>
             </DeckSlot>
           ))}
         </div>
+        {/* One CTA for the whole deck, in place of the per-card buttons. Sits
+            outside the deck so the sticky stack never covers it. */}
+        <RevealOnScroll className="mt-14 flex justify-center">
+          <Button href="/our-works" variant="outline" className="text-sm">
+            {t("View More")}
+          </Button>
+        </RevealOnScroll>
         {editMode && (
           <div className="mt-8">
             <AddChip listPath="home.services" label="service" />
@@ -215,6 +225,62 @@ export default function ServicesGrid({
         )}
       </Container>
     </section>
+  );
+}
+
+/**
+ * The service's decorative backdrop, treated exactly as the hero carousel
+ * treats it: tilted 15° counter-clockwise at 10% opacity, with the media
+ * collapsed to a single gold-family hue (grayscale → invert → sepia) so its
+ * white background turns black and the screen blend drops it out, leaving only
+ * the artwork glowing. The blend is kept local by `isolate` and composited
+ * against a stand-in painted in the card's own color, which gives the same
+ * result as blending onto the card itself. The tilted layer bleeds past the
+ * card; the card's overflow-hidden masks it.
+ *
+ * A clip only plays while its card is on screen (and never under reduced
+ * motion), so an off-screen card in the deck isn't decoding video.
+ */
+function CardBackdrop({ index, media }: { index: number; media: string }) {
+  const reduced = usePrefersReducedMotion();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const { ref, inView } = useInView<HTMLDivElement>({ once: false, threshold: 0 });
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (inView && !reduced) {
+      v.play().catch(() => {});
+      return;
+    }
+    v.pause();
+    try {
+      v.currentTime = 0;
+    } catch {
+      /* not seekable yet — the first frame shows anyway */
+    }
+  }, [inView, reduced]);
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none absolute inset-y-[-18%] right-[-8%] z-0 w-[62%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-4 sm:w-auto sm:aspect-[4/5]"
+    >
+      <div className="relative isolate h-full w-full">
+        <div className="absolute inset-0 bg-navy-soft" />
+        <EditableImage
+          path={`home.services.${index}.media`}
+          raw={media}
+          src={resolveImage(media, 700, 900)}
+          alt=""
+          className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
+          playbackRate={0.75}
+          autoPlayVideo={false}
+          videoRef={videoRef}
+        />
+      </div>
+    </div>
   );
 }
 
