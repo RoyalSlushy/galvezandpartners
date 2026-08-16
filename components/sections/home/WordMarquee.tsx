@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import EditableLines from "@/components/admin/editable/EditableLines";
+import { GlyphMark, useGlyphMap } from "@/components/ui/Glyph";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 /**
  * Velocity-reactive marquee band under the hero: a run of giant display-type
- * words (alternating gold fill / gold outline) drifts left forever. Scrolling
+ * words (alternating gold fill / gold outline), separated by the house initials
+ * alternating G / P and canted 45° counterclockwise, drifts left forever. Scrolling
  * pushes it — scroll down and it accelerates (with a slight italic skew),
  * scroll up and it flows backwards — then it eases back to its idle drift.
  * Hovering (or focusing into) the band eases it to a stop (WCAG 2.2.2).
@@ -27,6 +29,10 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
   const words = useCmsValue("home.marqueeWords", serverWords);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  // Looked up once here (rather than per separator) so the run stays cheap to
+  // re-render; GlyphMark renders nothing without an uploaded SVG, so the plain
+  // letter is drawn instead until the Letters panel has a G / P.
+  const glyphs = useGlyphMap();
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [copies, setCopies] = useState(2);
@@ -126,20 +132,37 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
           : "flex w-max shrink-0 items-center"
       }
     >
-      {words.map((w, i) => (
-        <span key={i} className="flex items-center">
-          <span
-            className={`px-6 font-display text-f4 lowercase leading-none sm:px-10 ${
-              i % 2 === 0 ? "text-gold" : "text-stroke-gold"
-            }`}
-          >
-            {w}
+      {words.map((w, i) => {
+        // Separator: the house initials, alternating G / P, canted 45° CCW.
+        const initial = i % 2 === 0 ? "G" : "P";
+        return (
+          <span key={i} className="flex items-center">
+            <span
+              className={`px-6 font-display text-f4 lowercase leading-none sm:px-10 ${
+                i % 2 === 0 ? "text-gold" : "text-stroke-gold"
+              }`}
+            >
+              {w}
+            </span>
+            <span
+              aria-hidden
+              className="inline-flex shrink-0 -rotate-45 items-center justify-center"
+            >
+              {glyphs.has(initial) ? (
+                <GlyphMark
+                  char={initial}
+                  tintClassName="bg-white/20"
+                  className="block h-6 w-6 sm:h-8 sm:w-8"
+                />
+              ) : (
+                <span className="font-display text-2xl leading-none text-white/20 sm:text-3xl">
+                  {initial}
+                </span>
+              )}
+            </span>
           </span>
-          <span aria-hidden className="text-2xl text-white/20 sm:text-3xl">
-            ✦
-          </span>
-        </span>
-      ))}
+        );
+      })}
     </div>
   );
 
