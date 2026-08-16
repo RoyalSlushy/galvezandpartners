@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
-import { GlyphNumber } from "@/components/ui/Glyph";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -103,7 +102,7 @@ export default function MulticulturalReveal({
     );
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy py-24 sm:py-32">
+    <section className="relative flex min-h-viewport w-full items-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy py-16 sm:py-24">
       {/* Soft gold glow anchoring the manifesto */}
       <div
         aria-hidden
@@ -127,16 +126,18 @@ export default function MulticulturalReveal({
             />
           ) : (
             <h2 className="font-display leading-[0.95] text-white">
-              {multicultural.titleLines.map((line, i, all) => (
-                <span
-                  key={i}
-                  className={`block text-f2 ${i === 0 ? "lowercase" : ""} ${
-                    i === all.length - 1 ? "text-gold" : ""
-                  }`}
-                >
-                  {splitWords(tv(line))}
-                </span>
-              ))}
+              {multicultural.titleLines.map((line, i, all) =>
+                i === all.length - 1 ? (
+                  // Payoff line, set edge to edge across the column.
+                  <FitLine key={i} className="block text-f2 text-gold" refit={tv(line)}>
+                    {splitWords(tv(line))}
+                  </FitLine>
+                ) : (
+                  <span key={i} className={`block text-f2 ${i === 0 ? "lowercase" : ""}`}>
+                    {splitWords(tv(line))}
+                  </span>
+                ),
+              )}
             </h2>
           )}
           {editMode ? (
@@ -171,7 +172,77 @@ export default function MulticulturalReveal({
   );
 }
 
-/** Card with a gold spotlight that follows the cursor and a ghost numeral. */
+/**
+ * One title line scaled up until it spans its column exactly, edge to edge.
+ * The class-driven size is only a starting point: the natural width of the
+ * (nowrap) text is measured at that size and the font-size is scaled by the
+ * ratio to the available width, so the fit survives a resize, a locale swap
+ * (Spanish sets a different word), and the web fonts landing after first paint.
+ * Edit mode keeps the plain editable block, so this never runs while typing.
+ */
+function FitLine({
+  className,
+  refit,
+  children,
+}: {
+  className?: string;
+  /** Line text — re-measures when the copy or locale changes. */
+  refit: string;
+  children: React.ReactNode;
+}) {
+  const outer = useRef<HTMLSpanElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const box = outer.current;
+    const text = inner.current;
+    if (!box || !text) return;
+
+    let raf = 0;
+    let lastWidth = -1;
+
+    const fit = () => {
+      // Drop back to the class-driven size so the measurement is of the text
+      // itself and not of the previous fit.
+      box.style.fontSize = "";
+      const avail = box.clientWidth;
+      const natural = text.getBoundingClientRect().width;
+      if (avail <= 0 || natural <= 0) return;
+      lastWidth = avail;
+      const base = parseFloat(getComputedStyle(box).fontSize);
+      box.style.fontSize = `${Math.floor(((base * avail) / natural) * 100) / 100}px`;
+    };
+    const schedule = (force = false) => {
+      // Resizing fires again on our own font-size change (the line box grows);
+      // only a real column-width change is worth re-fitting.
+      if (!force && outer.current?.clientWidth === lastWidth) return;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    };
+
+    schedule(true);
+    const ro = new ResizeObserver(() => schedule());
+    ro.observe(box);
+    // Fitting against a fallback font leaves the line short (or overflowing)
+    // once the real display face arrives.
+    document.fonts?.ready.then(() => schedule(true)).catch(() => {});
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      box.style.fontSize = "";
+    };
+  }, [refit]);
+
+  return (
+    <span ref={outer} className={className}>
+      <span ref={inner} className="inline-block whitespace-nowrap">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/** Card with a gold spotlight that follows the cursor. */
 function SpotlightCard({
   index,
   count,
@@ -210,16 +281,6 @@ function SpotlightCard({
             "radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), rgba(230,179,103,0.13), transparent 70%)",
         }}
       />
-      {/* Ghost numeral */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-2 -top-6 font-display text-[7rem] leading-none text-white/[0.045] transition-colors duration-300 group-hover:text-gold/10"
-      >
-        <GlyphNumber
-          value={`0${index + 1}`}
-          tintClassName="bg-white/[0.045] transition-colors duration-300 group-hover:bg-gold/10"
-        />
-      </span>
       {editMode && (
         <ListControls
           listPath="home.multicultural.cards"
@@ -234,7 +295,7 @@ function SpotlightCard({
           path={`home.multicultural.cards.${index}.title`}
           value={tv(card.title)}
           as="h3"
-          className="font-heading text-f7 lowercase text-gold"
+          className="font-heading text-f7 uppercase text-gold"
         />
         <EditableText
           path={`home.multicultural.cards.${index}.body`}

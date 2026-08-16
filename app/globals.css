@@ -498,6 +498,12 @@
   height: 100vh;
   height: 100svh;
 }
+/* Same, as a floor — the block still grows past the viewport when its content
+   (a stacked card column on a short/narrow screen) needs more room. */
+.min-h-viewport {
+  min-height: 100vh;
+  min-height: 100svh;
+}
 
 /* Our Works: the site header stays pinned at the top while the cases
    scroll-jack plays, then slides up out of view as the gallery scrolls in.
