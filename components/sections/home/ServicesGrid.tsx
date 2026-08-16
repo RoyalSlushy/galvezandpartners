@@ -4,26 +4,34 @@ import { useEffect, useRef } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
-import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Service } from "@/content/home";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMediaQuery } from "@/components/ui/useMediaQuery";
+import { useInView } from "@/components/ui/useInView";
 
 /**
- * "What We Can Do For YOU." — the services list as a sticky stacking deck:
- * each numbered card pins near the top of the viewport and the next one
- * slides over it while the covered card eases back (scale + dim), so the
- * services pile up like a hand of cards. Cards taller than the viewport pin
- * bottom-aligned instead so no copy is ever stuck off-screen, and keyboard
- * focus into a covered card scrolls it back into view. Edit mode and reduced
- * motion render the same cards as a plain vertical list (all CMS affordances
- * intact).
+ * "What We Can Do For YOU." — the services list, presented two ways.
+ *
+ * On tablet and up it is a sticky stacking deck: each card pins near the top
+ * of the viewport and the next one slides over it while the covered card eases
+ * back (scale + dim), so the services pile up like a hand of cards. Cards
+ * taller than the viewport pin bottom-aligned instead so no copy is ever stuck
+ * off-screen, and keyboard focus into a covered card scrolls it back into view.
+ *
+ * On phones the stack has no room to read, so the cards sweep into the column
+ * instead — each one slides to center as it scrolls in, alternating from the
+ * left and from the right.
+ *
+ * Edit mode and reduced motion render the same cards as a plain vertical list
+ * (all CMS affordances intact).
  */
 const TOP_BASE = 76; // px sticky offset of the first card
 const TOP_STEP = 14; // px extra offset per card, so stacked edges peek out
+const PHONE = "(max-width: 639px)"; // below Tailwind's `sm`
 
 export default function ServicesGrid({
   services: serverServices,
@@ -39,11 +47,14 @@ export default function ServicesGrid({
   const eyebrow = useCmsValue("home.worksEyebrow", serverEyebrow);
   const editMode = useEditMode();
   const reduced = usePrefersReducedMotion();
+  const phone = useMediaQuery(PHONE);
   const t = useT();
   const tv = useEditableT();
   const deckRef = useRef<HTMLDivElement>(null);
 
-  const stacked = !editMode && !reduced;
+  const animate = !editMode && !reduced;
+  const stacked = animate && !phone;
+  const sweep = animate && phone;
 
   // As card i+1 approaches card i's pinned position, ease card i back.
   useEffect(() => {
@@ -141,12 +152,21 @@ export default function ServicesGrid({
           />
         </RevealOnScroll>
 
-        <div ref={deckRef} className="mt-14 flex flex-col gap-8">
+        <div
+          ref={deckRef}
+          className={`mt-14 flex flex-col gap-8 ${
+            // Contains the off-canvas half of the sweep. Only ever set while
+            // sweeping — an overflow container would kill the sticky stack.
+            sweep ? "overflow-hidden" : ""
+          }`}
+        >
           {services.map((s, i) => (
-            <div
+            <DeckSlot
               key={i}
-              className={stacked ? "sticky" : undefined}
-              style={stacked ? { top: `${TOP_BASE + i * TOP_STEP}px` } : undefined}
+              index={i}
+              stacked={stacked}
+              sweep={sweep}
+              top={TOP_BASE + i * TOP_STEP}
             >
               <article
                 style={stacked ? { transformOrigin: "top center" } : undefined}
@@ -166,34 +186,26 @@ export default function ServicesGrid({
                     className="right-2 top-2"
                   />
                 )}
-                <div className="relative grid gap-6 sm:grid-cols-[minmax(7rem,auto)_1fr] sm:gap-12">
-                  <span
-                    aria-hidden
-                    className="font-display text-[4.5rem] leading-none text-stroke-gold opacity-70 sm:text-[7rem]"
-                  >
-                    <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-gold" />
-                  </span>
-                  <div className="flex flex-col items-start">
-                    <EditableText
-                      path={`home.services.${i}.title`}
-                      value={tv(s.title)}
-                      as="h3"
-                      className="font-heading text-f7 leading-tight text-gold"
-                    />
-                    <EditableText
-                      path={`home.services.${i}.description`}
-                      value={tv(s.description)}
-                      as="p"
-                      multiline
-                      className="mt-4 max-w-3xl whitespace-pre-line font-body text-f9 text-white/75"
-                    />
-                    <Button href="/contact-us" variant="outline" className="mt-8 text-sm">
-                      {t("View More")}
-                    </Button>
-                  </div>
+                <div className="relative flex flex-col items-start">
+                  <EditableText
+                    path={`home.services.${i}.title`}
+                    value={tv(s.title)}
+                    as="h3"
+                    className="font-heading text-f7 leading-tight text-gold"
+                  />
+                  <EditableText
+                    path={`home.services.${i}.description`}
+                    value={tv(s.description)}
+                    as="p"
+                    multiline
+                    className="mt-4 max-w-3xl whitespace-pre-line font-body text-f9 text-white/75"
+                  />
+                  <Button href="/contact-us" variant="outline" className="mt-8 text-sm">
+                    {t("View More")}
+                  </Button>
                 </div>
               </article>
-            </div>
+            </DeckSlot>
           ))}
         </div>
         {editMode && (
@@ -203,5 +215,50 @@ export default function ServicesGrid({
         )}
       </Container>
     </section>
+  );
+}
+
+/**
+ * One slot in the deck. On phones it sweeps its card to center the first time
+ * the slot scrolls in — odd cards from the left, even cards from the right —
+ * and stays put afterwards, so scrolling back up doesn't replay it. On wider
+ * screens it is the plain sticky slot the stacking effect measures and drives
+ * (which reads `deck.children` and each slot's `firstElementChild`, so this
+ * stays exactly one wrapper element deep in both modes).
+ */
+function DeckSlot({
+  index,
+  stacked,
+  sweep,
+  top,
+  children,
+}: {
+  index: number;
+  stacked: boolean;
+  sweep: boolean;
+  top: number;
+  children: React.ReactNode;
+}) {
+  const { ref, inView } = useInView<HTMLDivElement>();
+  const resting = inView || !sweep;
+
+  return (
+    <div
+      ref={ref}
+      className={
+        sweep
+          ? `transition-[opacity,transform] duration-700 ease-out will-change-[opacity,transform] ${
+              resting
+                ? "translate-x-0 opacity-100"
+                : `opacity-0 ${index % 2 === 0 ? "-translate-x-[65%]" : "translate-x-[65%]"}`
+            }`
+          : stacked
+            ? "sticky"
+            : ""
+      }
+      style={stacked ? { top: `${top}px` } : undefined}
+    >
+      {children}
+    </div>
   );
 }
