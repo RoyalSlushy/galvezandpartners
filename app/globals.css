@@ -1,3 +1,8 @@
+/* Spring easing tokens, sampled from Remotion's spring solver at build time
+   (see scripts/generate-motion-curves.mjs). Must lead the file: @import may
+   only be preceded by @charset. */
+@import "./motion-curves.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -485,11 +490,23 @@
    .wordfill-armed once its effect is live and toggles [data-lit] per word as
    the block travels up the viewport — without JS the text stays fully lit. */
 .wordfill-armed [data-word] {
+  display: inline-block;
   opacity: 0.15;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.45s ease, transform var(--spring-soft-ms) var(--spring-soft),
+    filter 0.45s ease;
 }
 .wordfill-armed [data-word][data-lit] {
   opacity: 1;
+  transform: none;
+  filter: none;
+}
+/* Kinetic: an unlit word is also still on its way in — it rises into place and
+   sharpens as the fill reaches it, on the generated spring curve. */
+:root[data-gp-motion="kinetic"] .wordfill-armed [data-word] {
+  transform: translate3d(0, 0.22em, 0);
+  filter: blur(3px);
+  transition-timing-function: ease, var(--spring-bounce), ease;
+  transition-duration: 0.45s, var(--spring-bounce-ms), 0.45s;
 }
 
 /* Full-viewport height with a vh fallback for browsers without svh

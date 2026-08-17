@@ -8,7 +8,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 type Multicultural = {
   titleLines: string[];
@@ -20,7 +20,9 @@ type Multicultural = {
  * "the multi-cultural / Agency doing / big things" manifesto. The title and
  * intro are split into words that ink-fill one by one as the block travels up
  * the viewport (scroll-linked, runs both directions); the 3-card row gets a
- * cursor-tracked gold spotlight. Edit mode falls back to the plain editable
+ * cursor-tracked gold spotlight. Under the kinetic motion style each word also
+ * rises and sharpens as the fill reaches it (see .wordfill-armed in
+ * globals.css); under minimal the copy is simply lit. Edit mode falls back to the plain editable
  * block so the CMS behaves exactly as before; reduced motion (and no-JS —
  * the dimming only arms once the effect runs) renders every word lit.
  */
@@ -31,7 +33,8 @@ export default function MulticulturalReveal({
 }) {
   const multicultural = useCmsValue("home.multicultural", serverMulticultural);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const motion = useMotionStyle();
   const t = useT();
   const tv = useEditableT();
   const fillRef = useRef<HTMLDivElement>(null);
@@ -40,7 +43,9 @@ export default function MulticulturalReveal({
   // viewport, p=1 once its bottom clears ~45%. Words toggle a data-lit
   // attribute directly (no React re-render per frame).
   useEffect(() => {
-    if (editMode || reduced) return;
+    // "minimal" keeps the copy lit and lets the block's own arrival carry it —
+    // the word-by-word fill is the section's signature move, not its baseline.
+    if (editMode || reduced || motion === "minimal") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const root = fillRef.current;
     if (!root) return;
@@ -86,7 +91,7 @@ export default function MulticulturalReveal({
     };
     // `t` is included so the word list is re-measured when the locale (and thus
     // the translated word count) changes.
-  }, [editMode, reduced, multicultural.titleLines, multicultural.intro, t]);
+  }, [editMode, reduced, motion, multicultural.titleLines, multicultural.intro, t]);
 
   // Split into fillable word spans, preserving admin-authored newlines
   // (multiline fields render with whitespace-pre-line).

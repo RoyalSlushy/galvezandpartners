@@ -5,7 +5,7 @@ import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import { GlyphMark, useGlyphMap } from "@/components/ui/Glyph";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 /**
  * Velocity-reactive marquee band under the hero: a run of giant display-type
@@ -17,14 +17,27 @@ import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
  *
  * The run is duplicated just enough times to cover any viewport, and the
  * offset wraps modulo one run width, so the loop is seamless in both
- * directions. Edit mode swaps in a static, line-editable block; reduced
- * motion renders the words as a static wrapped row.
+ * directions. Edit mode swaps in a static, line-editable block; motion off
+ * renders the words as a static wrapped row.
+ *
+ * The site-wide motion setting picks how the band behaves (see TUNING):
+ * classic is the scroll-pushed drift described above, kinetic pushes harder
+ * and rides a vertical wave through the words, minimal is a plain constant
+ * drift that ignores scrolling entirely.
  */
-const IDLE_SPEED = 70; // px/s leftward drift
-const VELOCITY_GAIN = 5; // marquee px per page-scroll px (before smoothing)
-const MAX_BOOST = 2600; // px/s cap on the scroll-driven boost
-const SKEW_PER_SPEED = 0.004; // deg of skew per px/s of boost
-const MAX_SKEW = 9; // deg
+
+/** Per-motion-style tuning of the band. */
+const TUNING = {
+  classic: { idle: 70, gain: 5, maxBoost: 2600, skewPer: 0.004, maxSkew: 9, wave: 0 },
+  kinetic: { idle: 105, gain: 9, maxBoost: 4200, skewPer: 0.007, maxSkew: 16, wave: 10 },
+  minimal: { idle: 45, gain: 0, maxBoost: 0, skewPer: 0, maxSkew: 0, wave: 0 },
+} as const;
+
+/** How fast the kinetic wave travels through the run, in radians per second. */
+const WAVE_RATE = 1.7;
+/** Phase offset between neighbouring words, so the wave reads as a travelling
+ * ripple rather than the whole band bobbing as one. */
+const WAVE_STEP = 0.55;
 
 /**
  * Marquee separator: a house letterform ("G" or "P") tipped 45° counter-
@@ -51,7 +64,8 @@ function MarqueeGlyph({ char }: { char: string }) {
 export default function WordMarquee({ words: serverWords }: { words: string[] }) {
   const words = useCmsValue("home.marqueeWords", serverWords);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const motion = useMotionStyle();
   const t = useT();
 
   const trackRef = useRef<HTMLDivElement>(null);
@@ -83,6 +97,12 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     const track = trackRef.current;
     if (!track) return;
     const band = track.parentElement;
+    const tune = TUNING[motion === "off" ? "classic" : motion];
+    // Only the kinetic style rides the wave, so only it pays for the per-word
+    // walk every frame.
+    const waveEls = tune.wave
+      ? Array.from(track.querySelectorAll<HTMLElement>("[data-wave]"))
+      : [];
 
     let offset = 0;
     let boost = 0; // eased scroll-velocity contribution, px/s (signed)
@@ -90,6 +110,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     let pauseTarget = 0;
     let lastY = window.scrollY;
     let last: number | null = null;
+    let elapsed = 0;
     let raf = 0;
 
     const hold = () => (pauseTarget = 1);
@@ -110,21 +131,29 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
 
       // Feed scroll movement in, then decay toward idle.
       if (dt > 0) {
-        boost += dy * VELOCITY_GAIN;
-        boost = Math.max(-MAX_BOOST, Math.min(MAX_BOOST, boost));
+        boost += dy * tune.gain;
+        boost = Math.max(-tune.maxBoost, Math.min(tune.maxBoost, boost));
         boost *= Math.exp(-dt * 4);
         pause += (pauseTarget - pause) * Math.min(1, dt * 5);
       }
+      elapsed += dt;
 
       const run = track.querySelector<HTMLElement>("[data-run]");
       const runW = run?.offsetWidth ?? 0;
       if (runW > 0) {
         const speedFactor = 1 - pause;
-        offset -= (IDLE_SPEED + boost) * speedFactor * dt;
+        offset -= (tune.idle + boost) * speedFactor * dt;
         offset = ((offset % runW) - runW) % runW; // keep in (-runW, 0]
         const skew =
-          Math.max(-MAX_SKEW, Math.min(MAX_SKEW, -boost * SKEW_PER_SPEED)) * speedFactor;
+          Math.max(-tune.maxSkew, Math.min(tune.maxSkew, -boost * tune.skewPer)) * speedFactor;
         track.style.transform = `translate3d(${offset}px,0,0) skewX(${skew}deg)`;
+
+        // Kinetic: a sine wave walks along the run, each word a step further
+        // through it, and flattens out as the band is held still.
+        for (let i = 0; i < waveEls.length; i++) {
+          const y = Math.sin(elapsed * WAVE_RATE - i * WAVE_STEP) * tune.wave * speedFactor;
+          waveEls[i].style.transform = `translate3d(0,${y.toFixed(2)}px,0)`;
+        }
       }
 
       raf = requestAnimationFrame(tick);
@@ -132,14 +161,15 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
-      // The edit-mode/reduced-motion branches reuse this DOM node — leave it clean.
+      // The edit-mode/motion-off branches reuse these nodes — leave them clean.
       track.style.transform = "";
+      for (const el of waveEls) el.style.transform = "";
       band?.removeEventListener("mouseenter", hold);
       band?.removeEventListener("mouseleave", release);
       band?.removeEventListener("focusin", hold);
       band?.removeEventListener("focusout", release);
     };
-  }, [animate, copies, words, t]);
+  }, [animate, motion, copies, words, t]);
 
   const run = (ariaHidden: boolean, key: number, wrap = false) => (
     <div
@@ -153,7 +183,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
       }
     >
       {words.map((w, i) => (
-        <span key={i} className="flex items-center">
+        <span key={i} data-wave className="flex items-center will-change-transform">
           <span
             className={`px-6 font-display text-f4 lowercase leading-none sm:px-10 ${
               i % 2 === 0 ? "text-gold" : "text-stroke-gold"

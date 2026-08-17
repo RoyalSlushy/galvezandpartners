@@ -17,7 +17,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 
 // Card width doubly capped by viewport height (cards are 4:5) so heading +
 // track + progress line always fit inside one viewport under the header.
@@ -65,7 +65,7 @@ export default function WorkShowcase({
   const items = useCmsValue("work.items", serverItems);
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
   const t = useT();
   // Case-study titles are brand names and stay untranslated.
   const tv = useEditableT();

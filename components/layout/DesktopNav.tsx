@@ -7,6 +7,7 @@ import NavLinks from "./NavLinks";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import EditableText from "@/components/admin/editable/EditableText";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 
@@ -114,10 +115,14 @@ export default function DesktopNav({
           </div>
         </div>
 
-        {/* Connect + language selector always stacked, spread to the column height. */}
+        {/* Connect + the two "how would you like to be shown this" settings,
+            spread to the column height. */}
         <div className="flex h-16 flex-col items-end justify-between sm:h-24">
           <Button href="/contact-us" className="text-lg">{t("Connect")}</Button>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-5">
+            <MotionSwitcher />
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </div>

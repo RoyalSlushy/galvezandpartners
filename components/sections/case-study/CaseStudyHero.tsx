@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { focusPosition, wixImage, wixImageFit } from "@/lib/wix";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 
 /** How long each slide is held before crossfading to the next. */
 const SLIDE_MS = 5000;
@@ -63,7 +63,7 @@ export default function CaseStudyHero({
   scrollLabel: string;
   className?: string;
 }) {
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
 
   const slides = gallery.filter(Boolean).slice(0, MAX_SLIDES);
   const [active, setActive] = useState(0);

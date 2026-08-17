@@ -11,7 +11,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 import { useMediaQuery } from "@/components/ui/useMediaQuery";
 import { useInView } from "@/components/ui/useInView";
 
@@ -48,15 +48,20 @@ export default function ServicesGrid({
   const heading = useCmsValue("home.servicesHeading", serverHeading);
   const eyebrow = useCmsValue("home.worksEyebrow", serverEyebrow);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const motion = useMotionStyle();
   const phone = useMediaQuery(PHONE);
   const t = useT();
   const tv = useEditableT();
   const deckRef = useRef<HTMLDivElement>(null);
 
   const animate = !editMode && !reduced;
-  const stacked = animate && !phone;
-  const sweep = animate && phone;
+  // classic — stack on desktop, sweep on phones (the stack has no room there).
+  // kinetic — sweep everywhere; the cards arriving from alternating sides is
+  //           the more physical read of the same list.
+  // minimal — neither; the cards are a plain column that fades in.
+  const stacked = animate && motion === "classic" && !phone;
+  const sweep = animate && (motion === "kinetic" || (motion === "classic" && phone));
 
   // Index of the card sitting most centrally in the viewport — the only one
   // whose backdrop clip is allowed to run (see CardBackdrop). null when the
@@ -305,7 +310,7 @@ export default function ServicesGrid({
  * runs to its end, then rests on the first frame.
  */
 function CardBackdrop({ index, media, active }: { index: number; media: string; active: boolean }) {
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Rewind once a pass finishes. Only reached after the card loses the center,

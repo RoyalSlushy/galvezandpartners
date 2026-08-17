@@ -7,6 +7,7 @@ import type { NavItem, Social } from "@/content/site";
 import SocialIcons from "@/components/ui/SocialIcons";
 import Button from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import { useT } from "@/components/i18n/LocaleProvider";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import EditableImage from "@/components/admin/editable/EditableImage";
@@ -398,7 +399,10 @@ export default function MobileMenu({
               shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
           >
-            <LanguageSwitcher />
+            <div className="flex items-center gap-4">
+              <LanguageSwitcher />
+              <MotionSwitcher />
+            </div>
             <SocialIcons socials={socials} />
           </div>
         </nav>
