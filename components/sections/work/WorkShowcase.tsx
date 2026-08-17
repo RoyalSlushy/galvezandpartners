@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
-import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import useFitText from "@/components/ui/useFitText";
 import { useMinWidth } from "@/components/ui/useMinWidth";
 import GutterRail from "@/components/ui/GutterRail";
@@ -18,6 +17,7 @@ import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { useMotionOff } from "@/components/motion/MotionProvider";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
 // Card width doubly capped by viewport height (cards are 4:5) so heading +
 // track + progress line always fit inside one viewport under the header.
@@ -66,6 +66,7 @@ export default function WorkShowcase({
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
   const reduced = useMotionOff();
+  const phase = useRevealPhase();
   const t = useT();
   // Case-study titles are brand names and stay untranslated.
   const tv = useEditableT();
@@ -737,6 +738,7 @@ export default function WorkShowcase({
     return (
       <section
         key="ws-static"
+        data-gp-hero={phase ?? undefined}
         id="work-cases"
         className={`relative w-full overflow-hidden bg-navy ${
           editMode
@@ -746,9 +748,9 @@ export default function WorkShowcase({
       >
         <GalleryRail label={tv("gallery")} />
         <Container>
-          <RevealOnScroll>
+          <div data-hero-rise>
             <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
-          </RevealOnScroll>
+          </div>
         </Container>
         <div
           ref={scrollRowRef}
@@ -800,13 +802,19 @@ export default function WorkShowcase({
           the gallery section below, whose band opens directly off it. */}
       <div
         ref={stickyRef}
+        data-gp-hero={phase ?? undefined}
         className="sticky top-[var(--header-h)] overflow-hidden"
         style={{ height: `calc(100svh - var(--header-h) - ${BAND_LEAD}px)` }}
       >
         <div className="flex h-full flex-col justify-center pt-2">
           <GalleryRail label={tv("gallery")} />
+          {/* The heading arrives rather than climbing out of a clip: its
+              accented word wears a halo that spills outside the text box, and a
+              clip is exactly what that cannot have. */}
           <Container>
-            <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
+            <div data-hero-rise>
+              <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
+            </div>
           </Container>
           {/* Accordion row: the active panel is 5:4 and anchored to the body's
               left edge (aligned with the heading and the gallery below). The row
@@ -905,6 +913,8 @@ export default function WorkShowcase({
           <Container className="mt-4">
             <p
               ref={descRef}
+              data-hero-rise
+              style={{ ["--d" as string]: "220ms" }}
               className="line-clamp-2 max-w-xl font-body text-sm leading-relaxed text-white/70 transition-opacity duration-300"
             >
               {tv(items[0]?.description ?? "")}

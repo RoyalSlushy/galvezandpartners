@@ -561,6 +561,25 @@
     opacity: 1;
   }
 }
+/* A button opening outward from its own middle. The window is what expands —
+   the label is revealed at its final size rather than being scaled up out of a
+   blur, which is what scaling the element itself would do to the type. The
+   slight scale underneath gives the edges something to arrive with. */
+@keyframes gp-hero-open {
+  from {
+    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
 /* Held at the start of the sequence between hydration and the veil lifting.
    Both states are client-only — the server sends no attribute at all. */
@@ -568,8 +587,12 @@
   clip-path: inset(0 0 100% 0);
 }
 [data-gp-hero="wait"] [data-hero-line] > *,
-[data-gp-hero="wait"] [data-hero-rise] {
+[data-gp-hero="wait"] [data-hero-rise],
+[data-gp-hero="wait"] [data-hero-open] {
   opacity: 0;
+}
+[data-gp-hero="wait"] [data-hero-open] {
+  clip-path: inset(0 50% 0 50%);
 }
 
 [data-gp-hero="in"] [data-hero-wipe] {
@@ -584,11 +607,19 @@
   animation: gp-hero-rise var(--spring-soft-ms) var(--spring-soft) both;
   animation-delay: var(--d, 0ms);
 }
+/* `backwards`, not `both`: once it has played, the clip is released entirely
+   rather than being held at inset(0) — which would clip the focus ring off the
+   button it just opened. */
+[data-gp-hero="in"] [data-hero-open] {
+  animation: gp-hero-open var(--spring-soft-ms) var(--spring-soft) backwards;
+  animation-delay: var(--d, 0ms);
+}
 
 /* Kinetic: the same choreography with more travel and a curve that overshoots
    and settles. */
 :root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-line] > *,
-:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-rise] {
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-open] {
   animation-duration: var(--spring-bounce-ms);
   animation-timing-function: var(--spring-bounce);
 }
@@ -596,19 +627,22 @@
 /* Minimal: everything simply resolves. No wipe, no climb. */
 :root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-wipe],
 :root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-line] > *,
-:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-rise] {
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-open] {
   animation: gp-hero-fade 620ms var(--ease-out-expo) both;
   animation-delay: var(--d, 0ms);
   clip-path: none;
 }
-:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-wipe] {
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-open] {
   clip-path: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   [data-gp-hero] [data-hero-wipe],
   [data-gp-hero] [data-hero-line] > *,
-  [data-gp-hero] [data-hero-rise] {
+  [data-gp-hero] [data-hero-rise],
+  [data-gp-hero] [data-hero-open] {
     animation: none !important;
     clip-path: none !important;
     opacity: 1 !important;

@@ -12,6 +12,7 @@ import LanderPhotoCards from "./LanderPhotoCards";
 import { useMinWidth } from "@/components/ui/useMinWidth";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
 const LANDER_PATH = "team.lander.images";
 
@@ -54,6 +55,7 @@ export default function TeamHero({
   const editMode = useEditMode();
   const t = useT();
   const tv = useEditableT();
+  const phase = useRevealPhase();
   // A trail needs a cursor to follow, and a phone has none — a drag paints one,
   // but nothing at all is shown to a visitor who only scrolls. Below the
   // breakpoint the photographs are dealt out and left to drift instead, which
@@ -121,6 +123,7 @@ export default function TeamHero({
   return (
     <section
       aria-label={tv(heading)}
+      data-gp-hero={phase ?? undefined}
       style={{ height: "calc(100svh - var(--header-h))" }}
       className="relative w-full overflow-hidden bg-navy"
     >
@@ -191,12 +194,26 @@ export default function TeamHero({
                 <GlyphNumber value={initial} tintClassName="bg-white/[0.06]" />
               </span>
             )}
-            <h1 className="relative font-heading text-f3 leading-none text-white [text-wrap:balance]">
-              {tv(heading)}
-            </h1>
-            <span aria-hidden className="relative mt-5 block h-1 w-16 bg-gold" />
+            {/* The landing beat: the name climbs out from behind its own edge,
+                the rule draws outward from its middle, then the line under it
+                arrives. */}
+            <div data-hero-line className="relative overflow-hidden">
+              <h1 className="font-heading text-f3 leading-none text-white [text-wrap:balance]">
+                {tv(heading)}
+              </h1>
+            </div>
+            <span
+              aria-hidden
+              data-hero-open
+              style={{ ["--d" as string]: "260ms" }}
+              className="relative mt-5 block h-1 w-16 bg-gold"
+            />
             {subtitle && (
-              <p className="relative mt-5 max-w-xl font-body text-base leading-relaxed text-white/80 [text-wrap:pretty] sm:text-lg">
+              <p
+                data-hero-rise
+                style={{ ["--d" as string]: "400ms" }}
+                className="relative mt-5 max-w-xl font-body text-base leading-relaxed text-white/80 [text-wrap:pretty] sm:text-lg"
+              >
                 {tv(subtitle)}
               </p>
             )}
