@@ -39,9 +39,10 @@ const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,40vh)] md:w-[
  * Our Works page. Keyboard focus inside the track auto-scrolls the page so
  * the focused card is actually in view.
  *
- * The site-wide motion setting picks the treatment: classic is the pinned
- * gallery described above, kinetic doubles the counter-parallax and leans each
- * card into the travel, minimal skips the pin for the plain snap row.
+ * The site-wide motion setting picks the treatment: the pinned gallery
+ * described above, or — under minimal — the plain snap row instead. Kinetic
+ * reads the same as classic here: the case cards carry photography, and leaning
+ * or over-travelling them fought the images rather than serving them.
  *
  * Edit mode and motion off swap in that same native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
@@ -70,10 +71,8 @@ export default function FeaturedWork({
   // Minimal keeps the native snap row (which is also the edit-mode and
   // motion-off fallback) — no scroll-jacking, just a gallery you push.
   const pinned = !editMode && !reduced && motion !== "minimal";
-  // How hard the images counter-travel against the track, and whether the cards
-  // themselves tilt into the movement.
-  const parallax = motion === "kinetic" ? 78 : 34;
-  const tiltPerRatio = motion === "kinetic" ? 5 : 0;
+  /** How hard the images counter-travel against the track. */
+  const parallax = 34;
 
   useEffect(() => {
     if (!pinned) return;
@@ -115,15 +114,6 @@ export default function FeaturedWork({
         const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
         const shift = Math.max(-cap, Math.min(cap, ratio * parallax));
         el.style.transform = `translateX(${shift}px) scale(1.12)`;
-        // Kinetic: each card leans by how far it sits from the middle, so the
-        // row reads as one piece of card stock bending through the viewport.
-        if (tiltPerRatio) {
-          const card = el.closest<HTMLElement>("[data-card]");
-          if (card) {
-            const tilt = Math.max(-1, Math.min(1, ratio * 2)) * tiltPerRatio;
-            card.style.transform = `perspective(1200px) rotateY(${(-tilt).toFixed(2)}deg)`;
-          }
-        }
       }
     };
     const onScroll = () => {
@@ -162,13 +152,9 @@ export default function FeaturedWork({
       section.style.height = "";
       track.style.transform = "";
       bar.style.transform = "";
-      for (const el of parallaxEls) {
-        el.style.transform = "scale(1.12)";
-        const card = el.closest<HTMLElement>("[data-card]");
-        if (card) card.style.transform = "";
-      }
+      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
     };
-  }, [pinned, parallax, tiltPerRatio, items.length]);
+  }, [pinned, items.length]);
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-6">
@@ -198,7 +184,7 @@ export default function FeaturedWork({
 
   const cards = items.map((w, i) => {
     const inner = (
-      <div data-card className="relative will-change-transform">
+      <div className="relative">
         {/* Giant outlined index overlapping the card */}
         <span
           aria-hidden

@@ -492,21 +492,128 @@
 .wordfill-armed [data-word] {
   display: inline-block;
   opacity: 0.15;
-  transition: opacity 0.45s ease, transform var(--spring-soft-ms) var(--spring-soft),
-    filter 0.45s ease;
+  transition: opacity 0.45s ease, transform var(--spring-soft-ms) var(--spring-soft);
 }
 .wordfill-armed [data-word][data-lit] {
   opacity: 1;
   transform: none;
-  filter: none;
 }
-/* Kinetic: an unlit word is also still on its way in — it rises into place and
-   sharpens as the fill reaches it, on the generated spring curve. */
+/* Kinetic: an unlit word is also still on its way in, rising into place as the
+   fill reaches it. No blur — at manifesto display sizes it smeared the
+   letterforms and cost a filter pass on every word in the block. */
 :root[data-gp-motion="kinetic"] .wordfill-armed [data-word] {
-  transform: translate3d(0, 0.22em, 0);
-  filter: blur(3px);
-  transition-timing-function: ease, var(--spring-bounce), ease;
-  transition-duration: 0.45s, var(--spring-bounce-ms), 0.45s;
+  transform: translate3d(0, 0.18em, 0);
+  transition-timing-function: ease, var(--spring-bounce);
+  transition-duration: 0.45s, var(--spring-bounce-ms);
+}
+
+/* ---------------------------------------------------------------------------
+   Hero entrance.
+
+   One choreographed arrival for the homepage hero, played once — when the page
+   veil lifts, not when the hero mounts (it would otherwise run behind the veil
+   and be finished before the page was ever seen). HomeHero flips
+   [data-gp-hero] to "in" on that signal and each part carries its own --d
+   delay, so the picture wipes up, the headline and sub climb out from behind
+   their own edges, and the cards settle in after them.
+
+   Curves are the generated spring tokens (see motion-curves.css), so this is
+   real spring motion rather than a bezier impression of it. Everything is
+   `both`-filled and only armed once the attribute exists, so a no-JS visitor
+   gets the finished hero and nothing else.
+   --------------------------------------------------------------------------- */
+@keyframes gp-hero-wipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: scale(1.06);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+/* The line climbs out from behind the bottom edge of its own (clipped) box. */
+@keyframes gp-hero-line {
+  from {
+    transform: translate3d(0, 110%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes gp-hero-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gp-hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Held at the start of the sequence between hydration and the veil lifting.
+   Both states are client-only — the server sends no attribute at all. */
+[data-gp-hero="wait"] [data-hero-wipe] {
+  clip-path: inset(0 0 100% 0);
+}
+[data-gp-hero="wait"] [data-hero-line] > *,
+[data-gp-hero="wait"] [data-hero-rise] {
+  opacity: 0;
+}
+
+[data-gp-hero="in"] [data-hero-wipe] {
+  animation: gp-hero-wipe 1100ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-line] > * {
+  animation: gp-hero-line var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-rise] {
+  animation: gp-hero-rise var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Kinetic: the same choreography with more travel and a curve that overshoots
+   and settles. */
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-rise] {
+  animation-duration: var(--spring-bounce-ms);
+  animation-timing-function: var(--spring-bounce);
+}
+
+/* Minimal: everything simply resolves. No wipe, no climb. */
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-rise] {
+  animation: gp-hero-fade 620ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+  clip-path: none;
+}
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-wipe] {
+  clip-path: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gp-hero] [data-hero-wipe],
+  [data-gp-hero] [data-hero-line] > *,
+  [data-gp-hero] [data-hero-rise] {
+    animation: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Full-viewport height with a vh fallback for browsers without svh
