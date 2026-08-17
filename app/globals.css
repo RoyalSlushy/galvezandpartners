@@ -1187,3 +1187,16 @@ body[data-gp-edit-mode] [data-gp-editing]:focus {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Points of interest on the Valley scene (see PhoenixScene): the scene writes
+   each pin's left/top every frame, and these rules hang the pin off its anchor
+   — the dot centred on it, the label running clear. Past the right of the
+   frame the label swaps to the other side of the dot so it cannot run off the
+   panel. */
+[data-poi] {
+  transform: translate(-7px, -50%);
+}
+[data-poi][data-flip="1"] {
+  flex-direction: row-reverse;
+  transform: translate(calc(-100% + 7px), -50%);
+}

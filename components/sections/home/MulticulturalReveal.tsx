@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Container from "@/components/ui/Container";
-import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import { POI_ANCHORS } from "@/components/sections/home/PhoenixScene";
 import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
+
+/** three.js and the scene it builds are client-only and heavy; nothing about
+ * them belongs in the server render or the shared bundle. */
+const PhoenixScene = dynamic(() => import("@/components/sections/home/PhoenixScene"), {
+  ssr: false,
+});
 
 type Multicultural = {
   titleLines: string[];
@@ -17,14 +24,27 @@ type Multicultural = {
 };
 
 /**
- * "the multi-cultural / Agency doing / big things" manifesto. The title and
- * intro are split into words that ink-fill one by one as the block travels up
- * the viewport (scroll-linked, runs both directions); the 3-card row gets a
- * cursor-tracked gold spotlight. Under the kinetic motion style each word also
- * rises and sharpens as the fill reaches it (see .wordfill-armed in
- * globals.css); under minimal the copy is simply lit. Edit mode falls back to the plain editable
- * block so the CMS behaves exactly as before; reduced motion (and no-JS —
- * the dimming only arms once the effect runs) renders every word lit.
+ * "the multi-cultural / Agency doing / big things" manifesto, over the Valley.
+ *
+ * The section is composed to a single screen: the copy takes what it needs and
+ * the scene below it takes whatever is left, so the whole thing lands inside
+ * one mobile viewport instead of running on past it.
+ *
+ * The title and intro are split into words that ink-fill one by one as the
+ * block travels up the viewport (scroll-linked, runs both directions). Under
+ * the kinetic motion style each word also rises as the fill reaches it (see
+ * .wordfill-armed in globals.css); under minimal the copy is simply lit.
+ *
+ * What used to be three cards is now three points of interest standing on the
+ * map (see PhoenixScene, which projects them onto their anchors every frame).
+ * Tapping one pulls its copy up over the scene. The cards were most of the
+ * section's height and were read in a glance and never again; as pins they
+ * cost nothing until asked for, and they give the map something to say.
+ *
+ * Edit mode keeps the plain editable card list — the copy still has to be
+ * editable, and a pin is a poor place to type. Motion off skips the scene
+ * altogether and lays the pins out as a plain list, which is also what a
+ * visitor without WebGL gets.
  */
 export default function MulticulturalReveal({
   multicultural: serverMulticultural,
@@ -107,22 +127,22 @@ export default function MulticulturalReveal({
     );
 
   return (
-    <section className="relative flex min-h-viewport w-full items-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy py-16 sm:py-24">
+    <section className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy py-10 sm:py-16">
       {/* Soft gold glow anchoring the manifesto */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-40 top-10 h-[480px] w-[480px] bg-gold/[0.07] blur-3xl"
       />
-      <Container className="relative">
-        <div ref={fillRef} className="wordfill">
+      <Container className="relative flex min-h-0 w-full flex-1 flex-col">
+        <div ref={fillRef} className="wordfill shrink-0">
           {editMode ? (
             <EditableLines
               path="home.multicultural.titleLines"
               values={multicultural.titleLines}
               as="h2"
-              className="font-display leading-[0.95] text-white"
+              className="font-display text-white"
               lineClassName={(_, i, all) =>
-                `block text-f2 ${i === 0 ? "lowercase" : ""} ${
+                `block text-f2 leading-[0.82] ${i === 0 ? "lowercase" : ""} ${
                   i === all.length - 1 ? "text-gold" : ""
                 }`
               }
@@ -130,50 +150,187 @@ export default function MulticulturalReveal({
               label="title lines"
             />
           ) : (
-            <h2 className="font-display leading-[0.95] text-white">
+            <h2 className="font-display text-white">
               {multicultural.titleLines.map((line, i, all) =>
                 i === all.length - 1 ? (
                   // Payoff line, set edge to edge across the column.
-                  <FitLine key={i} className="block text-f2 text-gold" refit={tv(line)}>
+                  <FitLine
+                    key={i}
+                    // pb clears the descenders the tight leading pulls up out
+                    // of the line box; in em, so it scales with the fit.
+                    className="block text-f2 leading-[0.82] pb-[0.14em] text-gold"
+                    refit={tv(line)}
+                  >
                     {splitWords(tv(line))}
                   </FitLine>
                 ) : (
-                  <span key={i} className={`block text-f2 ${i === 0 ? "lowercase" : ""}`}>
+                  <span key={i} className={`block text-f2 leading-[0.82] ${i === 0 ? "lowercase" : ""}`}>
                     {splitWords(tv(line))}
                   </span>
                 ),
               )}
             </h2>
           )}
+          {/* Clears the payoff line's descenders, which the tighter leading
+              pulls up into whatever follows. */}
           {editMode ? (
             <EditableText
               path="home.multicultural.intro"
               value={multicultural.intro}
               as="p"
               multiline
-              className="mt-6 max-w-2xl whitespace-pre-line font-body text-f8 text-white/80"
+              className="mt-7 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8"
             />
           ) : (
-            <p className="mt-6 max-w-2xl whitespace-pre-line font-body text-f8 text-white/80">
+            <p className="mt-7 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8">
               {splitWords(tv(multicultural.intro))}
             </p>
           )}
         </div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
-          {multicultural.cards.map((c, i) => (
-            <RevealOnScroll key={i} delay={0.09 * (i + 1)} className="h-full">
-              <SpotlightCard index={i} count={multicultural.cards.length} card={c} editMode={editMode} tv={tv} />
-            </RevealOnScroll>
-          ))}
-        </div>
-        {editMode && (
-          <div className="mt-8">
-            <AddChip listPath="home.multicultural.cards" label="card" />
-          </div>
+        {editMode ? (
+          <>
+            <div className="mt-10 grid gap-8 md:grid-cols-3">
+              {multicultural.cards.map((c, i) => (
+                <SpotlightCard
+                  key={i}
+                  index={i}
+                  count={multicultural.cards.length}
+                  card={c}
+                  editMode={editMode}
+                  tv={tv}
+                />
+              ))}
+            </div>
+            <div className="mt-8">
+              <AddChip listPath="home.multicultural.cards" label="card" />
+            </div>
+          </>
+        ) : (
+          <ValleyMap cards={multicultural.cards} scene={!reduced} tv={tv} t={t} />
         )}
       </Container>
     </section>
+  );
+}
+
+/**
+ * The Valley, with the three points of interest standing on it.
+ *
+ * Takes whatever height the copy above it left over (`flex-1 min-h-0`), which
+ * is what keeps the section to one screen at every size. The pins are ordinary
+ * buttons in the overlay — the scene only moves them to their anchors — so they
+ * tab, they announce themselves, and they work identically when there is no
+ * scene at all: without one (motion off, or no WebGL) they fall back to a row
+ * laid out in CSS, and the section reads as a caption strip under the copy.
+ */
+function ValleyMap({
+  cards,
+  scene,
+  tv,
+  t,
+}: {
+  cards: { title: string; body: string }[];
+  scene: boolean;
+  tv: (s: string) => string;
+  t: (s: string) => string;
+}) {
+  const [open, setOpen] = useState<number | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  const pins = cards.slice(0, POI_ANCHORS.length).map((c, i) => (
+    <button
+      key={i}
+      type="button"
+      data-poi={scene ? i : undefined}
+      aria-expanded={open === i}
+      aria-label={tv(c.title)}
+      onClick={() => setOpen((cur) => (cur === i ? null : i))}
+      className={`group pointer-events-auto flex items-center gap-2 ${
+        scene
+          ? // Placed by the scene: its left/top are written every frame, so the
+            // pin is centred on its anchor rather than hanging off it.
+            "absolute opacity-0 transition-opacity"
+          : "relative"
+      }`}
+    >
+      <span
+        className={`relative flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition ${
+          open === i
+            ? "border-gold bg-gold"
+            : "border-gold/70 bg-navy/70 group-hover:bg-gold/40 group-focus-visible:bg-gold/40"
+        }`}
+      >
+        {/* The halo is what makes a 14px dot findable on a busy map. */}
+        <span
+          aria-hidden
+          className={`absolute inset-[-6px] rounded-full border border-gold/30 transition ${
+            open === i ? "opacity-100" : "opacity-60 group-hover:opacity-100"
+          }`}
+        />
+      </span>
+      {/* On a phone the panel is too small for three labels and a monogram to
+          share; the dots carry it alone there and the title arrives with the
+          copy. The button is labelled either way. */}
+      <span
+        className={`hidden whitespace-nowrap font-heading text-[11px] uppercase tracking-[0.18em] transition sm:inline ${
+          open === i ? "text-gold" : "text-white/70 group-hover:text-white"
+        } ${scene ? "" : "!inline"}`}
+      >
+        {tv(c.title)}
+      </span>
+    </button>
+  ));
+
+  return (
+    <div ref={wrapRef} className="relative mt-6 flex min-h-0 flex-1 flex-col">
+      {scene ? (
+        <PhoenixScene className="min-h-[220px] flex-1">{pins}</PhoenixScene>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-4">{pins}</div>
+      )}
+
+      {open !== null && cards[open] && (
+        <div
+          role="dialog"
+          aria-label={tv(cards[open].title)}
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 border border-gold/25 bg-navy-soft/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-sm sm:max-w-md"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="font-heading text-f7 uppercase leading-tight text-gold">
+              {tv(cards[open].title)}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setOpen(null)}
+              aria-label={t("Close")}
+              className="-m-2 shrink-0 p-2 font-heading text-sm text-white/60 transition hover:text-gold"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="mt-3 whitespace-pre-line font-body text-f9 text-white/80">
+            {tv(cards[open].body)}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -247,7 +404,11 @@ function FitLine({
   );
 }
 
-/** Card with a gold spotlight that follows the cursor. */
+/**
+ * The editable card, kept for edit mode. Visitors get the map pins instead, but
+ * an admin still needs somewhere to type the copy that fills them — and a pin
+ * projected onto a moving 3D scene is not that place.
+ */
 function SpotlightCard({
   index,
   count,
