@@ -1,21 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Container from "@/components/ui/Container";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { POI_ANCHORS } from "@/components/sections/home/PhoenixScene";
 import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
-
-/** three.js and the scene it builds are client-only and heavy; nothing about
- * them belongs in the server render or the shared bundle. */
-const PhoenixScene = dynamic(() => import("@/components/sections/home/PhoenixScene"), {
-  ssr: false,
-});
 
 type Multicultural = {
   titleLines: string[];
@@ -24,27 +16,24 @@ type Multicultural = {
 };
 
 /**
- * "the multi-cultural / Agency doing / big things" manifesto, over the Valley.
+ * "the multi-cultural / Agency doing / big things" manifesto.
  *
  * The section is composed to a single screen: the copy takes what it needs and
- * the scene below it takes whatever is left, so the whole thing lands inside
- * one mobile viewport instead of running on past it.
+ * the points of interest sit under it, so the whole thing lands inside one
+ * mobile viewport instead of running on past it.
  *
  * The title and intro are split into words that ink-fill one by one as the
  * block travels up the viewport (scroll-linked, runs both directions). Under
  * the kinetic motion style each word also rises as the fill reaches it (see
  * .wordfill-armed in globals.css); under minimal the copy is simply lit.
  *
- * What used to be three cards is now three points of interest standing on the
- * map (see PhoenixScene, which projects them onto their anchors every frame).
- * Tapping one pulls its copy up over the scene. The cards were most of the
- * section's height and were read in a glance and never again; as pins they
- * cost nothing until asked for, and they give the map something to say.
+ * What used to be three cards is now three points of interest: a dot and a
+ * title each, with the body arriving only when one is asked for. The cards
+ * were most of the section's height and were read in a glance and never
+ * again; as points they cost nothing until wanted.
  *
  * Edit mode keeps the plain editable card list — the copy still has to be
- * editable, and a pin is a poor place to type. Motion off skips the scene
- * altogether and lays the pins out as a plain list, which is also what a
- * visitor without WebGL gets.
+ * editable, and a dot is a poor place to type.
  */
 export default function MulticulturalReveal({
   multicultural: serverMulticultural,
@@ -133,8 +122,8 @@ export default function MulticulturalReveal({
         aria-hidden
         className="pointer-events-none absolute -left-40 top-10 h-[480px] w-[480px] bg-gold/[0.07] blur-3xl"
       />
-      <Container className="relative flex min-h-0 w-full flex-1 flex-col">
-        <div ref={fillRef} className="wordfill shrink-0">
+      <Container className="relative w-full">
+        <div ref={fillRef} className="wordfill">
           {editMode ? (
             <EditableLines
               path="home.multicultural.titleLines"
@@ -207,7 +196,7 @@ export default function MulticulturalReveal({
             </div>
           </>
         ) : (
-          <ValleyMap cards={multicultural.cards} scene={!reduced} tv={tv} t={t} />
+          <PointsOfInterest cards={multicultural.cards} tv={tv} t={t} />
         )}
       </Container>
     </section>
@@ -215,23 +204,18 @@ export default function MulticulturalReveal({
 }
 
 /**
- * The Valley, with the three points of interest standing on it.
+ * The three points of interest, and the copy one of them is holding.
  *
- * Takes whatever height the copy above it left over (`flex-1 min-h-0`), which
- * is what keeps the section to one screen at every size. The pins are ordinary
- * buttons in the overlay — the scene only moves them to their anchors — so they
- * tab, they announce themselves, and they work identically when there is no
- * scene at all: without one (motion off, or no WebGL) they fall back to a row
- * laid out in CSS, and the section reads as a caption strip under the copy.
+ * Ordinary buttons in a row: they tab, they announce what they open, and the
+ * body text is in the DOM only while its point is open. Tapping the open one
+ * again — or Escape, or a click outside — puts it away.
  */
-function ValleyMap({
+function PointsOfInterest({
   cards,
-  scene,
   tv,
   t,
 }: {
   cards: { title: string; body: string }[];
-  scene: boolean;
   tv: (s: string) => string;
   t: (s: string) => string;
 }) {
@@ -254,21 +238,13 @@ function ValleyMap({
     };
   }, [open]);
 
-  const pins = cards.slice(0, POI_ANCHORS.length).map((c, i) => (
+  const points = cards.map((c, i) => (
     <button
       key={i}
       type="button"
-      data-poi={scene ? i : undefined}
       aria-expanded={open === i}
-      aria-label={tv(c.title)}
       onClick={() => setOpen((cur) => (cur === i ? null : i))}
-      className={`group pointer-events-auto flex items-center gap-2 ${
-        scene
-          ? // Placed by the scene: its left/top are written every frame, so the
-            // pin is centred on its anchor rather than hanging off it.
-            "absolute opacity-0 transition-opacity"
-          : "relative"
-      }`}
+      className="group relative flex items-center gap-2 text-left"
     >
       <span
         className={`relative flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition ${
@@ -277,7 +253,7 @@ function ValleyMap({
             : "border-gold/70 bg-navy/70 group-hover:bg-gold/40 group-focus-visible:bg-gold/40"
         }`}
       >
-        {/* The halo is what makes a 14px dot findable on a busy map. */}
+        {/* The ring is what makes a 14px dot read as a control. */}
         <span
           aria-hidden
           className={`absolute inset-[-6px] rounded-full border border-gold/30 transition ${
@@ -285,13 +261,10 @@ function ValleyMap({
           }`}
         />
       </span>
-      {/* On a phone the panel is too small for three labels and a monogram to
-          share; the dots carry it alone there and the title arrives with the
-          copy. The button is labelled either way. */}
       <span
-        className={`hidden whitespace-nowrap font-heading text-[11px] uppercase tracking-[0.18em] transition sm:inline ${
+        className={`font-heading text-[11px] uppercase tracking-[0.18em] transition ${
           open === i ? "text-gold" : "text-white/70 group-hover:text-white"
-        } ${scene ? "" : "!inline"}`}
+        }`}
       >
         {tv(c.title)}
       </span>
@@ -299,18 +272,14 @@ function ValleyMap({
   ));
 
   return (
-    <div ref={wrapRef} className="relative mt-6 flex min-h-0 flex-1 flex-col">
-      {scene ? (
-        <PhoenixScene className="min-h-[220px] flex-1">{pins}</PhoenixScene>
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-4">{pins}</div>
-      )}
+    <div ref={wrapRef} className="relative mt-8">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3">{points}</div>
 
       {open !== null && cards[open] && (
         <div
           role="dialog"
           aria-label={tv(cards[open].title)}
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 border border-gold/25 bg-navy-soft/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-sm sm:max-w-md"
+          className="mt-5 border border-gold/25 bg-navy-soft/95 p-5 shadow-2xl shadow-black/40 sm:max-w-md"
         >
           <div className="flex items-start justify-between gap-4">
             <h3 className="font-heading text-f7 uppercase leading-tight text-gold">
