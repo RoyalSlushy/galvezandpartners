@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import { focusPosition, wixImage, wixImageFit } from "@/lib/wix";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
 /** How long each slide is held before crossfading to the next. */
 const SLIDE_MS = 5000;
@@ -63,7 +64,8 @@ export default function CaseStudyHero({
   scrollLabel: string;
   className?: string;
 }) {
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const phase = useRevealPhase();
 
   const slides = gallery.filter(Boolean).slice(0, MAX_SLIDES);
   const [active, setActive] = useState(0);
@@ -112,6 +114,7 @@ export default function CaseStudyHero({
 
   return (
     <section
+      data-gp-hero={phase ?? undefined}
       id="case-hero"
       aria-label={title}
       style={{ height: "calc(100svh - var(--header-h))" }}
@@ -210,18 +213,35 @@ export default function CaseStudyHero({
         </Link>
 
         <div className="mt-auto">
-          <h1 className="max-w-md font-heading text-[2rem] leading-[1.1] text-white [text-wrap:balance] sm:max-w-2xl sm:text-f4 sm:leading-[1.05]">
-            {title}
-          </h1>
-          <span aria-hidden className="mt-3 block h-1 w-12 bg-gold sm:mt-5 sm:w-16" />
+          {/* The study's landing beat, over the (already drifting) backdrop:
+              the title climbs out from behind its own edge, the rule draws out
+              from its middle, then the background copy and the scroll cue
+              arrive. */}
+          <div data-hero-line className="overflow-hidden">
+            <h1 className="max-w-md font-heading text-[2rem] leading-[1.1] text-white [text-wrap:balance] sm:max-w-2xl sm:text-f4 sm:leading-[1.05]">
+              {title}
+            </h1>
+          </div>
+          <span
+            aria-hidden
+            data-hero-open
+            style={{ ["--d" as string]: "240ms" }}
+            className="mt-3 block h-1 w-12 bg-gold sm:mt-5 sm:w-16"
+          />
           {/* On phones, kept clear of the floating nav icon (a w-12 / 3rem
               square inset right-4 / 1rem — see MobileMenu) via the right
               padding, and clamped so it can never overrun the hero. */}
-          <p className="mt-3 max-w-md pr-14 font-body text-sm leading-relaxed text-white/85 line-clamp-5 sm:mt-5 sm:max-w-xl sm:pr-0 sm:text-base">
+          <p
+            data-hero-rise
+            style={{ ["--d" as string]: "380ms" }}
+            className="mt-3 max-w-md pr-14 font-body text-sm leading-relaxed text-white/85 line-clamp-5 sm:mt-5 sm:max-w-xl sm:pr-0 sm:text-base"
+          >
             {background}
           </p>
           <a
             href="#case-study-gallery"
+            data-hero-rise
+            style={{ ["--d" as string]: "560ms" }}
             className="group mt-5 inline-flex items-center gap-3 text-white/70 transition hover:text-gold sm:mt-8"
           >
             <span className="font-heading text-[11px] uppercase tracking-[0.35em]">

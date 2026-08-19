@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
+import MotionProvider from "@/components/motion/MotionProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
 import PageReveal from "@/components/ui/PageReveal";
 import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
@@ -83,7 +84,8 @@ export default async function RootLayout({
             translated, so it loses nothing by being on the far side. */}
         <AdminProvider>
           <LocaleProvider translations={site.translations}>
-            <GlyphProvider glyphs={site.glyphs}>
+            <MotionProvider>
+              <GlyphProvider glyphs={site.glyphs}>
               <Header
                 nav={site.nav}
                 socials={site.socials}
@@ -111,7 +113,8 @@ export default async function RootLayout({
                   />
                 </div>
               </div>
-            </GlyphProvider>
+              </GlyphProvider>
+            </MotionProvider>
           </LocaleProvider>
         </AdminProvider>
       </body>

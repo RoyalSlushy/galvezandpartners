@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 import type { Work } from "@/content/work";
 import { focusPosition } from "@/lib/wix";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
@@ -26,18 +27,22 @@ export default function WorkGrid({
   const t = useT();
   // Work titles are brand names and stay untranslated.
   const tv = useEditableT();
+  const phase = useRevealPhase();
 
   return (
-    <section className="w-full bg-navy py-20 sm:py-28">
+    <section data-gp-hero={phase ?? undefined} className="w-full bg-navy py-20 sm:py-28">
       <Container>
-        <RevealOnScroll>
+        {/* The page opens on this heading, so it takes the landing beat rather
+            than a scroll reveal that would only ever fire on arrival anyway.
+            The cards below keep theirs — they are scrolled to. */}
+        <div data-hero-line className="overflow-hidden">
           <EditableText
             path="work.heading"
             value={tv(heading)}
             as="h1"
-            className="font-display text-f2 lowercase text-white"
+            className="block font-display text-f2 lowercase text-white"
           />
-        </RevealOnScroll>
+        </div>
 
         <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((w, i) => {

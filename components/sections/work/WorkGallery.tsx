@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Container from "@/components/ui/Container";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import GutterRail from "@/components/ui/GutterRail";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
 import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -99,7 +99,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const sectionRef = useRef<HTMLElement>(null);
   const bandRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLAnchorElement>(null);
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
   useEffect(() => {
     const band = bandRef.current;
     const section = sectionRef.current;

@@ -89,8 +89,23 @@ const ES: Record<string, string> = {
   "On set with the crew": "En el set con el equipo",
   "ELG Accident Attorneys — campaign day": "ELG Accident Attorneys — día de campaña",
   "Adelante Scholars with Helios": "Adelante Scholars con Helios",
+  // --- Motion control (components/motion/MotionSwitcher.tsx) ---
+  "Motion settings": "Ajustes de movimiento",
+  Off: "Sin movimiento",
+  Classic: "Clásico",
+  Kinetic: "Cinético",
+  Minimal: "Mínimo",
+  "Nothing moves": "Nada se mueve",
+  "The house motion": "El movimiento de la casa",
+  "Springier, more travel": "Más rebote, más recorrido",
+  "Gentle fades only": "Solo desvanecidos suaves",
+  "Your device asks for reduced motion, so the site is holding still.":
+    "Tu dispositivo pide menos movimiento, así que el sitio se queda quieto.",
+
   "Instagram post": "Publicación de Instagram",
   "Open Instagram post": "Abrir publicación de Instagram",
+  "Open on Instagram": "Ver en Instagram",
+  "Loading…": "Cargando…",
 
   // --- Multicultural manifesto ---
   "the multi-cultural": "la agencia multicultural",

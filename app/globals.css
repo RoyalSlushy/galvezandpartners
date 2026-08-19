@@ -1,3 +1,8 @@
+/* Spring easing tokens, sampled from Remotion's spring solver at build time
+   (see scripts/generate-motion-curves.mjs). Must lead the file: @import may
+   only be preceded by @charset. */
+@import "./motion-curves.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -485,11 +490,164 @@
    .wordfill-armed once its effect is live and toggles [data-lit] per word as
    the block travels up the viewport — without JS the text stays fully lit. */
 .wordfill-armed [data-word] {
+  display: inline-block;
   opacity: 0.15;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.45s ease, transform var(--spring-soft-ms) var(--spring-soft);
 }
 .wordfill-armed [data-word][data-lit] {
   opacity: 1;
+  transform: none;
+}
+/* Kinetic: an unlit word is also still on its way in, rising into place as the
+   fill reaches it. No blur — at manifesto display sizes it smeared the
+   letterforms and cost a filter pass on every word in the block. */
+:root[data-gp-motion="kinetic"] .wordfill-armed [data-word] {
+  transform: translate3d(0, 0.18em, 0);
+  transition-timing-function: ease, var(--spring-bounce);
+  transition-duration: 0.45s, var(--spring-bounce-ms);
+}
+
+/* ---------------------------------------------------------------------------
+   Hero entrance.
+
+   One choreographed arrival for the homepage hero, played once — when the page
+   veil lifts, not when the hero mounts (it would otherwise run behind the veil
+   and be finished before the page was ever seen). HomeHero flips
+   [data-gp-hero] to "in" on that signal and each part carries its own --d
+   delay, so the picture wipes up, the headline and sub climb out from behind
+   their own edges, and the cards settle in after them.
+
+   Curves are the generated spring tokens (see motion-curves.css), so this is
+   real spring motion rather than a bezier impression of it. Everything is
+   `both`-filled and only armed once the attribute exists, so a no-JS visitor
+   gets the finished hero and nothing else.
+   --------------------------------------------------------------------------- */
+@keyframes gp-hero-wipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: scale(1.06);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+/* The line climbs out from behind the bottom edge of its own (clipped) box. */
+@keyframes gp-hero-line {
+  from {
+    transform: translate3d(0, 110%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes gp-hero-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gp-hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* A button opening outward from its own middle. The window is what expands —
+   the label is revealed at its final size rather than being scaled up out of a
+   blur, which is what scaling the element itself would do to the type. The
+   slight scale underneath gives the edges something to arrive with. */
+@keyframes gp-hero-open {
+  from {
+    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Held at the start of the sequence between hydration and the veil lifting.
+   Both states are client-only — the server sends no attribute at all. */
+[data-gp-hero="wait"] [data-hero-wipe] {
+  clip-path: inset(0 0 100% 0);
+}
+[data-gp-hero="wait"] [data-hero-line] > *,
+[data-gp-hero="wait"] [data-hero-rise],
+[data-gp-hero="wait"] [data-hero-open] {
+  opacity: 0;
+}
+[data-gp-hero="wait"] [data-hero-open] {
+  clip-path: inset(0 50% 0 50%);
+}
+
+[data-gp-hero="in"] [data-hero-wipe] {
+  animation: gp-hero-wipe 1100ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-line] > * {
+  animation: gp-hero-line var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-rise] {
+  animation: gp-hero-rise var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+/* `backwards`, not `both`: once it has played, the clip is released entirely
+   rather than being held at inset(0) — which would clip the focus ring off the
+   button it just opened. */
+[data-gp-hero="in"] [data-hero-open] {
+  animation: gp-hero-open var(--spring-soft-ms) var(--spring-soft) backwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Kinetic: the same choreography with more travel and a curve that overshoots
+   and settles. */
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-open] {
+  animation-duration: var(--spring-bounce-ms);
+  animation-timing-function: var(--spring-bounce);
+}
+
+/* Minimal: everything simply resolves. No wipe, no climb. */
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-open] {
+  animation: gp-hero-fade 620ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+  clip-path: none;
+}
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-open] {
+  clip-path: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gp-hero] [data-hero-wipe],
+  [data-gp-hero] [data-hero-line] > *,
+  [data-gp-hero] [data-hero-rise],
+  [data-gp-hero] [data-hero-open] {
+    animation: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Full-viewport height with a vh fallback for browsers without svh
@@ -497,6 +655,12 @@
 .h-viewport {
   height: 100vh;
   height: 100svh;
+}
+/* Same, as a floor — the block still grows past the viewport when its content
+   (a stacked card column on a short/narrow screen) needs more room. */
+.min-h-viewport {
+  min-height: 100vh;
+  min-height: 100svh;
 }
 
 /* Our Works: the site header stays pinned at the top while the cases

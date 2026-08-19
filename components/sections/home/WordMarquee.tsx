@@ -4,30 +4,61 @@ import { useEffect, useRef, useState } from "react";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableLines from "@/components/admin/editable/EditableLines";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { GlyphMark, useGlyphMap } from "@/components/ui/Glyph";
+import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 /**
  * Velocity-reactive marquee band under the hero: a run of giant display-type
- * words (alternating gold fill / gold outline) drifts left forever. Scrolling
+ * words (alternating gold fill / gold outline) separated by the house "G"/"P"
+ * letterforms tipped 45° counter-clockwise, drifting left forever. Scrolling
  * pushes it — scroll down and it accelerates (with a slight italic skew),
  * scroll up and it flows backwards — then it eases back to its idle drift.
  * Hovering (or focusing into) the band eases it to a stop (WCAG 2.2.2).
  *
  * The run is duplicated just enough times to cover any viewport, and the
  * offset wraps modulo one run width, so the loop is seamless in both
- * directions. Edit mode swaps in a static, line-editable block; reduced
- * motion renders the words as a static wrapped row.
+ * directions. Edit mode swaps in a static, line-editable block; motion off
+ * renders the words as a static wrapped row.
+ *
+ * The site-wide motion setting picks how the band behaves (see TUNING). The
+ * band is already the loudest thing on the page, so kinetic deliberately reads
+ * the same as classic here — it has nothing left to add that isn't noise.
+ * Minimal drops to a plain constant drift that ignores scrolling entirely.
  */
-const IDLE_SPEED = 70; // px/s leftward drift
-const VELOCITY_GAIN = 5; // marquee px per page-scroll px (before smoothing)
-const MAX_BOOST = 2600; // px/s cap on the scroll-driven boost
-const SKEW_PER_SPEED = 0.004; // deg of skew per px/s of boost
-const MAX_SKEW = 9; // deg
+
+/** Per-motion-style tuning of the band. */
+const TUNING = {
+  classic: { idle: 70, gain: 5, maxBoost: 2600, skewPer: 0.004, maxSkew: 9 },
+  minimal: { idle: 45, gain: 0, maxBoost: 0, skewPer: 0, maxSkew: 0 },
+} as const;
+
+/**
+ * Marquee separator: a house letterform ("G" or "P") tipped 45° counter-
+ * clockwise, standing in for the old ✦. Uses the admin-uploaded glyph when one
+ * exists for the character and falls back to the display font otherwise, so the
+ * band never loses its separators on a site with no glyphs uploaded yet.
+ */
+function MarqueeGlyph({ char }: { char: string }) {
+  const glyphs = useGlyphMap();
+  return (
+    <span
+      aria-hidden
+      className="inline-flex shrink-0 items-center justify-center text-3xl leading-none [transform:rotate(-45deg)] sm:text-4xl"
+    >
+      {glyphs.has(char) ? (
+        <GlyphMark char={char} tintClassName="bg-white/25" className="block h-[1em] w-[1em]" />
+      ) : (
+        <span className="font-display uppercase leading-none text-white/25">{char}</span>
+      )}
+    </span>
+  );
+}
 
 export default function WordMarquee({ words: serverWords }: { words: string[] }) {
   const words = useCmsValue("home.marqueeWords", serverWords);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const motion = useMotionStyle();
   const t = useT();
 
   const trackRef = useRef<HTMLDivElement>(null);
@@ -59,6 +90,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     const track = trackRef.current;
     if (!track) return;
     const band = track.parentElement;
+    const tune = TUNING[motion === "minimal" ? "minimal" : "classic"];
 
     let offset = 0;
     let boost = 0; // eased scroll-velocity contribution, px/s (signed)
@@ -86,8 +118,8 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
 
       // Feed scroll movement in, then decay toward idle.
       if (dt > 0) {
-        boost += dy * VELOCITY_GAIN;
-        boost = Math.max(-MAX_BOOST, Math.min(MAX_BOOST, boost));
+        boost += dy * tune.gain;
+        boost = Math.max(-tune.maxBoost, Math.min(tune.maxBoost, boost));
         boost *= Math.exp(-dt * 4);
         pause += (pauseTarget - pause) * Math.min(1, dt * 5);
       }
@@ -96,10 +128,10 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
       const runW = run?.offsetWidth ?? 0;
       if (runW > 0) {
         const speedFactor = 1 - pause;
-        offset -= (IDLE_SPEED + boost) * speedFactor * dt;
+        offset -= (tune.idle + boost) * speedFactor * dt;
         offset = ((offset % runW) - runW) % runW; // keep in (-runW, 0]
         const skew =
-          Math.max(-MAX_SKEW, Math.min(MAX_SKEW, -boost * SKEW_PER_SPEED)) * speedFactor;
+          Math.max(-tune.maxSkew, Math.min(tune.maxSkew, -boost * tune.skewPer)) * speedFactor;
         track.style.transform = `translate3d(${offset}px,0,0) skewX(${skew}deg)`;
       }
 
@@ -108,14 +140,14 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
-      // The edit-mode/reduced-motion branches reuse this DOM node — leave it clean.
+      // The edit-mode/motion-off branches reuse this DOM node — leave it clean.
       track.style.transform = "";
       band?.removeEventListener("mouseenter", hold);
       band?.removeEventListener("mouseleave", release);
       band?.removeEventListener("focusin", hold);
       band?.removeEventListener("focusout", release);
     };
-  }, [animate, copies, words, t]);
+  }, [animate, motion, copies, words, t]);
 
   const run = (ariaHidden: boolean, key: number, wrap = false) => (
     <div
@@ -137,9 +169,7 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
           >
             {t(w)}
           </span>
-          <span aria-hidden className="text-2xl text-white/20 sm:text-3xl">
-            ✦
-          </span>
+          <MarqueeGlyph char={i % 2 === 0 ? "G" : "P"} />
         </span>
       ))}
     </div>

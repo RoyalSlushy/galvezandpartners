@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
@@ -9,7 +9,11 @@ import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
 import { heroGradientCss, heroBottomBandCss } from "@/lib/heroGradient";
 import HeroPhotoCards from "@/components/sections/home/HeroPhotoCards";
-import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import {
+  useAdmin,
+  useCmsValue,
+  useEditMode,
+} from "@/components/admin/AdminProvider";
 import { resolveImage } from "@/lib/adminClient";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -17,6 +21,7 @@ import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls from "@/components/admin/editable/ListControls";
 import useFitText from "@/components/ui/useFitText";
 import { wixImage } from "@/lib/wix";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
 type Hero = {
   headline: string;
@@ -34,11 +39,34 @@ const MOBILE = "(max-width: 750px)";
 const DESKTOP = "(min-width: 751px)";
 
 /**
+ * The entrance beats, in ms after the veil lifts. The picture goes first and
+ * the copy climbs out of it, so the sequence reads as one movement rather than
+ * four things arriving at once.
+ */
+const BEAT = {
+  image: 0,
+  headline: 260,
+  sub: 400,
+  carousel: 520,
+  /** The card the desktop button sits in. */
+  cta: 620,
+  /** The button itself, opening out of the card once the card has landed. */
+  button: 780,
+} as const;
+
+/**
  * Homepage hero: fills the viewport below the header. On mobile everything —
  * image, CTA pill, services carousel and the skyline footer — is sized to fit
  * within one viewport height; type that would overflow is shrunk to fit (the
  * hero heading and sub each collapse onto a single line). Desktop keeps the
  * original grid + "Ready?" CTA card.
+ *
+ * The whole thing makes one choreographed entrance (see the [data-gp-hero]
+ * rules in globals.css), held until the page veil lifts so it plays to someone
+ * actually looking at it rather than to the back of the veil. It runs once per
+ * load, follows the site-wide motion setting, and is skipped entirely with
+ * motion off — where the hero is simply there, as it is for a visitor with no
+ * JS at all.
  */
 export default function HomeHero({
   hero: serverHero,
@@ -56,6 +84,8 @@ export default function HomeHero({
   const editMode = useEditMode();
   const t = useT();
   const tv = useEditableT();
+
+  const phase = useRevealPhase();
 
   const slides = services.map((s, i) => (
     <HeroServiceSlide
@@ -78,6 +108,7 @@ export default function HomeHero({
     // gradient is admin-authored via the mobile header image config's color
     // picker and affects only this section.
     <section
+      data-gp-hero={phase ?? undefined}
       className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
       style={
         {
@@ -93,7 +124,10 @@ export default function HomeHero({
           a multiply shadow that continues down from the header and fades out
           toward the bottom of the hero. `-z-10` sits it above the hero gradient
           but behind all hero content, so it deepens the background only. */}
-      <div aria-hidden className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10" />
+      <div
+        aria-hidden
+        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10"
+      />
       {/* Decorative case-study "photocards" sprinkled into the side gutters,
           away from the body content (wide desktops only, where the gutters
           exist). */}
@@ -101,13 +135,25 @@ export default function HomeHero({
       <Container className="hero-shell flex min-h-0 flex-1 flex-col">
         <div className="hero-grid min-h-0 flex-1">
           <div className="hero-main relative min-h-0 overflow-hidden [container-type:inline-size] sm:min-h-[280px]">
-            <EditableImage
-              path="home.hero.image"
-              raw={hero.image}
-              src={hero.image.startsWith("http") ? hero.image : wixImage(hero.image, 1280, 800)}
-              alt={t("Galvez & Partners storytelling")}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            {/* The wipe needs a box of its own: EditableImage owns the <img>'s
+                class list, and clipping the image directly would fight it. */}
+            <div
+              data-hero-wipe
+              style={{ ["--d" as string]: `${BEAT.image}ms` }}
+              className="absolute inset-0 will-change-[clip-path,transform]"
+            >
+              <EditableImage
+                path="home.hero.image"
+                raw={hero.image}
+                src={
+                  hero.image.startsWith("http")
+                    ? hero.image
+                    : wixImage(hero.image, 1280, 800)
+                }
+                alt={t("Galvez & Partners storytelling")}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
             <div
               className={`absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent${
                 editMode ? " pointer-events-none" : ""
@@ -118,6 +164,7 @@ export default function HomeHero({
                 path="home.hero.headline"
                 value={tv(hero.headline)}
                 as="h1"
+                beat={BEAT.headline}
                 max={44}
                 min={18}
                 className="font-heading leading-none text-white sm:text-[clamp(2rem,4.5cqi,3rem)]"
@@ -126,6 +173,7 @@ export default function HomeHero({
                 path="home.hero.sub"
                 value={tv(hero.sub)}
                 as="p"
+                beat={BEAT.sub}
                 max={22}
                 min={8}
                 className="mt-2 font-body text-white/85 sm:mt-3 sm:text-[clamp(0.95rem,2.6cqi,1.4rem)]"
@@ -136,32 +184,19 @@ export default function HomeHero({
           {/* Mobile CTA: a single full-width gold pill between the image and the
               carousel card. Swapped for the "Ready?" card at the sm breakpoint. */}
           <div className="hero-cta sm:hidden">
-            <Button
-              href={hero.ctaHref}
-              variant="gold"
-              className="w-full py-3.5 text-xl font-bold normal-case"
+            {/* The animation rides a wrapper rather than the Button itself: the
+                button is a shared primitive with a deliberately small API, and
+                clipping its wrapper looks identical. */}
+            <span
+              data-hero-open
+              style={{ ["--d" as string]: `${BEAT.cta}ms` }}
+              className="block w-full"
             >
-              {editMode ? (
-                <EditableText
-                  path="home.hero.ctaLabel"
-                  value={hero.ctaLabel}
-                  link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                />
-              ) : (
-                t(hero.ctaLabel)
-              )}
-            </Button>
-          </div>
-
-          <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden bg-navy-soft py-4 sm:py-10">
-            <Carousel slides={slides} ariaLabel={t("Our services")} className="flex w-full flex-col justify-center" />
-          </div>
-
-          <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden bg-gold p-6 text-center sm:flex">
-            <CtaGrid />
-            <div className="relative z-10">
-              <p className="font-display text-f6 leading-none text-navy">{t("Ready?")}</p>
-              <Button href={hero.ctaHref} variant="gold" className="mt-4 border-2 border-navy hover:bg-navy hover:text-gold">
+              <Button
+                href={hero.ctaHref}
+                variant="gold"
+                className="w-full py-3.5 text-xl font-bold normal-case"
+              >
                 {editMode ? (
                   <EditableText
                     path="home.hero.ctaLabel"
@@ -172,6 +207,52 @@ export default function HomeHero({
                   t(hero.ctaLabel)
                 )}
               </Button>
+            </span>
+          </div>
+
+          <div
+            data-hero-rise
+            style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+            className="hero-carousel hero-card relative flex min-h-0 overflow-hidden bg-navy-soft py-4 sm:py-10"
+          >
+            <Carousel
+              slides={slides}
+              ariaLabel={t("Our services")}
+              className="flex w-full flex-col justify-center"
+            />
+          </div>
+
+          <div
+            data-hero-rise
+            style={{ ["--d" as string]: `${BEAT.cta}ms` }}
+            className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden bg-gold p-6 text-center sm:flex"
+          >
+            <CtaGrid />
+            <div className="relative z-10">
+              <p className="font-display text-f6 leading-none text-navy">
+                {t("Ready?")}
+              </p>
+              <span
+                data-hero-open
+                style={{ ["--d" as string]: `${BEAT.button}ms` }}
+                className="mt-4 inline-block"
+              >
+                <Button
+                  href={hero.ctaHref}
+                  variant="gold"
+                  className="border-2 border-navy hover:bg-navy hover:text-gold"
+                >
+                  {editMode ? (
+                    <EditableText
+                      path="home.hero.ctaLabel"
+                      value={hero.ctaLabel}
+                      link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
+                    />
+                  ) : (
+                    t(hero.ctaLabel)
+                  )}
+                </Button>
+              </span>
             </div>
           </div>
         </div>
@@ -193,6 +274,7 @@ function FitLine({
   className,
   max,
   min,
+  beat,
 }: {
   path: string;
   value: string;
@@ -200,6 +282,9 @@ function FitLine({
   className: string;
   max: number;
   min: number;
+  /** Delay, in ms, of this line's beat in the hero entrance. The wrapper is
+   * already clipped for the fit, so the line has an edge to climb out from. */
+  beat?: number;
 }) {
   const { ref } = useFitText<HTMLDivElement>({
     max,
@@ -209,7 +294,14 @@ function FitLine({
     deps: [value],
   });
   return (
-    <div ref={ref} className="overflow-hidden">
+    <div
+      ref={ref}
+      data-hero-line={beat === undefined ? undefined : ""}
+      style={
+        beat === undefined ? undefined : { ["--d" as string]: `${beat}ms` }
+      }
+      className="overflow-hidden"
+    >
       <EditableText
         path={path}
         value={value}
@@ -366,7 +458,10 @@ function HeroServiceSlide({
           <button
             type="button"
             onClick={() =>
-              admin.openImagePicker({ path: `home.services.${index}.media`, raw: media })
+              admin.openImagePicker({
+                path: `home.services.${index}.media`,
+                raw: media,
+              })
             }
             className="absolute left-8 top-2 z-20 border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
           >

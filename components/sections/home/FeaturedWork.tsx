@@ -15,7 +15,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 type FeaturedCopy = {
   eyebrow: string;
@@ -39,7 +39,12 @@ const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,40vh)] md:w-[
  * Our Works page. Keyboard focus inside the track auto-scrolls the page so
  * the focused card is actually in view.
  *
- * Edit mode and reduced motion swap in a native snap-scroll row (all edit
+ * The site-wide motion setting picks the treatment: the pinned gallery
+ * described above, or — under minimal — the plain snap row instead. Kinetic
+ * reads the same as classic here: the case cards carry photography, and leaning
+ * or over-travelling them fought the images rather than serving them.
+ *
+ * Edit mode and motion off swap in that same native snap-scroll row (all edit
  * affordances live there), which is also the graceful no-pin fallback.
  */
 export default function FeaturedWork({
@@ -52,7 +57,8 @@ export default function FeaturedWork({
   const featured = useCmsValue("home.featuredWork", serverFeatured);
   const items = useCmsValue("work.items", serverItems);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
+  const motion = useMotionStyle();
   const t = useT();
   // Only the section heading is translated; work titles are brand names.
   const tv = useEditableT();
@@ -62,7 +68,11 @@ export default function FeaturedWork({
   const trackRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const pinned = !editMode && !reduced;
+  // Minimal keeps the native snap row (which is also the edit-mode and
+  // motion-off fallback) — no scroll-jacking, just a gallery you push.
+  const pinned = !editMode && !reduced && motion !== "minimal";
+  /** How hard the images counter-travel against the track. */
+  const parallax = 34;
 
   useEffect(() => {
     if (!pinned) return;
@@ -98,10 +108,12 @@ export default function FeaturedWork({
       // Counter-parallax: shift each image against the track's travel based on
       // how far its card sits from the viewport center.
       const center = window.innerWidth / 2;
+      const cap = parallax * 1.3;
       for (const el of parallaxEls) {
         const r = el.getBoundingClientRect();
         const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
-        el.style.transform = `translateX(${Math.max(-44, Math.min(44, ratio * 34))}px) scale(1.12)`;
+        const shift = Math.max(-cap, Math.min(cap, ratio * parallax));
+        el.style.transform = `translateX(${shift}px) scale(1.12)`;
       }
     };
     const onScroll = () => {

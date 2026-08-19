@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useAdmin, useEditMode } from "@/components/admin/AdminProvider";
 import { isVideoUrl } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 
 type EditableImageProps = {
   /** Content path of the stored image string, e.g. "team.members.0.photo". */
@@ -55,7 +55,7 @@ export default function EditableImage({
 }: EditableImageProps) {
   const editMode = useEditMode();
   const admin = useAdmin();
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
   const internalVideoRef = useRef<HTMLVideoElement | null>(null);
   const fieldLabel = label ?? labelFor(path);
 

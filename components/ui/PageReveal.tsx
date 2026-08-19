@@ -182,6 +182,21 @@ export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
     if (el) el.removeAttribute("style");
   }, [pathname]);
 
+  // The page is only *seen* when the veil goes, so anything that wants to make
+  // an entrance has to wait for that moment rather than for its own mount — it
+  // would otherwise play out behind the veil and be over before anyone looked.
+  // Published two ways: an attribute for whatever mounts after the fact, and an
+  // event for whatever was already waiting.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (veiled) {
+      root.removeAttribute("data-gp-revealed");
+      return;
+    }
+    root.setAttribute("data-gp-revealed", "");
+    window.dispatchEvent(new CustomEvent("gp:revealed"));
+  }, [veiled]);
+
   useEffect(() => {
     const run = ++runRef.current;
     const startedAt = performance.now();

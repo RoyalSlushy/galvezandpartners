@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PhotoFrame } from "@/components/ui/PhotoCard";
 import { resolveImage } from "@/lib/adminClient";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 
 /** How wide a picture is: a share of the lander, held between these bounds (in
  * rem). Set here rather than in a class because the spacing is derived from it. */
@@ -84,7 +84,7 @@ export default function LanderPhotoTrail({ images }: { images: string[] }) {
    * repeat — the walk through the pool can cross a reshuffle and come up with
    * the same picture twice within a few of itself. */
   const recentRef = useRef<string[]>([]);
-  const reduced = usePrefersReducedMotion();
+  const reduced = useMotionOff();
 
   const pool = images.filter(Boolean);
   const poolKey = pool.join("|");
