@@ -101,10 +101,19 @@ export default function HomeHero({
   // hover-exit it keeps playing (no snap back mid-frame) until the current pass
   // ends, then rests paused at the start — see the 'ended' handler below.
   const [hovered, setHovered] = useState<number | null>(null);
+  // Each service's clip exists twice: full-bleed over the film, and (on desktop)
+  // as the small preview left of its title in the strip. Both play together.
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const thumbRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const videosFor = (index: number) =>
+    [videoRefs.current[index], thumbRefs.current[index]].filter(
+      Boolean,
+    ) as HTMLVideoElement[];
 
   useEffect(() => {
-    const videos = videoRefs.current.filter(Boolean) as HTMLVideoElement[];
+    const videos = [...videoRefs.current, ...thumbRefs.current].filter(
+      Boolean,
+    ) as HTMLVideoElement[];
     const onEnded = (e: Event) => {
       const v = e.currentTarget as HTMLVideoElement;
       v.pause();
@@ -116,17 +125,18 @@ export default function HomeHero({
 
   const onSlideHoverStart = (index: number) => {
     setHovered(index);
-    const v = videoRefs.current[index];
-    if (!v) return;
-    v.loop = true;
-    v.play().catch(() => {});
+    videosFor(index).forEach((v) => {
+      v.loop = true;
+      v.play().catch(() => {});
+    });
   };
   const onSlideHoverEnd = (index: number) => {
     setHovered((h) => (h === index ? null : h));
-    const v = videoRefs.current[index];
     // Stop looping but keep playing — the 'ended' listener above rewinds to the
     // start once the current pass actually finishes.
-    if (v) v.loop = false;
+    videosFor(index).forEach((v) => {
+      v.loop = false;
+    });
   };
 
   const slides = services.map((s, i) => (
@@ -139,19 +149,25 @@ export default function HomeHero({
       tv={tv}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
+      thumbRef={(el) => {
+        thumbRefs.current[i] = el;
+      }}
     />
   ));
 
-  // The services strip has two homes: the middle of the hero's desktop row, or
-  // — on mobile, where the hero has no room for it — the masthead's right-hand
-  // cell, reached by portal so it stays inside this tree (see HeroSlots).
-  const { headerMedia, setHeroCta } = useHeroSlots();
+  // The services strip lives in the masthead at both sizes — in the tagline's
+  // spot on desktop (bare, no card behind it), in the right-hand cell the header
+  // picture used to fill on mobile — reached by portal so it stays inside this
+  // tree and keeps driving the blended backdrops (see HeroSlots). If neither
+  // socket is there it falls back into the hero's own row.
+  const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
   const desktop = useMinWidth(751);
-  const servicesStrip = (
+  const stripSocket = desktop ? headerTagline : headerMedia;
+  const servicesStrip = (className: string) => (
     <div
       data-hero-rise
       style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-      className="relative flex min-w-0 flex-1 items-stretch overflow-hidden border-white/10 bg-navy-soft/45 backdrop-blur-sm max-sm:h-full max-sm:border-l sm:border"
+      className={`relative flex min-w-0 flex-1 overflow-hidden ${className}`}
     >
       <Carousel
         slides={slides}
@@ -286,10 +302,13 @@ export default function HomeHero({
           />
         </div>
 
-        {/* Services, minimized to a single-line title strip over the film — on
-            desktop the middle of the row, on mobile lifted out of the hero
-            entirely and portaled into the masthead (below). */}
-        {desktop ? servicesStrip : null}
+        {/* Services: normally lifted out of the hero into the masthead (below);
+            this is the fallback for when that socket isn't there. */}
+        {stripSocket
+          ? null
+          : servicesStrip(
+              "items-stretch self-stretch border border-white/10 bg-navy-soft/45 backdrop-blur-sm",
+            )}
 
         {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
             its button side by side, with the cta grid still playing behind. */}
@@ -302,40 +321,52 @@ export default function HomeHero({
           <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
             {t("Ready?")}
           </p>
-          <span
-            data-hero-open
-            style={{ ["--d" as string]: `${BEAT.button}ms` }}
-            className="relative z-10 inline-block"
-          >
-            <Button
-              href={hero.ctaHref}
-              variant="gold"
-              className="border-2 border-navy px-4 py-2 text-sm hover:bg-navy hover:text-gold sm:text-base"
+          {/* The button and the menu hug: one pair of controls at the end of the
+              bar, sharing an edge rather than floating apart. */}
+          <div className="relative z-10 flex items-stretch">
+            <span
+              data-hero-open
+              style={{ ["--d" as string]: `${BEAT.button}ms` }}
+              className="inline-block"
             >
-              {editMode ? (
-                <EditableText
-                  path="home.hero.ctaLabel"
-                  value={hero.ctaLabel}
-                  link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                />
-              ) : (
-                t(hero.ctaLabel)
-              )}
-            </Button>
-          </span>
-          {/* Socket for the mobile menu's hamburger, which comes down out of its
-              floating bar to sit right of the CTA button while the hero is on
-              screen (see HeroSlots). Empty — and zero-width — on desktop. */}
-          <span ref={setHeroCta} className="relative z-10 flex items-center empty:hidden sm:hidden" />
+              <Button
+                href={hero.ctaHref}
+                variant="gold"
+                className="h-full border-2 border-navy px-4 py-2 text-sm hover:bg-navy hover:text-gold sm:text-base"
+              >
+                {editMode ? (
+                  <EditableText
+                    path="home.hero.ctaLabel"
+                    value={hero.ctaLabel}
+                    link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
+                  />
+                ) : (
+                  t(hero.ctaLabel)
+                )}
+              </Button>
+            </span>
+            {/* Socket for the mobile menu's hamburger, which comes down out of
+                its floating bar to sit flush against the CTA button while the
+                hero is on screen (see HeroSlots). Empty on desktop. */}
+            <span ref={setHeroCta} className="flex items-stretch empty:hidden sm:hidden" />
+          </div>
         </div>
       </div>
       </div>
       </div>
 
-      {/* Mobile: the services strip rides in the masthead's right-hand cell,
-          where the header picture used to be. It stays part of this tree, so it
-          keeps driving the blended backdrops over the film. */}
-      {!desktop && headerMedia ? createPortal(servicesStrip, headerMedia) : null}
+      {/* The strip in the masthead: bare in the desktop tagline's spot, and in a
+          bordered cell on mobile, where it stands against the logo. */}
+      {stripSocket
+        ? createPortal(
+            servicesStrip(
+              desktop
+                ? "items-center"
+                : "h-full items-stretch border-l border-white/10 bg-navy-soft/45",
+            ),
+            stripSocket,
+          )
+        : null}
     </section>
   );
 }
@@ -405,6 +436,7 @@ function HeroServiceSlide({
   tv,
   onHoverStart,
   onHoverEnd,
+  thumbRef,
 }: {
   service: Service;
   index: number;
@@ -413,6 +445,9 @@ function HeroServiceSlide({
   tv: (s: string) => string;
   onHoverStart: () => void;
   onHoverEnd: () => void;
+  /** The preview clip's <video>, so the parent can play it in step with the
+   * full-bleed one over the film. */
+  thumbRef: (el: HTMLVideoElement | null) => void;
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
@@ -426,15 +461,15 @@ function HeroServiceSlide({
   // Desktop: shrink the title (only if needed) so it never exceeds two lines in
   // its box — no clamp/ellipsis, so no text is ever hidden.
   const { ref: headingRef } = useFitText<HTMLDivElement>({
-    max: 28,
-    min: 15,
+    max: 22,
+    min: 12,
     query: DESKTOP,
     deps: [service.title],
   });
 
   return (
     <div
-      className="hero-slide relative flex h-full flex-col justify-center px-3 py-2 sm:px-6 sm:py-3"
+      className="hero-slide relative flex h-full items-center gap-3 px-3 py-2 sm:px-0 sm:py-1"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -463,7 +498,34 @@ function HeroServiceSlide({
           </button>
         </>
       )}
-      <div ref={ref} className="relative z-[1] overflow-hidden">
+      {/* The clip itself, left of the title (desktop, where the strip has the
+          room). It plays in step with the full-bleed copy over the film. The
+          media's white ground is knocked out the same way it is there — the
+          filter chain collapses it to one gold-family hue and turns white
+          black, and `screen` drops that black out. The blend can't reach the
+          real header behind it (the carousel's slide wrapper isolates this
+          subtree), so it screens against a local stand-in painted in the
+          masthead's own color, which composites identically. */}
+      {media ? (
+        <div
+          aria-hidden
+          className="relative isolate hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
+        >
+          <div className="absolute inset-0 bg-[var(--hero-top-color,rgb(var(--c-navy)))]" />
+          <EditableImage
+            path={`home.services.${index}.media`}
+            raw={media}
+            src={resolveImage(media, 240, 160)}
+            alt=""
+            className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+            playbackRate={0.75}
+            autoPlayVideo={false}
+            loopVideo={false}
+            videoRef={thumbRef}
+          />
+        </div>
+      ) : null}
+      <div ref={ref} className="relative z-[1] min-w-0 flex-1 overflow-hidden">
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}

@@ -10,6 +10,7 @@ import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import EditableText from "@/components/admin/editable/EditableText";
 import { useLocale } from "@/components/i18n/LocaleProvider";
+import { useHeroSlots } from "@/components/layout/HeroSlots";
 
 /**
  * Desktop header cluster (nav + tagline/socials + language + Connect) that keeps
@@ -40,6 +41,7 @@ export default function DesktopNav({
   caseStudies: CaseStudy[];
 }) {
   const { t, locale } = useLocale();
+  const { setHeaderTagline } = useHeroSlots();
   const active = !editMode;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -105,12 +107,19 @@ export default function DesktopNav({
             caseStudies={caseStudies}
           />
           <div className="flex items-center gap-5">
-            <EditableText
-              path="site.tagline"
-              value={editMode ? tagline : t(tagline)}
-              as="span"
-              className="font-din text-base tracking-wide text-white/80"
-            />
+            {/* The tagline is off for visitors — the homepage hero portals its
+                services strip into this spot instead (see HeroSlots). It stays
+                in edit mode so the field is still editable in place, and it is
+                the fallback wherever there is no hero to fill the socket. */}
+            {editMode && (
+              <EditableText
+                path="site.tagline"
+                value={tagline}
+                as="span"
+                className="font-din text-base tracking-wide text-white/80"
+              />
+            )}
+            <div ref={setHeaderTagline} className="flex h-10 w-[26rem] items-center empty:hidden" />
             <SocialIcons socials={socials} iconClassName="h-6 w-6" editPathBase="site.socials" />
           </div>
         </div>

@@ -9,6 +9,8 @@ import { createContext, useContext, useMemo, useState } from "react";
  *
  *  - `headerMedia` — the mobile header's right-hand cell (where the header
  *    picture used to sit). The hero portals its services carousel up into it.
+ *  - `headerTagline` — the desktop header's tagline spot. The hero portals the
+ *    same carousel into it there, bare (no card behind it).
  *  - `heroCta` — the trailing end of the hero's CTA bar. The mobile menu portals
  *    its hamburger down into it, instead of floating it over the cityscape.
  *
@@ -20,15 +22,19 @@ import { createContext, useContext, useMemo, useState } from "react";
  */
 type Sockets = {
   headerMedia: HTMLElement | null;
+  headerTagline: HTMLElement | null;
   heroCta: HTMLElement | null;
   setHeaderMedia: (el: HTMLElement | null) => void;
+  setHeaderTagline: (el: HTMLElement | null) => void;
   setHeroCta: (el: HTMLElement | null) => void;
 };
 
 const HeroSlotsContext = createContext<Sockets>({
   headerMedia: null,
+  headerTagline: null,
   heroCta: null,
   setHeaderMedia: () => {},
+  setHeaderTagline: () => {},
   setHeroCta: () => {},
 });
 
@@ -42,10 +48,18 @@ export default function HeroSlotsProvider({
   children: React.ReactNode;
 }) {
   const [headerMedia, setHeaderMedia] = useState<HTMLElement | null>(null);
+  const [headerTagline, setHeaderTagline] = useState<HTMLElement | null>(null);
   const [heroCta, setHeroCta] = useState<HTMLElement | null>(null);
   const value = useMemo(
-    () => ({ headerMedia, heroCta, setHeaderMedia, setHeroCta }),
-    [headerMedia, heroCta],
+    () => ({
+      headerMedia,
+      headerTagline,
+      heroCta,
+      setHeaderMedia,
+      setHeaderTagline,
+      setHeroCta,
+    }),
+    [headerMedia, headerTagline, heroCta],
   );
   return (
     <HeroSlotsContext.Provider value={value}>

@@ -482,7 +482,7 @@ export default function MobileMenu({
               setSide("right");
               setOpen(true);
             }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-navy text-navy transition hover:bg-navy hover:text-gold"
+            className="-ml-0.5 flex w-10 shrink-0 items-center justify-center border-2 border-navy text-navy transition hover:bg-navy hover:text-gold"
           >
             <HamburgerIcon className="h-5 w-5" />
           </button>,
