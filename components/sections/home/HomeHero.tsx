@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
-import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
+import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
@@ -34,13 +34,13 @@ type Hero = {
 
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
-/** Matches the `sm` breakpoint upward — where the carousel heading is fit to
+/** Matches the `sm` breakpoint upward — where the carousel title is fit to
  * two lines (see HeroServiceSlide). */
 const DESKTOP = "(min-width: 751px)";
 
 /**
- * The entrance beats, in ms after the veil lifts. The picture goes first and
- * the copy climbs out of it, so the sequence reads as one movement rather than
+ * The entrance beats, in ms after the veil lifts. The film goes first and the
+ * copy climbs out of it, so the sequence reads as one movement rather than
  * four things arriving at once.
  */
 const BEAT = {
@@ -48,18 +48,25 @@ const BEAT = {
   headline: 260,
   sub: 400,
   carousel: 520,
-  /** The card the desktop button sits in. */
+  /** The CTA bar. */
   cta: 620,
-  /** The button itself, opening out of the card once the card has landed. */
+  /** The button itself, opening out of the bar once the bar has landed. */
   button: 780,
 } as const;
 
 /**
- * Homepage hero: fills the viewport below the header. On mobile everything —
- * image, CTA pill, services carousel and the skyline footer — is sized to fit
- * within one viewport height; type that would overflow is shrunk to fit (the
- * hero heading and sub each collapse onto a single line). Desktop keeps the
- * original grid + "Ready?" CTA card.
+ * Homepage hero: fills the viewport below the header. The hero film
+ * (home.hero.image — an image slot that also takes an uploaded video) is the
+ * whole section: it is laid full-bleed behind everything, and every other hero
+ * element — headline, sub, services carousel, CTA — sits over it, minimized to
+ * a column of bars along the bottom so the footage stays the subject.
+ *
+ * The services carousel is reduced to its titles; hovering the strip plays that
+ * service's backdrop clip full-bleed over the hero film, multiplied into it so
+ * the clip's white ground drops out and only its artwork rides the footage.
+ * That layer lives here rather than inside the slide on purpose: mix-blend-mode
+ * only reaches the nearest stacking context, and the carousel's own slide
+ * wrappers (transform + z-index) would trap it short of the film.
  *
  * The whole thing makes one choreographed entrance (see the [data-gp-hero]
  * rules in globals.css), held until the page veil lifts so it plays to someone
@@ -87,6 +94,39 @@ export default function HomeHero({
 
   const phase = useRevealPhase();
 
+  // Which service's backdrop clip is showing, and the <video> elements to drive.
+  // Playback is hover-only: hovering a carousel title loops that clip; on
+  // hover-exit it keeps playing (no snap back mid-frame) until the current pass
+  // ends, then rests paused at the start — see the 'ended' handler below.
+  const [hovered, setHovered] = useState<number | null>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  useEffect(() => {
+    const videos = videoRefs.current.filter(Boolean) as HTMLVideoElement[];
+    const onEnded = (e: Event) => {
+      const v = e.currentTarget as HTMLVideoElement;
+      v.pause();
+      v.currentTime = 0;
+    };
+    videos.forEach((v) => v.addEventListener("ended", onEnded));
+    return () => videos.forEach((v) => v.removeEventListener("ended", onEnded));
+  }, [services]);
+
+  const onSlideHoverStart = (index: number) => {
+    setHovered(index);
+    const v = videoRefs.current[index];
+    if (!v) return;
+    v.loop = true;
+    v.play().catch(() => {});
+  };
+  const onSlideHoverEnd = (index: number) => {
+    setHovered((h) => (h === index ? null : h));
+    const v = videoRefs.current[index];
+    // Stop looping but keep playing — the 'ended' listener above rewinds to the
+    // start once the current pass actually finishes.
+    if (v) v.loop = false;
+  };
+
   const slides = services.map((s, i) => (
     <HeroServiceSlide
       key={i}
@@ -95,6 +135,8 @@ export default function HomeHero({
       count={services.length}
       editMode={editMode}
       tv={tv}
+      onHoverStart={() => onSlideHoverStart(i)}
+      onHoverEnd={() => onSlideHoverEnd(i)}
     />
   ));
 
@@ -102,14 +144,15 @@ export default function HomeHero({
     // Pinned to the top of the viewport: the header scrolls away and the
     // sections below scroll up and over the hero, the cityscape skyline rising
     // with them (see page.tsx). On mobile the bottom band (--cityscape-h) is
-    // left as bare gradient so the cityscape sits in the initial viewport
-    // against it; on desktop (sm+) that padding is dropped so the hero elements
-    // get the full height and the cityscape starts just below the fold. The
-    // gradient is admin-authored via the mobile header image config's color
-    // picker and affects only this section.
+    // left clear so the cityscape sits in the initial viewport against it; on
+    // desktop (sm+) that padding is dropped so the hero elements get the full
+    // height and the cityscape starts just below the fold. The gradient is
+    // admin-authored via the mobile header image config's color picker and
+    // affects only this section — it now backs the film (visible wherever the
+    // footage doesn't cover, e.g. while it loads).
     <section
       data-gp-hero={phase ?? undefined}
-      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:pb-8"
       style={
         {
           // Linear ramp on mobile, a horizontal band across the bottom of the
@@ -120,141 +163,148 @@ export default function HomeHero({
         } as CSSProperties
       }
     >
-      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
-          a multiply shadow that continues down from the header and fades out
-          toward the bottom of the hero. `-z-10` sits it above the hero gradient
-          but behind all hero content, so it deepens the background only. */}
+      {/* The hero film, full-bleed across the whole section. The wipe needs a
+          box of its own: EditableImage owns the media element's class list, and
+          clipping it directly would fight it. */}
+      <div
+        data-hero-wipe
+        style={{ ["--d" as string]: `${BEAT.image}ms` }}
+        className="absolute inset-0 z-0 will-change-[clip-path,transform]"
+      >
+        <EditableImage
+          path="home.hero.image"
+          raw={hero.image}
+          src={
+            hero.image.startsWith("http")
+              ? hero.image
+              : wixImage(hero.image, 1920, 1200)
+          }
+          alt={t("Galvez & Partners storytelling")}
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Hovered service backdrop, over the film. `multiply` makes the clip's
+          white ground transparent — the film shows straight through it — while
+          its artwork darkens into the footage. Only the hovered one is opaque;
+          the rest fade out in place. */}
+      {services.map((s, i) =>
+        s.media ? (
+          <div
+            key={i}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[1] mix-blend-multiply transition-opacity duration-500"
+            style={{ opacity: hovered === i ? 1 : 0 }}
+          >
+            <EditableImage
+              path={`home.services.${i}.media`}
+              raw={s.media}
+              src={resolveImage(s.media, 1600, 1000)}
+              alt=""
+              className="h-full w-full object-cover"
+              playbackRate={0.75}
+              autoPlayVideo={false}
+              loopVideo={false}
+              videoRef={(el) => {
+                videoRefs.current[i] = el;
+              }}
+            />
+          </div>
+        ) : null,
+      )}
+
+      {/* Legibility scrim: the copy and bars sit in the lower half, so the
+          footage is darkened toward the bottom and left largely clear up top. */}
       <div
         aria-hidden
-        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10"
+        className={`absolute inset-0 z-[2] bg-gradient-to-t from-navy/85 via-navy/35 to-navy/10${
+          editMode ? " pointer-events-none" : ""
+        }`}
+      />
+      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
+          a multiply shadow that continues down from the header and fades out
+          toward the bottom of the hero. */}
+      <div
+        aria-hidden
+        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 z-[2]"
       />
       {/* Decorative case-study "photocards" sprinkled into the side gutters,
           away from the body content (wide desktops only, where the gutters
-          exist). */}
-      <HeroPhotoCards />
-      <Container className="hero-shell flex min-h-0 flex-1 flex-col">
-        <div className="hero-grid min-h-0 flex-1">
-          <div className="hero-main relative min-h-0 overflow-hidden [container-type:inline-size] sm:min-h-[280px]">
-            {/* The wipe needs a box of its own: EditableImage owns the <img>'s
-                class list, and clipping the image directly would fight it. */}
-            <div
-              data-hero-wipe
-              style={{ ["--d" as string]: `${BEAT.image}ms` }}
-              className="absolute inset-0 will-change-[clip-path,transform]"
-            >
-              <EditableImage
-                path="home.hero.image"
-                raw={hero.image}
-                src={
-                  hero.image.startsWith("http")
-                    ? hero.image
-                    : wixImage(hero.image, 1280, 800)
-                }
-                alt={t("Galvez & Partners storytelling")}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-            <div
-              className={`absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent${
-                editMode ? " pointer-events-none" : ""
-              }`}
-            />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-10">
-              <FitLine
-                path="home.hero.headline"
-                value={tv(hero.headline)}
-                as="h1"
-                beat={BEAT.headline}
-                max={44}
-                min={18}
-                className="font-heading leading-none text-white sm:text-[clamp(2rem,4.5cqi,3rem)]"
-              />
-              <FitLine
-                path="home.hero.sub"
-                value={tv(hero.sub)}
-                as="p"
-                beat={BEAT.sub}
-                max={22}
-                min={8}
-                className="mt-2 font-body text-white/85 sm:mt-3 sm:text-[clamp(0.95rem,2.6cqi,1.4rem)]"
-              />
-            </div>
-          </div>
+          exist). Lifted above the scrims so they keep their own exposure over
+          the film. */}
+      <div className="pointer-events-none absolute inset-0 z-[3]">
+        <HeroPhotoCards />
+      </div>
 
-          {/* Mobile CTA: a single full-width gold pill between the image and the
-              carousel card. Swapped for the "Ready?" card at the sm breakpoint. */}
-          <div className="hero-cta sm:hidden">
-            {/* The animation rides a wrapper rather than the Button itself: the
-                button is a shared primitive with a deliberately small API, and
-                clipping its wrapper looks identical. */}
-            <span
-              data-hero-open
-              style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-              className="block w-full"
-            >
-              <Button
-                href={hero.ctaHref}
-                variant="gold"
-                className="w-full py-3.5 text-xl font-bold normal-case"
-              >
-                {editMode ? (
-                  <EditableText
-                    path="home.hero.ctaLabel"
-                    value={hero.ctaLabel}
-                    link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                  />
-                ) : (
-                  t(hero.ctaLabel)
-                )}
-              </Button>
-            </span>
-          </div>
+      {/* Everything else, enveloped in the film: a bottom-anchored stack of
+          minimized bars. */}
+      <Container className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-2 pb-4 sm:gap-3">
+        <div>
+          <FitLine
+            path="home.hero.headline"
+            value={tv(hero.headline)}
+            as="h1"
+            beat={BEAT.headline}
+            max={40}
+            min={18}
+            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:text-[clamp(2rem,5vw,3.25rem)]"
+          />
+          <FitLine
+            path="home.hero.sub"
+            value={tv(hero.sub)}
+            as="p"
+            beat={BEAT.sub}
+            max={20}
+            min={8}
+            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:text-[clamp(0.95rem,1.7vw,1.25rem)]"
+          />
+        </div>
 
-          <div
-            data-hero-rise
-            style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-            className="hero-carousel hero-card relative flex min-h-0 overflow-hidden bg-navy-soft py-4 sm:py-10"
+        {/* Services, minimized to a single-line title strip over the film. */}
+        <div
+          data-hero-rise
+          style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+          className="hero-card relative flex overflow-hidden border border-white/10 bg-navy-soft/45 backdrop-blur-sm"
+        >
+          <Carousel
+            slides={slides}
+            ariaLabel={t("Our services")}
+            className="flex w-full flex-col justify-center"
+          />
+        </div>
+
+        {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
+            its button side by side, with the cta grid still playing behind. */}
+        <div
+          data-hero-rise
+          style={{ ["--d" as string]: `${BEAT.cta}ms` }}
+          className="hero-cta relative flex items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-2 sm:px-6 sm:py-2.5"
+        >
+          <CtaGrid />
+          <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
+            {t("Ready?")}
+          </p>
+          <span
+            data-hero-open
+            style={{ ["--d" as string]: `${BEAT.button}ms` }}
+            className="relative z-10 inline-block"
           >
-            <Carousel
-              slides={slides}
-              ariaLabel={t("Our services")}
-              className="flex w-full flex-col justify-center"
-            />
-          </div>
-
-          <div
-            data-hero-rise
-            style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-            className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden bg-gold p-6 text-center sm:flex"
-          >
-            <CtaGrid />
-            <div className="relative z-10">
-              <p className="font-display text-f6 leading-none text-navy">
-                {t("Ready?")}
-              </p>
-              <span
-                data-hero-open
-                style={{ ["--d" as string]: `${BEAT.button}ms` }}
-                className="mt-4 inline-block"
-              >
-                <Button
-                  href={hero.ctaHref}
-                  variant="gold"
-                  className="border-2 border-navy hover:bg-navy hover:text-gold"
-                >
-                  {editMode ? (
-                    <EditableText
-                      path="home.hero.ctaLabel"
-                      value={hero.ctaLabel}
-                      link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                    />
-                  ) : (
-                    t(hero.ctaLabel)
-                  )}
-                </Button>
-              </span>
-            </div>
-          </div>
+            <Button
+              href={hero.ctaHref}
+              variant="gold"
+              className="border-2 border-navy px-4 py-2 text-sm hover:bg-navy hover:text-gold sm:text-base"
+            >
+              {editMode ? (
+                <EditableText
+                  path="home.hero.ctaLabel"
+                  value={hero.ctaLabel}
+                  link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
+                />
+              ) : (
+                t(hero.ctaLabel)
+              )}
+            </Button>
+          </span>
         </div>
       </Container>
     </section>
@@ -313,9 +363,10 @@ function FitLine({
 }
 
 /**
- * One services carousel slide. On mobile the title + body are shrunk together
- * to fit the card's (bounded) height so nothing is clipped or overflows the
- * viewport; on desktop the original type sizes and side-by-side layout apply.
+ * One services carousel slide, minimized to its title. Hovering it plays that
+ * service's backdrop clip over the hero film (the parent owns that layer and
+ * the playback). The description is no longer shown to visitors, but stays
+ * rendered in edit mode so it remains editable in place.
  */
 function HeroServiceSlide({
   service,
@@ -323,127 +374,43 @@ function HeroServiceSlide({
   count,
   editMode,
   tv,
+  onHoverStart,
+  onHoverEnd,
 }: {
   service: Service;
   index: number;
   count: number;
   editMode: boolean;
   tv: (s: string) => string;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
+  // Mobile: shrink the title so a long one still sits on a single line.
   const { ref } = useFitText<HTMLDivElement>({
     max: 19,
     min: 9,
+    singleLine: true,
     query: MOBILE,
-    deps: [service.title, service.description],
+    deps: [service.title],
   });
-  // Desktop: shrink the heading (only if needed) so it never exceeds two lines
-  // in its box — no clamp/ellipsis, so no text is ever hidden.
+  // Desktop: shrink the title (only if needed) so it never exceeds two lines in
+  // its box — no clamp/ellipsis, so no text is ever hidden.
   const { ref: headingRef } = useFitText<HTMLDivElement>({
-    max: 32,
+    max: 28,
     min: 15,
     query: DESKTOP,
     deps: [service.title],
   });
 
-  // Backdrop video playback state machine:
-  //  - idle (default): paused at the start.
-  //  - hover: plays on loop; on hover-exit it keeps playing (no snap back to
-  //    the start) until the current pass ends, then rests at the start.
-  //  - swipe: plays through once, then rests at the start.
-  //  - autoscroll / arrows / dots / keyboard / leaving the slide: paused at
-  //    the start, immediately (no fade-out grace — the slide is off-stage).
-  const { isActive, cause } = useCarouselSlide(index);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const wasActiveRef = useRef(false);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const onEnded = () => {
-      v.pause();
-      v.currentTime = 0;
-    };
-    v.addEventListener("ended", onEnded);
-    return () => v.removeEventListener("ended", onEnded);
-  }, [media]);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const wasActive = wasActiveRef.current;
-    wasActiveRef.current = isActive;
-
-    if (!isActive) {
-      v.pause();
-      v.currentTime = 0;
-      v.loop = false;
-      return;
-    }
-    if (!wasActive) {
-      v.pause();
-      v.currentTime = 0;
-      v.loop = false;
-      if (cause === "swipe") {
-        v.play().catch(() => {});
-      }
-    }
-  }, [isActive, cause]);
-
-  const onBackdropHoverStart = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.loop = true;
-    v.play().catch(() => {});
-  };
-  const onBackdropHoverEnd = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    // Stop looping but keep playing — the 'ended' listener above rewinds to
-    // the start once the current pass actually finishes.
-    v.loop = false;
-  };
-
   return (
     <div
-      className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3"
-      onMouseEnter={onBackdropHoverStart}
-      onMouseLeave={onBackdropHoverEnd}
+      /* pb leaves room for the carousel's dots along the bottom edge. */
+      className="hero-slide relative flex flex-col justify-center px-12 pb-6 pt-3 sm:px-14"
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
     >
-      {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
-          behind the text, tilted 15° counterclockwise at 10% opacity. The
-          filter chain collapses the media to a single gold-family hue
-          (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
-          white background black; the screen blend then drops that black out,
-          so white areas vanish and only the artwork glows in the one hue.
-          The blend can't reach the real card behind it — the carousel slide
-          wrapper's transform isolates this subtree — so the media screens
-          against a local stand-in painted in the card's exact color, which
-          composites identically. The rotated layer intentionally bleeds past
-          the slide's edges — the card container's overflow-hidden
-          masks it. */}
-      {media ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-2 sm:w-auto sm:aspect-[4/5]"
-        >
-          <div className="relative isolate h-full w-full">
-            <div className="absolute inset-0 bg-navy-soft" />
-            <EditableImage
-              path={`home.services.${index}.media`}
-              raw={media}
-              src={resolveImage(media, 700, 900)}
-              alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
-              playbackRate={0.75}
-              autoPlayVideo={false}
-              loopVideo={false}
-              videoRef={videoRef}
-            />
-          </div>
-        </div>
-      ) : null}
       {editMode && (
         <>
           <ListControls
@@ -453,8 +420,8 @@ function HeroServiceSlide({
             label="service"
             className="right-8 top-2 sm:right-12"
           />
-          {/* The backdrop itself is pointer-transparent (it sits behind the
-              text), so edit mode gets this chip to open its media picker. */}
+          {/* The backdrop plays over the hero film rather than in this card, so
+              edit mode gets this chip to open its media picker. */}
           <button
             type="button"
             onClick={() =>
@@ -469,28 +436,24 @@ function HeroServiceSlide({
           </button>
         </>
       )}
-      <div
-        ref={ref}
-        className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
-      >
-        {/* On mobile the heading scales with the shared fit (capped so it never
-            rivals the hero headline); on desktop it's fit to two lines within
-            this box (see .hero-slide-heading in globals.css). */}
+      <div ref={ref} className="relative z-[1] overflow-hidden">
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}
             value={tv(service.title)}
             as="h3"
-            className="font-display text-[min(2em,1.55rem)] leading-none text-sky-200 sm:text-[1em] sm:leading-[1.15] sm:text-balance"
+            className="whitespace-nowrap font-display text-[min(2em,1.35rem)] leading-none text-sky-200 sm:whitespace-normal sm:text-[1em] sm:leading-[1.15]"
           />
         </div>
-        <EditableText
-          path={`home.services.${index}.description`}
-          value={tv(service.description)}
-          as="p"
-          multiline
-          className="hero-slide-body mt-1 max-w-xl whitespace-pre-line font-body text-[0.92em] leading-snug text-white/80 sm:mt-3 sm:text-lg"
-        />
+        {editMode && (
+          <EditableText
+            path={`home.services.${index}.description`}
+            value={tv(service.description)}
+            as="p"
+            multiline
+            className="hero-slide-body mt-2 max-w-xl whitespace-pre-line font-body text-sm leading-snug text-white/60"
+          />
+        )}
       </div>
     </div>
   );

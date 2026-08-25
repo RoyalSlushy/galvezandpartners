@@ -11,7 +11,7 @@ import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import { useT } from "@/components/i18n/LocaleProvider";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import EditableImage from "@/components/admin/editable/EditableImage";
-import { useCmsValue } from "@/components/admin/AdminProvider";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { wixImage } from "@/lib/wix";
 
 type Side = "left" | "right";
@@ -68,6 +68,7 @@ export default function MobileMenu({
   // Header picture (right half of the mobile header). Draft-aware so the admin
   // media picker updates it live; a bare Wix id is resized, a full URL used as-is.
   const headerImg = useCmsValue("site.headerImage", headerImage);
+  const editMode = useEditMode();
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
 
   const isActive = (href: string) =>
@@ -440,15 +441,20 @@ export default function MobileMenu({
       {/* The picture is bottom-anchored (flush with the hero) and padded down to
           the logo's measured top offset, so its top never passes the logo's top.
           object-contain keeps the whole image in view without distortion. */}
-      <div className="w-[40%] overflow-hidden" style={{ paddingTop: logoTop }}>
-        <EditableImage
-          path="site.headerImage"
-          raw={headerImg}
-          src={headerSrc}
-          alt=""
-          className="h-full w-full object-contain object-bottom"
-        />
-      </div>
+      {/* Hidden for visitors at every viewport (the logo takes the full row
+          above); kept in edit mode so the field remains pickable — it still
+          backs the hero gradient's eyedropper. */}
+      {editMode && (
+        <div className="w-[40%] overflow-hidden" style={{ paddingTop: logoTop }}>
+          <EditableImage
+            path="site.headerImage"
+            raw={headerImg}
+            src={headerSrc}
+            alt=""
+            className="h-full w-full object-contain object-bottom"
+          />
+        </div>
+      )}
 
       {/* Floating bottom nav (mobile only). In the hero it's a gold hamburger
           button sized to sit within the cityscape band in the bottom-right

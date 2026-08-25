@@ -76,18 +76,23 @@ export default function Header({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
           </Link>
-          {/* Header image: bottom flush with the header's bottom edge (self-end)
-              while its top stays level with the centered logo. Its height is
-              (header-h + logo-h) / 2 — i.e. header-h/2 + 3rem, since the logo
-              is sm:h-24 (6rem) — which places its top exactly at the logo's top
-              for any header height. */}
-          <EditableImage
-            path="site.headerImage"
-            raw={headerImg}
-            src={headerSrc}
-            alt=""
-            className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_3rem)] sm:self-end"
-          />
+          {/* Header image: hidden for visitors at every viewport — the masthead
+              is logo + nav only. The field itself is untouched (it still feeds
+              the hero gradient's eyedropper and the media picker), so it stays
+              rendered in edit mode: bottom flush with the header's bottom edge
+              (self-end) while its top stays level with the centered logo. Its
+              height is (header-h + logo-h) / 2 — i.e. header-h/2 + 3rem, since
+              the logo is sm:h-24 (6rem) — which places its top exactly at the
+              logo's top for any header height. */}
+          {editMode && (
+            <EditableImage
+              path="site.headerImage"
+              raw={headerImg}
+              src={headerSrc}
+              alt=""
+              className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_3rem)] sm:self-end"
+            />
+          )}
         </div>
 
         <DesktopNav
