@@ -11,6 +11,7 @@ import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import EditableText from "@/components/admin/editable/EditableText";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { useHeroSlots } from "@/components/layout/HeroSlots";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 
 /**
  * Desktop header cluster (nav + tagline/socials + language + Connect) that keeps
@@ -42,6 +43,9 @@ export default function DesktopNav({
 }) {
   const { t, locale } = useLocale();
   const { setHeaderTagline } = useHeroSlots();
+  // Wide screens only: narrower than this the nav needs the whole row, and a
+  // strip in it would push the cluster back over the logo.
+  const roomForStrip = useMinWidth(1280);
   const active = !editMode;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -106,7 +110,7 @@ export default function DesktopNav({
             condenseMore={condenseMore}
             caseStudies={caseStudies}
           />
-          <div className="flex items-center gap-5">
+          <div className="flex min-w-0 items-center gap-3">
             {/* The tagline is off for visitors — the homepage hero portals its
                 services strip into this spot instead (see HeroSlots). It stays
                 in edit mode so the field is still editable in place, and it is
@@ -119,7 +123,17 @@ export default function DesktopNav({
                 className="font-din text-base tracking-wide text-white/80"
               />
             )}
-            <div ref={setHeaderTagline} className="flex h-10 w-[26rem] items-center empty:hidden" />
+            {/* The strip's socket, sized by its own content so it hugs the
+                social icons. The nav cluster is laid out at its natural width,
+                so the socket only opens on wide screens where there is room for
+                it beside the logo; below that it stays unmounted and the hero
+                keeps the strip in its own row (see HomeHero). */}
+            {roomForStrip && (
+              <div
+                ref={setHeaderTagline}
+                className="flex h-10 max-w-[26rem] items-center overflow-hidden empty:hidden"
+              />
+            )}
             <SocialIcons socials={socials} iconClassName="h-6 w-6" editPathBase="site.socials" />
           </div>
         </div>

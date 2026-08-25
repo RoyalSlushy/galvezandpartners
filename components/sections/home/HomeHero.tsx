@@ -63,12 +63,15 @@ const BEAT = {
  * element — headline, sub, services carousel, CTA — sits over it, minimized to
  * a column of bars along the bottom so the footage stays the subject.
  *
- * The services carousel is reduced to its titles; hovering the strip plays that
- * service's backdrop clip full-bleed over the hero film, multiplied into it so
- * the clip's white ground drops out and only its artwork rides the footage.
- * That layer lives here rather than inside the slide on purpose: mix-blend-mode
- * only reaches the nearest stacking context, and the carousel's own slide
- * wrappers (transform + z-index) would trap it short of the film.
+ * The services carousel is reduced to its titles and moves into the masthead
+ * (see HeroSlots); hovering a title plays that service's backdrop clip. On
+ * desktop it plays in the small preview beside the title and the film is left
+ * alone; on mobile, where the strip's cell has no room for a preview, it plays
+ * full-bleed over the film instead, multiplied into it so the clip's white
+ * ground drops out and only its artwork rides the footage. That layer lives
+ * here rather than inside the slide on purpose: mix-blend-mode only reaches the
+ * nearest stacking context, and the carousel's own slide wrappers (transform +
+ * z-index) would trap it short of the film.
  *
  * The whole thing makes one choreographed entrance (see the [data-gp-hero]
  * rules in globals.css), held until the page veil lifts so it plays to someone
@@ -167,7 +170,7 @@ export default function HomeHero({
     <div
       data-hero-rise
       style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-      className={`relative flex min-w-0 flex-1 overflow-hidden ${className}`}
+      className={`relative flex min-w-0 overflow-hidden ${className}`}
     >
       <Carousel
         slides={slides}
@@ -233,34 +236,38 @@ export default function HomeHero({
         />
       </div>
 
-      {/* Hovered service backdrop, over the film. `multiply` makes the clip's
-          white ground transparent — the film shows straight through it — while
-          its artwork darkens into the footage. Only the hovered one is opaque;
-          the rest fade out in place. */}
-      {services.map((s, i) =>
-        s.media ? (
-          <div
-            key={i}
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-[1] mix-blend-multiply transition-opacity duration-500"
-            style={{ opacity: hovered === i ? 1 : 0 }}
-          >
-            <EditableImage
-              path={`home.services.${i}.media`}
-              raw={s.media}
-              src={resolveImage(s.media, 1600, 1000)}
-              alt=""
-              className="h-full w-full object-cover"
-              playbackRate={0.75}
-              autoPlayVideo={false}
-              loopVideo={false}
-              videoRef={(el) => {
-                videoRefs.current[i] = el;
-              }}
-            />
-          </div>
-        ) : null,
-      )}
+      {/* Hovered service backdrop, over the film — mobile only, where the strip
+          sits in a cell too small to preview the clip beside its title. On
+          desktop the clip plays there instead and the film is left alone.
+          `multiply` makes the clip's white ground transparent, so the film shows
+          straight through it while its artwork darkens into the footage. Only
+          the hovered one is opaque; the rest fade out in place. */}
+      {desktop
+        ? null
+        : services.map((s, i) =>
+            s.media ? (
+              <div
+                key={i}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-[1] mix-blend-multiply transition-opacity duration-500"
+                style={{ opacity: hovered === i ? 1 : 0 }}
+              >
+                <EditableImage
+                  path={`home.services.${i}.media`}
+                  raw={s.media}
+                  src={resolveImage(s.media, 1600, 1000)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  playbackRate={0.75}
+                  autoPlayVideo={false}
+                  loopVideo={false}
+                  videoRef={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
+                />
+              </div>
+            ) : null,
+          )}
 
       {/* Legibility scrim: the copy and bars sit in the lower half, so the
           footage is darkened toward the bottom and left largely clear up top. */}
@@ -280,7 +287,10 @@ export default function HomeHero({
       {/* Everything else, enveloped in the film: minimized bars along the
           bottom — stacked on mobile, side by side across the foot of the frame
           on desktop. */}
-      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-2 p-4 sm:flex-row sm:items-end sm:gap-3 sm:p-6">
+      {/* The bars along the foot of the frame: on mobile a stack whose rhythm
+          steps up — the sub sits close under the headline (they read as one
+          block), then a wider, even gap to the CTA. */}
+      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:flex-row sm:items-end sm:gap-3 sm:p-6">
         <div className="min-w-0 sm:flex-1">
           <FitLine
             path="home.hero.headline"
@@ -298,7 +308,7 @@ export default function HomeHero({
             beat={BEAT.sub}
             max={20}
             min={8}
-            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
+            className="mt-2 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
           />
         </div>
 
@@ -307,7 +317,7 @@ export default function HomeHero({
         {stripSocket
           ? null
           : servicesStrip(
-              "items-stretch self-stretch border border-white/10 bg-navy-soft/45 backdrop-blur-sm",
+              "flex-1 items-center border border-white/10 bg-navy-soft/45 px-4 backdrop-blur-sm",
             )}
 
         {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
@@ -361,8 +371,10 @@ export default function HomeHero({
         ? createPortal(
             servicesStrip(
               desktop
-                ? "items-center"
-                : "h-full items-stretch border-l border-white/10 bg-navy-soft/45",
+                ? // Sized by its own content and flushed right, so whichever
+                  // title is showing ends against the social icons.
+                  "hero-strip-flush items-center"
+                : "h-full flex-1 items-stretch border-l border-white/10 bg-navy-soft/45",
             ),
             stripSocket,
           )
@@ -525,7 +537,10 @@ function HeroServiceSlide({
           />
         </div>
       ) : null}
-      <div ref={ref} className="relative z-[1] min-w-0 flex-1 overflow-hidden">
+      {/* Auto-width (not flex-1): in the masthead the strip is as wide as its
+          widest title, and a filling box would leave the shorter ones stranded
+          mid-strip instead of ending against the icons beside it. */}
+      <div ref={ref} className="relative z-[1] min-w-0 overflow-hidden">
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}

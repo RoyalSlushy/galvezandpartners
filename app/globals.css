@@ -188,6 +188,14 @@
   }
 }
 
+/* The strip standing in the masthead's tagline spot is as wide as its widest
+   title (the slides are stacked in one grid cell), so its slides are flushed
+   right — whichever title is showing then ends against the social icons beside
+   it, instead of floating off the shorter ones. */
+.hero-strip-flush .hero-slide {
+  justify-content: flex-end;
+}
+
 /* Desktop (sm+) heading: capped to two lines. useFitText shrinks the type until
    the words wrap into at most two lines inside this box; overflow is hidden only
    as a backstop below the min font size, which the fit is tuned to avoid. Gated
