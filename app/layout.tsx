@@ -6,6 +6,7 @@ import AdminProvider from "@/components/admin/AdminProvider";
 import LocaleProvider from "@/components/i18n/LocaleProvider";
 import MotionProvider from "@/components/motion/MotionProvider";
 import { GlyphProvider } from "@/components/ui/Glyph";
+import HeroSlotsProvider from "@/components/layout/HeroSlots";
 import PageReveal from "@/components/ui/PageReveal";
 import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
 import { getSite, getHome, getCaseStudies } from "@/lib/cms";
@@ -86,6 +87,10 @@ export default async function RootLayout({
           <LocaleProvider translations={site.translations}>
             <MotionProvider>
               <GlyphProvider glyphs={site.glyphs}>
+              {/* The masthead and the homepage hero trade chrome on mobile (the
+                  services carousel goes up into the header, the hamburger comes
+                  down into the hero CTA), so they share these sockets. */}
+              <HeroSlotsProvider>
               <Header
                 nav={site.nav}
                 socials={site.socials}
@@ -113,6 +118,7 @@ export default async function RootLayout({
                   />
                 </div>
               </div>
+              </HeroSlotsProvider>
               </GlyphProvider>
             </MotionProvider>
           </LocaleProvider>

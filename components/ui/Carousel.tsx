@@ -54,10 +54,15 @@ export default function Carousel({
   slides,
   className = "",
   ariaLabel = "Card carousel",
+  chrome = true,
 }: {
   slides: ReactNode[];
   className?: string;
   ariaLabel?: string;
+  /** Whether to draw the prev/next handles and the dot indicators. With them
+   * off the carousel is bare cards — it still auto-advances, swipes and takes
+   * keyboard arrows, so no way of moving through it is lost. */
+  chrome?: boolean;
 }) {
   const n = slides.length;
   const [current, setCurrent] = useState(0);
@@ -282,6 +287,8 @@ export default function Carousel({
 
         {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves.
             Always shown on touch-only devices. */}
+        {chrome && (
+        <>
         <button
           type="button"
           aria-label="Previous"
@@ -323,6 +330,8 @@ export default function Carousel({
             />
           ))}
         </div>
+        </>
+        )}
       </CarouselContext.Provider>
     </div>
   );

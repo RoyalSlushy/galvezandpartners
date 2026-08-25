@@ -168,32 +168,10 @@
   }
 }
 
-/* Hero layout grid holding the storefront image ("main"), the carousel card and
-   the CTA. Mobile stacks them with the CTA button between the image and the
-   carousel card. */
-.hero-grid {
-  display: grid;
-  gap: 0.85rem;
-  grid-template-columns: 1fr;
-  /* Image and carousel flex to share the leftover height (and can shrink so the
-     shrink-to-fit type keeps them inside the viewport); the CTA keeps its own
-     height so the pill is never clipped. */
-  grid-template-rows: minmax(0, 1.35fr) auto minmax(0, 1fr);
-  grid-template-areas:
-    "main"
-    "cta"
-    "carousel";
-}
-.hero-main {
-  grid-area: main;
-}
-.hero-carousel {
-  grid-area: carousel;
-}
-.hero-cta {
-  grid-area: cta;
-}
-
+/* Hero layout: the film's frame fills the section (bounded to the body column
+   at sm+, see HomeHero) and the shell holds the minimized bars along its foot —
+   stacked on mobile, side by side on desktop. Both are flex boxes owned by the
+   component's classes; only the desktop background swap lives here. */
 @media (min-width: 751px) {
   /* Desktop swaps the linear ramp for a horizontal band across the bottom of
      the viewport. */
@@ -208,74 +186,12 @@
     background-size: 100% 100%;
     animation: none;
   }
-  /* The shell is a size container so the grid can respond to its aspect ratio. */
-  .hero-shell {
-    container-type: size;
-    container-name: heroshell;
-  }
-  /* Default desktop: image on top (full width), carousel + CTA in the row below. */
-  .hero-grid {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.5fr);
-    grid-template-rows: minmax(0, 1fr) fit-content(340px);
-    grid-template-areas:
-      "main main"
-      "carousel cta";
-  }
-}
-
-/* When the main-hero container is over twice as wide as it is long, put the image
-   in a full-height 2/3 column and stack the carousel (top) + CTA (bottom) in the
-   1/3 column. */
-@container heroshell (min-aspect-ratio: 2/1) {
-  .hero-grid {
-    /* Let the grid shrink to the (fixed-height) shell instead of overflowing it. */
-    min-height: 0;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    /* Carousel row flexes to fill the leftover height (and may shrink on very
-       short viewports); the CTA keeps its content height so its button is never
-       clipped. */
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "main carousel"
-      "main cta";
-  }
-}
-
-/* The carousel card is a query container so its slides can switch to a
-   side-by-side layout once it is wide enough (see the @container rule below). */
-.hero-card {
-  container-type: inline-size;
-}
-
-/* When the carousel card is wide enough, lay each slide's heading and body
-   side by side instead of stacked. */
-@container (min-width: 620px) {
-  .hero-slide-fit {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 2rem;
-  }
-  /* The heading stacks above the body (the row `display:flex` is overridden by
-     the slide's `sm:block`), so give it a generous, stable width: wide enough to
-     keep the type large while the two-line fit wraps longer titles. */
-  .hero-slide-heading {
-    width: 72%;
-  }
-  .hero-slide-body {
-    margin-top: 0;
-    /* Cap the line length so the body copy keeps a comfortable measure instead
-       of stretching the full width of a wide (or ultrawide) card. */
-    max-width: 51rem;
-    flex: 1;
-  }
 }
 
 /* Desktop (sm+) heading: capped to two lines. useFitText shrinks the type until
    the words wrap into at most two lines inside this box; overflow is hidden only
    as a backstop below the min font size, which the fit is tuned to avoid. Gated
-   on the sm breakpoint so it always pairs with the desktop fit (the @container
-   row layout above only engages at even wider viewports). */
+   on the sm breakpoint so it always pairs with the desktop fit. */
 @media (min-width: 751px) {
   .hero-slide-heading {
     max-height: 2.45em; /* two lines at leading-1.15, relative to the fitted font */

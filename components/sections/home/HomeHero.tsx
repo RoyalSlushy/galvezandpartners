@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import Container from "@/components/ui/Container";
+import { createPortal } from "react-dom";
 import Button from "@/components/ui/Button";
 import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
@@ -22,6 +22,8 @@ import ListControls from "@/components/admin/editable/ListControls";
 import useFitText from "@/components/ui/useFitText";
 import { wixImage } from "@/lib/wix";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
+import { useMinWidth } from "@/components/ui/useMinWidth";
+import { useHeroSlots } from "@/components/layout/HeroSlots";
 
 type Hero = {
   headline: string;
@@ -140,6 +142,26 @@ export default function HomeHero({
     />
   ));
 
+  // The services strip has two homes: the middle of the hero's desktop row, or
+  // — on mobile, where the hero has no room for it — the masthead's right-hand
+  // cell, reached by portal so it stays inside this tree (see HeroSlots).
+  const { headerMedia, setHeroCta } = useHeroSlots();
+  const desktop = useMinWidth(751);
+  const servicesStrip = (
+    <div
+      data-hero-rise
+      style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+      className="relative flex min-w-0 flex-1 items-stretch overflow-hidden border-white/10 bg-navy-soft/45 backdrop-blur-sm max-sm:h-full max-sm:border-l sm:border"
+    >
+      <Carousel
+        slides={slides}
+        ariaLabel={t("Our services")}
+        className="flex w-full flex-col justify-center"
+        chrome={false}
+      />
+    </div>
+  );
+
   return (
     // Pinned to the top of the viewport: the header scrolls away and the
     // sections below scroll up and over the hero, the cityscape skyline rising
@@ -163,9 +185,20 @@ export default function HomeHero({
         } as CSSProperties
       }
     >
-      {/* The hero film, full-bleed across the whole section. The wipe needs a
-          box of its own: EditableImage owns the media element's class list, and
-          clipping it directly would fight it. */}
+      {/* Decorative case-study "photocards" sprinkled into the side gutters —
+          outside the film's frame, which on desktop ends at the body bounds. */}
+      <HeroPhotoCards />
+
+      {/* The film's frame: edge to edge on mobile, and on desktop the body
+          column, its edges flush with the header's content bounds (same
+          max-w-site + px-8 as the masthead row). Everything below is scoped to
+          it — the film, the blended backdrops, the scrims and the hero's own
+          content — so the whole hero reads as one framed screen. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-site flex-1 sm:px-8">
+      <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      {/* The hero film, full-bleed across the frame. The wipe needs a box of its
+          own: EditableImage owns the media element's class list, and clipping it
+          directly would fight it. */}
       <div
         data-hero-wipe
         style={{ ["--d" as string]: `${BEAT.image}ms` }}
@@ -228,18 +261,11 @@ export default function HomeHero({
         aria-hidden
         className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 z-[2]"
       />
-      {/* Decorative case-study "photocards" sprinkled into the side gutters,
-          away from the body content (wide desktops only, where the gutters
-          exist). Lifted above the scrims so they keep their own exposure over
-          the film. */}
-      <div className="pointer-events-none absolute inset-0 z-[3]">
-        <HeroPhotoCards />
-      </div>
-
-      {/* Everything else, enveloped in the film: a bottom-anchored stack of
-          minimized bars. */}
-      <Container className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-2 pb-4 sm:gap-3">
-        <div>
+      {/* Everything else, enveloped in the film: minimized bars along the
+          bottom — stacked on mobile, side by side across the foot of the frame
+          on desktop. */}
+      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-2 p-4 sm:flex-row sm:items-end sm:gap-3 sm:p-6">
+        <div className="min-w-0 sm:flex-1">
           <FitLine
             path="home.hero.headline"
             value={tv(hero.headline)}
@@ -247,7 +273,7 @@ export default function HomeHero({
             beat={BEAT.headline}
             max={40}
             min={18}
-            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:text-[clamp(2rem,5vw,3.25rem)]"
+            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:whitespace-normal sm:text-[clamp(1.6rem,3.2vw,2.9rem)]"
           />
           <FitLine
             path="home.hero.sub"
@@ -256,29 +282,21 @@ export default function HomeHero({
             beat={BEAT.sub}
             max={20}
             min={8}
-            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:text-[clamp(0.95rem,1.7vw,1.25rem)]"
+            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
           />
         </div>
 
-        {/* Services, minimized to a single-line title strip over the film. */}
-        <div
-          data-hero-rise
-          style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-          className="hero-card relative flex overflow-hidden border border-white/10 bg-navy-soft/45 backdrop-blur-sm"
-        >
-          <Carousel
-            slides={slides}
-            ariaLabel={t("Our services")}
-            className="flex w-full flex-col justify-center"
-          />
-        </div>
+        {/* Services, minimized to a single-line title strip over the film — on
+            desktop the middle of the row, on mobile lifted out of the hero
+            entirely and portaled into the masthead (below). */}
+        {desktop ? servicesStrip : null}
 
         {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
             its button side by side, with the cta grid still playing behind. */}
         <div
           data-hero-rise
           style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-          className="hero-cta relative flex items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-2 sm:px-6 sm:py-2.5"
+          className="hero-cta relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-2 sm:justify-center sm:px-6 sm:py-2.5"
         >
           <CtaGrid />
           <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
@@ -305,8 +323,19 @@ export default function HomeHero({
               )}
             </Button>
           </span>
+          {/* Socket for the mobile menu's hamburger, which comes down out of its
+              floating bar to sit right of the CTA button while the hero is on
+              screen (see HeroSlots). Empty — and zero-width — on desktop. */}
+          <span ref={setHeroCta} className="relative z-10 flex items-center empty:hidden sm:hidden" />
         </div>
-      </Container>
+      </div>
+      </div>
+      </div>
+
+      {/* Mobile: the services strip rides in the masthead's right-hand cell,
+          where the header picture used to be. It stays part of this tree, so it
+          keeps driving the blended backdrops over the film. */}
+      {!desktop && headerMedia ? createPortal(servicesStrip, headerMedia) : null}
     </section>
   );
 }
@@ -387,11 +416,10 @@ function HeroServiceSlide({
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
-  // Mobile: shrink the title so a long one still sits on a single line.
+  // Mobile: shrink the title to the (small) masthead cell the strip rides in.
   const { ref } = useFitText<HTMLDivElement>({
-    max: 19,
-    min: 9,
-    singleLine: true,
+    max: 15,
+    min: 7,
     query: MOBILE,
     deps: [service.title],
   });
@@ -406,8 +434,7 @@ function HeroServiceSlide({
 
   return (
     <div
-      /* pb leaves room for the carousel's dots along the bottom edge. */
-      className="hero-slide relative flex flex-col justify-center px-12 pb-6 pt-3 sm:px-14"
+      className="hero-slide relative flex h-full flex-col justify-center px-3 py-2 sm:px-6 sm:py-3"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -442,7 +469,7 @@ function HeroServiceSlide({
             path={`home.services.${index}.title`}
             value={tv(service.title)}
             as="h3"
-            className="whitespace-nowrap font-display text-[min(2em,1.35rem)] leading-none text-sky-200 sm:whitespace-normal sm:text-[1em] sm:leading-[1.15]"
+            className="font-display text-[1em] leading-[1.1] text-sky-200 sm:leading-[1.15]"
           />
         </div>
         {editMode && (
