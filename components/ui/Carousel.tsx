@@ -274,9 +274,14 @@ export default function Carousel({
                 className="col-start-1 row-start-1 transition-[opacity,transform] duration-[450ms] ease-out"
                 style={{
                   opacity: isActive ? 1 : 0,
-                  transform: `translateX(${isActive ? 0 : offset}px)`,
+                  // The resting slide is left without a transform or a z-index
+                  // (both would make it a stacking context, trapping any blend
+                  // inside a slide short of the surface the carousel sits on —
+                  // see the hero's service previews). The slides it covers are
+                  // fully transparent, so paint order between them is moot.
+                  transform: isActive ? undefined : `translateX(${offset}px)`,
                   pointerEvents: isActive ? "auto" : "none",
-                  zIndex: isActive ? 2 : 0,
+                  zIndex: isActive ? undefined : 0,
                 }}
               >
                 {slide}

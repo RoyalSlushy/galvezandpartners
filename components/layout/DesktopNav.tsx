@@ -110,7 +110,7 @@ export default function DesktopNav({
             condenseMore={condenseMore}
             caseStudies={caseStudies}
           />
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-5">
             {/* The tagline is off for visitors — the homepage hero portals its
                 services strip into this spot instead (see HeroSlots). It stays
                 in edit mode so the field is still editable in place, and it is

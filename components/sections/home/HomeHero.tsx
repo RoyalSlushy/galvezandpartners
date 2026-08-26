@@ -284,13 +284,15 @@ export default function HomeHero({
         aria-hidden
         className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 z-[2]"
       />
-      {/* Everything else, enveloped in the film: minimized bars along the
-          bottom — stacked on mobile, side by side across the foot of the frame
-          on desktop. */}
-      {/* The bars along the foot of the frame: on mobile a stack whose rhythm
-          steps up — the sub sits close under the headline (they read as one
-          block), then a wider, even gap to the CTA. */}
-      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:flex-row sm:items-end sm:gap-3 sm:p-6">
+      {/* Everything else, enveloped in the film: minimized bars along the foot
+          of the frame. On mobile a stack whose rhythm steps up — the sub sits
+          close under the headline (they read as one block), then a wider, even
+          gap to the CTA. On desktop they stand side by side in a row that is
+          only as tall as the copy beside it, and the CTA stretches to that
+          height rather than hugging its own contents; `contents` keeps the
+          mobile stack flat inside the shell's own gap. */}
+      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
+      <div className="contents sm:flex sm:items-stretch sm:gap-3">
         <div className="min-w-0 sm:flex-1">
           <FitLine
             path="home.hero.headline"
@@ -364,6 +366,7 @@ export default function HomeHero({
       </div>
       </div>
       </div>
+      </div>
 
       {/* The strip in the masthead: bare in the desktop tagline's spot, and in a
           bordered cell on mobile, where it stands against the logo. */}
@@ -373,7 +376,7 @@ export default function HomeHero({
               desktop
                 ? // Sized by its own content and flushed right, so whichever
                   // title is showing ends against the social icons.
-                  "hero-strip-flush items-center"
+                  "hero-strip-flush items-center px-4"
                 : "h-full flex-1 items-stretch border-l border-white/10 bg-navy-soft/45",
             ),
             stripSocket,
@@ -481,7 +484,7 @@ function HeroServiceSlide({
 
   return (
     <div
-      className="hero-slide relative flex h-full items-center gap-3 px-3 py-2 sm:px-0 sm:py-1"
+      className="hero-slide relative flex h-full items-center gap-3 px-3 py-2 sm:py-1"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -512,24 +515,24 @@ function HeroServiceSlide({
       )}
       {/* The clip itself, left of the title (desktop, where the strip has the
           room). It plays in step with the full-bleed copy over the film. The
-          media's white ground is knocked out the same way it is there — the
+          media's white ground is knocked out the same way it is there: the
           filter chain collapses it to one gold-family hue and turns white
-          black, and `screen` drops that black out. The blend can't reach the
-          real header behind it (the carousel's slide wrapper isolates this
-          subtree), so it screens against a local stand-in painted in the
-          masthead's own color, which composites identically. */}
+          black, and `screen` drops that black out. It blends against whatever
+          the strip is actually standing on — the masthead's own surface, the
+          hero bar's panel — rather than a stand-in painted to match it, so the
+          knockout holds whatever those are colored (the carousel leaves its
+          resting slide free of a stacking context for exactly this). */}
       {media ? (
         <div
           aria-hidden
-          className="relative isolate hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
+          className="hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
         >
-          <div className="absolute inset-0 bg-[var(--hero-top-color,rgb(var(--c-navy)))]" />
           <EditableImage
             path={`home.services.${index}.media`}
             raw={media}
             src={resolveImage(media, 240, 160)}
             alt=""
-            className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
+            className="h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
             playbackRate={0.75}
             autoPlayVideo={false}
             loopVideo={false}
