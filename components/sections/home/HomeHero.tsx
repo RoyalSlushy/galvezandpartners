@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
@@ -33,6 +34,9 @@ type Hero = {
   ctaHref: string;
   gradient?: HeroGradient;
 };
+
+/** Where the strip goes when it is clicked — the works index it is advertising. */
+const WORKS_HREF = "/our-works";
 
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
@@ -194,21 +198,23 @@ export default function HomeHero({
   // The services strip lives in the masthead at both sizes — in the tagline's
   // spot on desktop (bare, no card behind it), in the right-hand cell the header
   // picture used to fill on mobile — reached by portal so it stays inside this
-  // tree and keeps driving the blended backdrops (see HeroSlots). If neither
-  // socket is there it falls back into the hero's own row.
+  // tree and keeps driving the blended backdrops (see HeroSlots).
   //
-  // The strip gives way by degrees as the window narrows, rather than in one
-  // jump: full titles in the masthead, then shortened ones once the nav starts
-  // crowding it (the socket only opens where DesktopNav has room for it), then
-  // out of the masthead and into the hero's own row, then the mobile layout,
-  // where it rides the header cell beside the logo.
+  // It gives way by degrees as the window narrows rather than in one jump, and
+  // never leaves the masthead: full titles, then shortened ones once the nav
+  // starts crowding it (see fitTitle), then the clip alone. Below sm it moves to
+  // the header cell beside the logo, where the titles come back — there is no
+  // room for a clip there, and the film carries it instead.
   const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
   const desktop = useMinWidth(751);
   const roomy = useMinWidth(1440);
+  const snug = useMinWidth(1152);
   const stripSocket = desktop ? headerTagline : headerMedia;
-  // Titles are only shortened in the masthead, and never in edit mode, where
-  // what is on screen has to be the text an admin is editing.
-  const short = !editMode && stripSocket === headerTagline && !roomy;
+  const inMasthead = stripSocket === headerTagline;
+  // Neither shortening nor dropping a title happens in edit mode, where what is
+  // on screen has to be the text an admin is editing.
+  const short = !editMode && inMasthead && !roomy;
+  const clipOnly = !editMode && inMasthead && !snug;
 
   const slides = services.map((s, i) => (
     <HeroServiceSlide
@@ -219,6 +225,7 @@ export default function HomeHero({
       editMode={editMode}
       tv={tv}
       short={short}
+      clipOnly={clipOnly}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
       thumbRef={(el) => {
@@ -228,18 +235,12 @@ export default function HomeHero({
   ));
 
   const servicesStrip = (className: string) => (
-    <div
-      data-hero-rise
-      style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-      className={`relative flex min-w-0 overflow-hidden ${className}`}
-    >
-      <Carousel
-        slides={slides}
-        ariaLabel={t("Our services")}
-        className="flex w-full flex-col justify-center"
-        chrome={false}
-      />
-    </div>
+    <ServicesStrip
+      className={className}
+      ariaLabel={t("Our services")}
+      editMode={editMode}
+      slides={slides}
+    />
   );
 
   return (
@@ -375,13 +376,8 @@ export default function HomeHero({
           />
         </div>
 
-        {/* Services: normally lifted out of the hero into the masthead (below);
-            this is the fallback for when that socket isn't there. */}
-        {stripSocket
-          ? null
-          : servicesStrip(
-              "flex-1 items-center border border-white/10 bg-navy-soft/45 px-4 backdrop-blur-sm",
-            )}
+        {/* The services strip is not here: it lives in the masthead at every
+            width (see the portal below). */}
 
         {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
             its button side by side, with the cta grid still playing behind. */}
@@ -444,6 +440,71 @@ export default function HomeHero({
           )
         : null}
     </section>
+  );
+}
+
+/**
+ * The services strip: the carousel, wrapped so that clicking anywhere on it goes
+ * through to the works index — the titles are what it is advertising, so the
+ * whole strip is the link rather than each title separately. A drag is not a
+ * click: the carousel takes swipes, so a press that travels is let through to it
+ * and the navigation suppressed. Edit mode gets a plain box instead, where a
+ * click has to land on the text it is editing.
+ */
+function ServicesStrip({
+  className,
+  ariaLabel,
+  editMode,
+  slides,
+}: {
+  className: string;
+  ariaLabel: string;
+  editMode: boolean;
+  slides: React.ReactNode[];
+}) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const carousel = (
+    <Carousel
+      slides={slides}
+      ariaLabel={ariaLabel}
+      className="flex w-full flex-col justify-center"
+      chrome={false}
+    />
+  );
+  const shell = `relative flex min-w-0 overflow-hidden ${className}`;
+
+  if (editMode) {
+    return (
+      <div
+        data-hero-rise
+        style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+        className={shell}
+      >
+        {carousel}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={WORKS_HREF}
+      data-hero-rise
+      style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+      className={shell}
+      onPointerDown={(e) => {
+        start.current = { x: e.clientX, y: e.clientY };
+      }}
+      onClick={(e) => {
+        const from = start.current;
+        start.current = null;
+        if (!from) return;
+        const travelled =
+          Math.abs(e.clientX - from.x) > 8 || Math.abs(e.clientY - from.y) > 8;
+        if (travelled) e.preventDefault();
+      }}
+    >
+      {carousel}
+    </Link>
   );
 }
 
@@ -511,6 +572,7 @@ function HeroServiceSlide({
   editMode,
   tv,
   short,
+  clipOnly,
   onHoverStart,
   onHoverEnd,
   thumbRef,
@@ -522,6 +584,10 @@ function HeroServiceSlide({
   tv: (s: string) => string;
   /** Whether to show the title's shortened form (see fitTitle). */
   short: boolean;
+  /** Whether to drop the title entirely and stand on the clip alone — the last
+   * step before the mobile layout, where the nav has taken the room the title
+   * needs. A service with no clip keeps its title regardless. */
+  clipOnly: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
   /** The preview clip's <video>, so the parent can play it in step with the
@@ -580,7 +646,12 @@ function HeroServiceSlide({
       {/* Auto-width (not flex-1): in the masthead the strip is as wide as its
           widest title, and a filling box would leave the shorter ones stranded
           mid-strip instead of ending against the icons beside it. */}
-      <div ref={ref} className="relative z-[1] min-w-0 overflow-hidden">
+      <div
+        ref={ref}
+        className={`relative z-[1] min-w-0 overflow-hidden ${
+          clipOnly && media ? "hidden" : ""
+        }`}
+      >
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}

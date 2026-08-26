@@ -11,7 +11,6 @@ import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import EditableText from "@/components/admin/editable/EditableText";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { useHeroSlots } from "@/components/layout/HeroSlots";
-import { useMinWidth } from "@/components/ui/useMinWidth";
 
 /**
  * Desktop header cluster (nav + tagline/socials + language + Connect) that keeps
@@ -27,6 +26,8 @@ import { useMinWidth } from "@/components/ui/useMinWidth";
  * every link.
  */
 const MAX_STAGE = 2;
+/** The widest the services strip may ever be in the header row. */
+const STRIP_CAP = 416; // 26rem
 
 export default function DesktopNav({
   nav,
@@ -43,15 +44,24 @@ export default function DesktopNav({
 }) {
   const { t, locale } = useLocale();
   const { setHeaderTagline } = useHeroSlots();
-  // Narrower than this the nav needs the whole row, and a strip in it would
-  // push the cluster back over the logo — below it the hero keeps the strip in
-  // its own row instead. Between here and 1440 the strip shortens its titles to
-  // stay clear of the nav (see fitTitle in HomeHero).
-  const roomForStrip = useMinWidth(1152);
   const active = !editMode;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [rawStage, setStage] = useState(0);
+  // How wide the strip's socket may be: the room actually left in the row once
+  // everything else has been laid out, capped at STRIP_CAP. The nav cluster
+  // sizes to its content, so without this the strip would push the cluster left
+  // until it ran into the logo.
+  const [stripMax, setStripMax] = useState(STRIP_CAP);
+  const socketRef = useRef<HTMLDivElement | null>(null);
+  // The nav's left column and, inside it, the row the strip shares with the
+  // social icons — the two the cap is worked out from.
+  const columnRef = useRef<HTMLDivElement | null>(null);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const setSocket = (el: HTMLDivElement | null) => {
+    socketRef.current = el;
+    setHeaderTagline(el);
+  };
   // The cluster's natural width the last time we rendered each stage. Recorded so
   // re-expansion is decided against the previous stage's *actual* width (which is
   // stable), rather than against the width at which it happened to overflow.
@@ -72,6 +82,21 @@ export default function DesktopNav({
     const measure = () => {
       const avail = container.clientWidth;
       const needed = content.offsetWidth;
+
+      // How wide the strip may be, worked out rather than probed for, so it
+      // settles in one pass: what it is now, plus the row's spare width (the
+      // room its own column has over this row), plus whatever the cluster as a
+      // whole has left beside the logo — negative when it is already over, in
+      // which case this takes the overflow back off the strip.
+      const socket = socketRef.current;
+      const column = columnRef.current;
+      const row = rowRef.current;
+      if (socket && column && row) {
+        const headroom = column.offsetWidth - row.offsetWidth;
+        const allowed = socket.offsetWidth + headroom + (avail - needed);
+        setStripMax(Math.max(0, Math.min(STRIP_CAP, allowed)));
+      }
+
       setStage((s) => {
         neededAt.current[s] = needed;
         // Not enough room: shed the next stage of width.
@@ -92,6 +117,9 @@ export default function DesktopNav({
     const ro = new ResizeObserver(measure);
     ro.observe(container);
     ro.observe(content);
+    // The strip's own width changes as it sheds words and titles, which changes
+    // what the row has spare — so watch it too.
+    if (socketRef.current) ro.observe(socketRef.current);
     return () => ro.disconnect();
   }, [active, locale]);
 
@@ -105,14 +133,14 @@ export default function DesktopNav({
       className="hidden min-w-0 flex-1 items-center justify-end sm:flex"
     >
       <div ref={contentRef} className="flex flex-none items-center gap-8">
-        <div className="flex h-16 flex-col items-end justify-between sm:h-24">
+        <div ref={columnRef} className="flex h-16 flex-col items-end justify-between sm:h-24">
           <NavLinks
             nav={nav}
             hideHome={hideHome}
             condenseMore={condenseMore}
             caseStudies={caseStudies}
           />
-          <div className="flex min-w-0 items-center gap-5">
+          <div ref={rowRef} className="flex min-w-0 items-center gap-5">
             {/* The tagline is off for visitors — the homepage hero portals its
                 services strip into this spot instead (see HeroSlots). It stays
                 in edit mode so the field is still editable in place, and it is
@@ -126,16 +154,15 @@ export default function DesktopNav({
               />
             )}
             {/* The strip's socket, sized by its own content so it hugs the
-                social icons. The nav cluster is laid out at its natural width,
-                so the socket only opens on wide screens where there is room for
-                it beside the logo; below that it stays unmounted and the hero
-                keeps the strip in its own row (see HomeHero). */}
-            {roomForStrip && (
-              <div
-                ref={setHeaderTagline}
-                className="flex h-10 max-w-[26rem] items-center overflow-hidden empty:hidden"
-              />
-            )}
+                social icons, and capped at the room actually left beside the
+                logo (see stripMax) so it can never grow into it — the strip
+                itself sheds a title's words, then the title, as that room runs
+                out (see HomeHero). */}
+            <div
+              ref={setSocket}
+              style={{ maxWidth: `${stripMax}px` }}
+              className="flex h-10 items-center overflow-hidden empty:hidden"
+            />
             <SocialIcons socials={socials} iconClassName="h-6 w-6" editPathBase="site.socials" />
           </div>
         </div>
