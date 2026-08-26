@@ -263,7 +263,12 @@ export default function Carousel({
           }}
         />
 
-        <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
+        {/* The track is positioned but carries no z-index: a z-index here would
+            make it a stacking context and trap any blend inside a slide (the
+            hero's clips screen against the surface the carousel stands on). It
+            still paints over the spotlight above — both are positioned, and it
+            comes later in the DOM. */}
+        <div className="relative grid min-h-0 flex-1 grid-rows-1">
           {slides.map((slide, i) => {
             const isActive = i === current;
             const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;

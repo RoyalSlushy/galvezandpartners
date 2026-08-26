@@ -43,9 +43,11 @@ export default function DesktopNav({
 }) {
   const { t, locale } = useLocale();
   const { setHeaderTagline } = useHeroSlots();
-  // Wide screens only: narrower than this the nav needs the whole row, and a
-  // strip in it would push the cluster back over the logo.
-  const roomForStrip = useMinWidth(1280);
+  // Narrower than this the nav needs the whole row, and a strip in it would
+  // push the cluster back over the logo — below it the hero keeps the strip in
+  // its own row instead. Between here and 1440 the strip shortens its titles to
+  // stay clear of the nav (see fitTitle in HomeHero).
+  const roomForStrip = useMinWidth(1152);
   const active = !editMode;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);

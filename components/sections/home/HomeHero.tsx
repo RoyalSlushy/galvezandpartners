@@ -41,11 +41,6 @@ const MOBILE = "(max-width: 750px)";
 const DESKTOP = "(min-width: 751px)";
 
 /**
- * The entrance beats, in ms after the veil lifts. The film goes first and the
- * copy climbs out of it, so the sequence reads as one movement rather than
- * four things arriving at once.
- */
-/**
  * The gradient map every service clip is played through, paired with
  * `mix-blend-screen`.
  *
@@ -58,6 +53,47 @@ const DESKTOP = "(min-width: 751px)";
  */
 const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
 
+/**
+ * Shortened forms for the service titles, used only where the strip is standing
+ * in the masthead with the nav crowding it (see `short` in HomeHero). Whole
+ * words, matched case-insensitively and replaced in the title's own case, so a
+ * CMS-authored title picks these up without being written for them; anything
+ * unlisted is left alone.
+ */
+const SHORT_WORDS: Record<string, string> = {
+  management: "mgmt",
+  marketing: "mktg",
+  production: "prod",
+  productions: "prods",
+  development: "dev",
+  advertising: "ads",
+  communications: "comms",
+  photography: "photo",
+  strategy: "strat",
+  and: "&",
+};
+
+/** The title as it should read at this width — full, or with the long words in
+ * SHORT_WORDS cut down to keep the strip clear of the nav. */
+function fitTitle(title: string, short: boolean) {
+  if (!short) return title;
+  return title.replace(/[A-Za-z]+/g, (word) => {
+    const swap = SHORT_WORDS[word.toLowerCase()];
+    if (!swap) return word;
+    // Carry the word's own casing over: ALL CAPS, Capitalized, or as written.
+    if (word === word.toUpperCase()) return swap.toUpperCase();
+    if (word[0] === word[0].toUpperCase()) {
+      return swap[0].toUpperCase() + swap.slice(1);
+    }
+    return swap;
+  });
+}
+
+/**
+ * The entrance beats, in ms after the veil lifts. The film goes first and the
+ * copy climbs out of it, so the sequence reads as one movement rather than
+ * four things arriving at once.
+ */
 const BEAT = {
   image: 0,
   headline: 260,
@@ -155,6 +191,25 @@ export default function HomeHero({
     });
   };
 
+  // The services strip lives in the masthead at both sizes — in the tagline's
+  // spot on desktop (bare, no card behind it), in the right-hand cell the header
+  // picture used to fill on mobile — reached by portal so it stays inside this
+  // tree and keeps driving the blended backdrops (see HeroSlots). If neither
+  // socket is there it falls back into the hero's own row.
+  //
+  // The strip gives way by degrees as the window narrows, rather than in one
+  // jump: full titles in the masthead, then shortened ones once the nav starts
+  // crowding it (the socket only opens where DesktopNav has room for it), then
+  // out of the masthead and into the hero's own row, then the mobile layout,
+  // where it rides the header cell beside the logo.
+  const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
+  const desktop = useMinWidth(751);
+  const roomy = useMinWidth(1440);
+  const stripSocket = desktop ? headerTagline : headerMedia;
+  // Titles are only shortened in the masthead, and never in edit mode, where
+  // what is on screen has to be the text an admin is editing.
+  const short = !editMode && stripSocket === headerTagline && !roomy;
+
   const slides = services.map((s, i) => (
     <HeroServiceSlide
       key={i}
@@ -163,6 +218,7 @@ export default function HomeHero({
       count={services.length}
       editMode={editMode}
       tv={tv}
+      short={short}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
       thumbRef={(el) => {
@@ -171,14 +227,6 @@ export default function HomeHero({
     />
   ));
 
-  // The services strip lives in the masthead at both sizes — in the tagline's
-  // spot on desktop (bare, no card behind it), in the right-hand cell the header
-  // picture used to fill on mobile — reached by portal so it stays inside this
-  // tree and keeps driving the blended backdrops (see HeroSlots). If neither
-  // socket is there it falls back into the hero's own row.
-  const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
-  const desktop = useMinWidth(751);
-  const stripSocket = desktop ? headerTagline : headerMedia;
   const servicesStrip = (className: string) => (
     <div
       data-hero-rise
@@ -462,6 +510,7 @@ function HeroServiceSlide({
   count,
   editMode,
   tv,
+  short,
   onHoverStart,
   onHoverEnd,
   thumbRef,
@@ -471,6 +520,8 @@ function HeroServiceSlide({
   count: number;
   editMode: boolean;
   tv: (s: string) => string;
+  /** Whether to show the title's shortened form (see fitTitle). */
+  short: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
   /** The preview clip's <video>, so the parent can play it in step with the
@@ -484,7 +535,7 @@ function HeroServiceSlide({
     max: 15,
     min: 7,
     query: MOBILE,
-    deps: [service.title],
+    deps: [service.title, short],
   });
   // Desktop: shrink the title (only if needed) so it never exceeds two lines in
   // its box — no clamp/ellipsis, so no text is ever hidden.
@@ -492,7 +543,7 @@ function HeroServiceSlide({
     max: 22,
     min: 12,
     query: DESKTOP,
-    deps: [service.title],
+    deps: [service.title, short],
   });
 
   return (
@@ -533,7 +584,7 @@ function HeroServiceSlide({
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}
-            value={tv(service.title)}
+            value={fitTitle(tv(service.title), short)}
             as="h3"
             className="font-display text-[1em] leading-[1.1] text-sky-200 sm:leading-[1.15]"
           />
