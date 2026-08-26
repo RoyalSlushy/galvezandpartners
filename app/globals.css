@@ -194,6 +194,10 @@
    it, instead of floating off the shorter ones. */
 .hero-strip-flush .hero-slide {
   justify-content: flex-end;
+  /* Right-aligned as well as flushed right: a title long enough to wrap would
+     otherwise set its second line against the left edge, reading as a stray
+     left-aligned block inside a strip that ends on the icons. */
+  text-align: right;
 }
 
 /* Desktop (sm+) heading: capped to two lines. useFitText shrinks the type until

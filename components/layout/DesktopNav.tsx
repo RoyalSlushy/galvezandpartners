@@ -27,7 +27,7 @@ import { useHeroSlots } from "@/components/layout/HeroSlots";
  */
 const MAX_STAGE = 2;
 /** The widest the services strip may ever be in the header row. */
-const STRIP_CAP = 416; // 26rem
+const STRIP_CAP = 480; // 30rem — the longest title beside its clip, on one line
 
 export default function DesktopNav({
   nav,
