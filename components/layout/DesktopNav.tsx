@@ -153,7 +153,9 @@ export default function DesktopNav({
                 className="font-din text-base tracking-wide text-white/80"
               />
             )}
-            {/* The strip's socket, sized by its own content so it hugs the
+            {/* The strip's socket. Its height clears the strip's own — a title
+                may run to two lines — so nothing of the strip, its clip least of
+                all, is cut off by this box. Sized by its own content so it hugs the
                 social icons, and capped at the room actually left beside the
                 logo (see stripMax) so it can never grow into it — the strip
                 itself sheds a title's words, then the title, as that room runs
@@ -161,7 +163,7 @@ export default function DesktopNav({
             <div
               ref={setSocket}
               style={{ maxWidth: `${stripMax}px` }}
-              className="flex h-10 items-center overflow-hidden empty:hidden"
+              className="flex h-14 items-center overflow-hidden empty:hidden"
             />
             <SocialIcons socials={socials} iconClassName="h-6 w-6" editPathBase="site.socials" />
           </div>

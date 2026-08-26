@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import Carousel from "@/components/ui/Carousel";
+import Carousel, { CarouselContext } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
@@ -163,6 +170,14 @@ export default function HomeHero({
   const [ready, setReady] = useState<Record<number, boolean>>({});
   const markReady = (index: number) =>
     setReady((r) => (r[index] ? r : { ...r, [index]: true }));
+  // Pull a service's clips down before its slide is on screen. Videos are
+  // mounted for every slide, so this is only about the ones a browser has left
+  // unfetched; an image source is already on its way by the time it is mounted.
+  const preload = useCallback((index: number) => {
+    [videoRefs.current[index], thumbRefs.current[index]].forEach((v) => {
+      if (v && v.readyState < 2) v.load();
+    });
+  }, []);
   // Each service's clip exists twice: full-bleed over the film, and (on desktop)
   // as the small preview left of its title in the strip. Both play together.
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -234,6 +249,7 @@ export default function HomeHero({
       clipOnly={clipOnly}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
+      onPreload={() => preload(i)}
       thumbRef={(el) => {
         thumbRefs.current[i] = el;
       }}
@@ -582,6 +598,7 @@ function HeroServiceSlide({
   clipOnly,
   onHoverStart,
   onHoverEnd,
+  onPreload,
   thumbRef,
 }: {
   service: Service;
@@ -597,12 +614,27 @@ function HeroServiceSlide({
   clipOnly: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
+  /** Called when this slide becomes the one up next, so its clips can be
+   * fetched before it is on screen. */
+  onPreload: () => void;
   /** The preview clip's <video>, so the parent can play it in step with the
    * full-bleed one over the film. */
   thumbRef: (el: HTMLVideoElement | null) => void;
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
+  // The slide the carousel will land on next fetches its clips now, so they are
+  // decoded, mapped and blended by the time it arrives rather than fading in
+  // once it is already on screen.
+  const { current } = useContext(CarouselContext);
+  const isNext = count > 1 && index === (current + 1) % count;
+  // Through a ref so a fresh callback identity on every render doesn't re-fire
+  // the fetch — only actually becoming the next slide should.
+  const preloadRef = useRef(onPreload);
+  preloadRef.current = onPreload;
+  useEffect(() => {
+    if (isNext && media) preloadRef.current();
+  }, [isNext, media]);
   // Held hidden until the clip has a frame: blended, a half-loaded one is not a
   // faint version of itself but a raw box of the map applied to nothing.
   const [ready, setReady] = useState(false);
@@ -625,7 +657,7 @@ function HeroServiceSlide({
 
   return (
     <div
-      className="hero-slide relative flex h-full items-center gap-3 px-3 py-2 sm:py-1"
+      className="hero-slide relative flex h-full items-center gap-3 px-3 py-2 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -689,14 +721,14 @@ function HeroServiceSlide({
           stand-in painted to match it (the carousel leaves its resting slide
           free of a stacking context for exactly this). */}
       {media ? (
-        // The box is sized to the strip's own height (h-8 inside the socket's
-        // h-10, once the slide's padding is counted) and clips its overflow, and
-        // the clip is contained rather than cropped — so the whole frame shows,
+        // The box fills the strip's own height (h-12, matching the socket, with
+        // no padding on the slide at this size) and clips its overflow, and the
+        // clip is contained rather than cropped — so the whole frame shows,
         // whatever its aspect, and none of it lands outside the box.
         <div
           aria-hidden
           style={{ opacity: ready ? 1 : 0 }}
-          className="hidden h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:block"
+          className="hidden h-12 w-[5.25rem] shrink-0 overflow-hidden transition-opacity duration-300 sm:block"
         >
           <EditableImage
             path={`home.services.${index}.media`}
