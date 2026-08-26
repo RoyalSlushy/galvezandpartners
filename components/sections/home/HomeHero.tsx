@@ -45,6 +45,19 @@ const DESKTOP = "(min-width: 751px)";
  * copy climbs out of it, so the sequence reads as one movement rather than
  * four things arriving at once.
  */
+/**
+ * The gradient map every service clip is played through, paired with
+ * `mix-blend-screen`.
+ *
+ * `invert` does the mapping: the white ground turns black, and screen drops
+ * black out — so the ground goes transparent and whatever the clip sits on
+ * shows through untouched. Black ink turns white and stays white. The rotation
+ * carries what invert leaves of the artwork's teal (a light red) round to a
+ * golden yellow, and the saturate deepens it; neither touches white or black,
+ * which have no hue to turn.
+ */
+const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
+
 const BEAT = {
   image: 0,
   headline: 260,
@@ -67,8 +80,8 @@ const BEAT = {
  * (see HeroSlots); hovering a title plays that service's backdrop clip. On
  * desktop it plays in the small preview beside the title and the film is left
  * alone; on mobile, where the strip's cell has no room for a preview, it plays
- * full-bleed over the film instead, multiplied into it so the clip's white
- * ground drops out and only its artwork rides the footage. That layer lives
+ * full-bleed over the film instead, mapped and screened into it so the clip's
+ * white ground drops out and only its artwork rides the footage. That layer lives
  * here rather than inside the slide on purpose: mix-blend-mode only reaches the
  * nearest stacking context, and the carousel's own slide wrappers (transform +
  * z-index) would trap it short of the film.
@@ -238,10 +251,10 @@ export default function HomeHero({
 
       {/* Hovered service backdrop, over the film — mobile only, where the strip
           sits in a cell too small to preview the clip beside its title. On
-          desktop the clip plays there instead and the film is left alone.
-          `multiply` makes the clip's white ground transparent, so the film shows
-          straight through it while its artwork darkens into the footage. Only
-          the hovered one is opaque; the rest fade out in place. */}
+          desktop the clip plays there instead and the film is left alone. The
+          map + screen leave the clip's ground transparent, so the footage shows
+          straight through it and only the artwork rides it. Only the hovered one
+          is opaque; the rest fade out in place. */}
       {desktop
         ? null
         : services.map((s, i) =>
@@ -249,7 +262,7 @@ export default function HomeHero({
               <div
                 key={i}
                 aria-hidden
-                className="pointer-events-none absolute inset-0 z-[1] mix-blend-multiply transition-opacity duration-500"
+                className="pointer-events-none absolute inset-0 z-[1] mix-blend-screen transition-opacity duration-500"
                 style={{ opacity: hovered === i ? 1 : 0 }}
               >
                 <EditableImage
@@ -257,7 +270,7 @@ export default function HomeHero({
                   raw={s.media}
                   src={resolveImage(s.media, 1600, 1000)}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className={`h-full w-full object-cover ${MEDIA_MAP}`}
                   playbackRate={0.75}
                   autoPlayVideo={false}
                   loopVideo={false}
@@ -513,33 +526,6 @@ function HeroServiceSlide({
           </button>
         </>
       )}
-      {/* The clip itself, left of the title (desktop, where the strip has the
-          room). It plays in step with the full-bleed copy over the film. The
-          media's white ground is knocked out the same way it is there: the
-          filter chain collapses it to one gold-family hue and turns white
-          black, and `screen` drops that black out. It blends against whatever
-          the strip is actually standing on — the masthead's own surface, the
-          hero bar's panel — rather than a stand-in painted to match it, so the
-          knockout holds whatever those are colored (the carousel leaves its
-          resting slide free of a stacking context for exactly this). */}
-      {media ? (
-        <div
-          aria-hidden
-          className="hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
-        >
-          <EditableImage
-            path={`home.services.${index}.media`}
-            raw={media}
-            src={resolveImage(media, 240, 160)}
-            alt=""
-            className="h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)]"
-            playbackRate={0.75}
-            autoPlayVideo={false}
-            loopVideo={false}
-            videoRef={thumbRef}
-          />
-        </div>
-      ) : null}
       {/* Auto-width (not flex-1): in the masthead the strip is as wide as its
           widest title, and a filling box would leave the shorter ones stranded
           mid-strip instead of ending against the icons beside it. */}
@@ -562,6 +548,31 @@ function HeroServiceSlide({
           />
         )}
       </div>
+      {/* The clip itself, right of the title (desktop, where the strip has the
+          room), so it holds the same spot slide to slide — the strip is flushed
+          right, and only the title's width varies. It plays in step with the
+          full-bleed copy over the film, under the same map (see MEDIA_MAP), and
+          blends against whatever the strip is actually standing on rather than a
+          stand-in painted to match it (the carousel leaves its resting slide
+          free of a stacking context for exactly this). */}
+      {media ? (
+        <div
+          aria-hidden
+          className="hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
+        >
+          <EditableImage
+            path={`home.services.${index}.media`}
+            raw={media}
+            src={resolveImage(media, 240, 160)}
+            alt=""
+            className={`h-full w-full object-cover mix-blend-screen ${MEDIA_MAP}`}
+            playbackRate={0.75}
+            autoPlayVideo={false}
+            loopVideo={false}
+            videoRef={thumbRef}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -9,6 +9,12 @@ import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
 import { ChevronDownIcon } from "@/components/admin/icons";
 
+/** How long the cursor has to rest on the link before the panel drops. Long
+ * enough that sweeping across "Our Work" on the way to another nav item never
+ * throws a full-width panel over the page, short enough that someone reaching
+ * for it doesn't feel the wait (the well-worn hover-intent range is 150–300ms).
+ * Keyboard focus and a click are deliberate, so they skip it. */
+const OPEN_DELAY_MS = 200;
 /** How long the panel stays open after the cursor leaves, so travelling from
  * the nav link down to the panel across the header doesn't close it. */
 const CLOSE_DELAY_MS = 180;
@@ -27,9 +33,11 @@ const MAX_CARDS = 4;
  * (its `isolate` makes a stacking context, not a containing block), so it lands
  * where it should.
  *
- * Crossing the header between the link and the panel would otherwise leave the
- * hover target, so closing is deferred briefly and cancelled if the cursor
- * arrives in either half.
+ * Both edges are deferred. Opening waits for the cursor to rest on the link, so
+ * a sweep across it on the way to another nav item never drops the panel over
+ * the page; closing waits too, since crossing the header between the link and
+ * the panel would otherwise leave the hover target. Either wait is cancelled by
+ * the cursor arriving in the other half.
  */
 export default function WorkMegaMenu({
   href,
@@ -48,15 +56,35 @@ export default function WorkMegaMenu({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
+  const openTimer = useRef<number | undefined>(undefined);
 
-  const cancelClose = useCallback(() => {
+  /** Open now — for the deliberate ways in (focus, and the cursor arriving in
+   * the panel itself while it is still on its way out). */
+  const openNow = useCallback(() => {
     window.clearTimeout(closeTimer.current);
+    window.clearTimeout(openTimer.current);
+    setOpen(true);
+  }, []);
+  /** Open only if the cursor is still here once the delay is up. */
+  const scheduleOpen = useCallback(() => {
+    window.clearTimeout(closeTimer.current);
+    window.clearTimeout(openTimer.current);
+    openTimer.current = window.setTimeout(() => setOpen(true), OPEN_DELAY_MS);
   }, []);
   const scheduleClose = useCallback(() => {
+    // A pending open is abandoned outright: leaving before the delay is up is
+    // exactly the pass-through this guards against.
+    window.clearTimeout(openTimer.current);
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
   }, []);
-  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(closeTimer.current);
+      window.clearTimeout(openTimer.current);
+    },
+    [],
+  );
 
   // Any route change closes it — following a card shouldn't leave it hanging.
   useEffect(() => {
@@ -77,10 +105,7 @@ export default function WorkMegaMenu({
   return (
     <li
       className="relative"
-      onMouseEnter={() => {
-        cancelClose();
-        setOpen(true);
-      }}
+      onMouseEnter={scheduleOpen}
       onMouseLeave={scheduleClose}
     >
       <Link
@@ -88,10 +113,7 @@ export default function WorkMegaMenu({
         aria-current={active ? "page" : undefined}
         aria-haspopup="true"
         aria-expanded={open}
-        onFocus={() => {
-          cancelClose();
-          setOpen(true);
-        }}
+        onFocus={openNow}
         className={`${linkClassName} inline-flex items-center gap-1`}
       >
         {label}
@@ -104,7 +126,7 @@ export default function WorkMegaMenu({
 
       {cards.length > 0 && (
         <div
-          onMouseEnter={cancelClose}
+          onMouseEnter={openNow}
           onMouseLeave={scheduleClose}
           className={`fixed inset-x-0 top-[var(--header-h)] z-40 hidden border-y border-white/10 bg-navy-soft/95 shadow-2xl backdrop-blur transition duration-200 sm:block ${
             open
