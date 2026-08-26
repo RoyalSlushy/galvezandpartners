@@ -32,6 +32,11 @@ type EditableImageProps = {
   /** Exposes the underlying <video> element so a caller can drive playback
    * (play/pause/loop/currentTime) imperatively. No-op for image sources. */
   videoRef?: React.Ref<HTMLVideoElement>;
+  /** Called once the media has something to paint — a decoded image, or a
+   * video's first frame. Callers that composite the media (a blend, say) use it
+   * to hold it hidden until it can be shown as intended rather than as a raw
+   * box. Fires again if the source changes. */
+  onReady?: () => void;
 };
 
 /**
@@ -52,17 +57,21 @@ export default function EditableImage({
   autoPlayVideo = true,
   loopVideo = true,
   videoRef: externalVideoRef,
+  onReady,
 }: EditableImageProps) {
   const editMode = useEditMode();
   const admin = useAdmin();
   const reduced = useMotionOff();
   const internalVideoRef = useRef<HTMLVideoElement | null>(null);
+  // Whichever element this renders — used for the cached-source check below.
+  const mediaRef = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
   const fieldLabel = label ?? labelFor(path);
 
   // Attaches the internal ref (used by this component's own effects below)
   // and forwards the same node to the caller's ref, if one was passed.
   const setVideoRef = (el: HTMLVideoElement | null) => {
     internalVideoRef.current = el;
+    mediaRef.current = el;
     if (typeof externalVideoRef === "function") externalVideoRef(el);
     else if (externalVideoRef) (externalVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
   };
@@ -82,6 +91,19 @@ export default function EditableImage({
       }
     }
   }, [reduced, src]);
+
+  // A source that is already in cache can be painted before the element's own
+  // load event would reach React, so check the element once per source too —
+  // otherwise a caller waiting on `onReady` would wait forever.
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
+  useEffect(() => {
+    const el = mediaRef.current;
+    if (!el) return;
+    const painted =
+      el instanceof HTMLVideoElement ? el.readyState >= 2 : el.complete;
+    if (painted) readyRef.current?.();
+  }, [src]);
 
   // Apply the playback speed imperatively — browsers can reset it when a new
   // source loads, so re-set it on `loadedmetadata` too, not just on mount.
@@ -114,6 +136,7 @@ export default function EditableImage({
       <video
         ref={setVideoRef}
         src={src}
+        onLoadedData={onReady}
         className={className}
         style={style}
         autoPlay={autoPlayVideo && !reduced}
@@ -130,5 +153,17 @@ export default function EditableImage({
   }
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} style={style} {...editProps} />;
+  return (
+    <img
+      ref={(el) => {
+        mediaRef.current = el;
+      }}
+      src={src}
+      alt={alt}
+      className={className}
+      style={style}
+      onLoad={onReady}
+      {...editProps}
+    />
+  );
 }

@@ -157,6 +157,12 @@ export default function HomeHero({
   // hover-exit it keeps playing (no snap back mid-frame) until the current pass
   // ends, then rests paused at the start — see the 'ended' handler below.
   const [hovered, setHovered] = useState<number | null>(null);
+  // Which clips have something to paint. A blended clip that is still loading
+  // is not a faint version of itself — it is a raw box of whatever the map does
+  // to nothing — so each one stays hidden until its first frame is in.
+  const [ready, setReady] = useState<Record<number, boolean>>({});
+  const markReady = (index: number) =>
+    setReady((r) => (r[index] ? r : { ...r, [index]: true }));
   // Each service's clip exists twice: full-bleed over the film, and (on desktop)
   // as the small preview left of its title in the strip. Both play together.
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -312,7 +318,7 @@ export default function HomeHero({
                 key={i}
                 aria-hidden
                 className="pointer-events-none absolute inset-0 z-[1] mix-blend-screen transition-opacity duration-500"
-                style={{ opacity: hovered === i ? 1 : 0 }}
+                style={{ opacity: hovered === i && ready[i] ? 1 : 0 }}
               >
                 <EditableImage
                   path={`home.services.${i}.media`}
@@ -326,6 +332,7 @@ export default function HomeHero({
                   videoRef={(el) => {
                     videoRefs.current[i] = el;
                   }}
+                  onReady={() => markReady(i)}
                 />
               </div>
             ) : null,
@@ -596,6 +603,10 @@ function HeroServiceSlide({
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
+  // Held hidden until the clip has a frame: blended, a half-loaded one is not a
+  // faint version of itself but a raw box of the map applied to nothing.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(false), [media]);
   // Mobile: shrink the title to the (small) masthead cell the strip rides in.
   const { ref } = useFitText<HTMLDivElement>({
     max: 15,
@@ -678,20 +689,26 @@ function HeroServiceSlide({
           stand-in painted to match it (the carousel leaves its resting slide
           free of a stacking context for exactly this). */}
       {media ? (
+        // The box is sized to the strip's own height (h-8 inside the socket's
+        // h-10, once the slide's padding is counted) and clips its overflow, and
+        // the clip is contained rather than cropped — so the whole frame shows,
+        // whatever its aspect, and none of it lands outside the box.
         <div
           aria-hidden
-          className="hidden h-9 w-14 shrink-0 overflow-hidden sm:block"
+          style={{ opacity: ready ? 1 : 0 }}
+          className="hidden h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:block"
         >
           <EditableImage
             path={`home.services.${index}.media`}
             raw={media}
             src={resolveImage(media, 240, 160)}
             alt=""
-            className={`h-full w-full object-cover mix-blend-screen ${MEDIA_MAP}`}
+            className={`h-full max-h-full w-full max-w-full object-contain mix-blend-screen ${MEDIA_MAP}`}
             playbackRate={0.75}
             autoPlayVideo={false}
             loopVideo={false}
             videoRef={thumbRef}
+            onReady={() => setReady(true)}
           />
         </div>
       ) : null}
