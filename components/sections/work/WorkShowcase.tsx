@@ -18,18 +18,18 @@ import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
-// Card width doubly capped by viewport height (cards are 4:5) so heading +
-// track + progress line always fit inside one viewport.
-// CARD_W/END_CARD_W are the edit-mode sizes (width-driven at every breakpoint);
-// visitors get CARD_FIT/END_CARD_FIT, where the phone card instead derives its
-// width from the row height (still 4:5) so header + heading + card + blurb all
-// fit inside one viewport.
+// CARD_W/END_CARD_W are the edit-mode sizes: width-driven at every breakpoint,
+// since edit mode lets the section grow past the viewport.
 const CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(34vw,38vh)] md:w-[min(27vw,38vh)]";
 const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[min(24vw,34vh)]";
-const CARD_FIT =
-  "h-full w-auto shrink-0 sm:h-auto sm:w-[min(34vw,38vh)] sm:max-w-[420px] md:w-[min(27vw,38vh)]";
-const END_CARD_FIT =
-  "h-full w-auto shrink-0 sm:h-auto sm:w-[min(30vw,34vh)] sm:max-w-[420px] md:w-[min(24vw,34vh)]";
+// Visitors get CARD_FIT at every breakpoint: the card takes the row's height
+// and derives its own width from it (the frame stays 4:5), so heading + cards +
+// blurb always land inside the first screen, whatever the viewport.
+const CARD_FIT = "h-full w-auto shrink-0";
+// Room reserved under each card at sm+ for its blurb (mt-3 + a box exactly two
+// text-sm lines tall); the frame above it takes the rest of the row. Phones
+// move that blurb out of the row entirely, so their frame gets the full height.
+const DESC_H = "sm:h-[calc(100%-3.25rem)]";
 
 /**
  * /our-works hero: the cases as a horizontal strip you push sideways — swipe on
@@ -215,11 +215,15 @@ export default function WorkShowcase({
 
   const cards = items.map((w, i) => {
     const inner = (
-      <div className={editMode ? "relative" : "relative h-full sm:h-auto"}>
-        {/* Outlined index overlapping the card */}
+      <div className={editMode ? "relative" : "relative h-full"}>
+        {/* Outlined index, overlapping the top-left of the frame. At sm+ the
+            cards take their size from the viewport's height, so the numeral
+            does too — a fixed size would swallow the card on a short screen. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-7 left-2 z-10 font-display text-[4.5rem] leading-none text-stroke-white opacity-60 sm:-top-9 sm:text-[5.5rem]"
+          className={`pointer-events-none absolute -top-7 left-2 z-10 font-display text-[4.5rem] leading-none text-stroke-white opacity-60 sm:-top-9 ${
+            editMode ? "sm:text-[5.5rem]" : "sm:text-[min(5.5rem,7vh)]"
+          }`}
         >
           <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-white" />
         </span>
@@ -234,7 +238,7 @@ export default function WorkShowcase({
         )}
         <div
           className={`group relative overflow-hidden bg-navy-soft${
-            editMode ? "" : " aspect-[4/5] h-full max-w-[85vw] sm:h-auto sm:max-w-none"
+            editMode ? "" : ` aspect-[4/5] h-full max-w-[85vw] sm:max-w-none ${DESC_H}`
           }`}
         >
           <div
@@ -285,23 +289,37 @@ export default function WorkShowcase({
             </div>
           </div>
         </div>
-        {/* Description sits under the card (out of the image). Phones move it
-            out of the row entirely — into the shared blurb under the track —
-            so it hides here (edit mode keeps it in place so each case stays
-            editable). */}
+        {/* Description sits under the card (out of the image), in the fixed slot
+            DESC_H reserves for it. Phones move it out of the row entirely —
+            into the shared blurb under the track — so it hides here (edit mode
+            keeps it in place so each case stays editable).
+            `w-0 min-w-full` keeps the copy from setting the column's width: the
+            column is sized by the 4:5 frame above (which takes its width from
+            the row's height), and the blurb then fills whatever that is —
+            without it, a long blurb stretches its own card wider than the
+            rest. */}
         <EditableText
           path={`work.items.${i}.description`}
           value={w.description}
           as="p"
           multiline
           className={`mt-3 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70${
-            editMode ? "" : " hidden sm:block"
+            // max-sm:hidden rather than `hidden sm:block`: line-clamp needs its
+            // own display value, and an sm:block would overwrite it — leaving a
+            // third line half-showing under the clamp instead of an ellipsis.
+            // h-[2.5rem] is exactly the two lines the clamp allows, so a blurb
+            // with a hard line break in it (the copy is pre-line) can't push a
+            // third line into view under the clamp.
+            editMode ? "" : " h-[2.5rem] w-0 min-w-full overflow-hidden max-sm:hidden"
           }`}
         />
       </div>
     );
     const rootW = editMode ? CARD_W : CARD_FIT;
-    const offset = i % 2 === 1 ? "sm:mt-6" : "";
+    // Every other card is stepped down a touch for rhythm. Visitors' cards are
+    // height-driven, so the step is a shorter card hung off the row's bottom
+    // edge (a top margin would push it out of the viewport instead).
+    const offset = i % 2 !== 1 ? "" : editMode ? "sm:mt-6" : "sm:h-[93%] sm:self-end";
     return w.slug && !editMode ? (
       <Link
         key={i}
@@ -322,11 +340,14 @@ export default function WorkShowcase({
   const endCard = (
     <a
       href="#work-gallery"
-      className={`flex ${editMode ? END_CARD_W : END_CARD_FIT} snap-start items-center`}
+      className={`flex ${editMode ? `${END_CARD_W} items-center` : `${CARD_FIT} items-start`} snap-start`}
     >
       <div
         className={`relative flex aspect-[4/5] flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
-          editMode ? "w-full" : "h-full max-w-[85vw] sm:h-auto sm:w-full sm:max-w-none"
+          // Its frame lines up with the cases' — same height, so the same
+          // bottom edge — with their blurb slot left empty beneath it. min-w-0
+          // keeps the copy inside from widening the frame past its 4:5.
+          editMode ? "w-full" : `h-full min-w-0 max-w-[85vw] sm:max-w-none ${DESC_H}`
         }`}
       >
         <CtaGrid
@@ -344,11 +365,12 @@ export default function WorkShowcase({
     </a>
   );
 
-  // Visitors' phones get a one-viewport layout: the section fills the screen
-  // under the site header as a column — heading, then the card row (which
-  // flexes and sizes the 4:5 cards from its height), then the progress line and
-  // the shared blurb — so header + heading + case + description all fit with no
-  // vertical scroll. sm+ (and edit mode) keeps the width-driven row.
+  // Visitors get a one-viewport layout at every breakpoint: the section fills
+  // the screen under the site header as a column — heading, then the card row
+  // (which flexes, and sizes the 4:5 cards from its own height), then the
+  // progress line and the blurb — so landing on the page puts the whole of the
+  // cases on screen with nothing below the fold. Edit mode keeps the
+  // width-driven row and lets the section grow instead.
   return (
     <section
       data-gp-hero={phase ?? undefined}
@@ -356,7 +378,7 @@ export default function WorkShowcase({
       className={`relative w-full overflow-hidden bg-navy ${
         editMode
           ? "py-16 sm:py-20"
-          : "flex h-[calc(100svh-var(--header-h))] flex-col pb-4 pt-3 sm:block sm:h-auto sm:py-20"
+          : "flex h-[calc(100svh-var(--header-h))] flex-col pb-4 pt-3 sm:pb-6 sm:pt-4"
       }`}
     >
       <GalleryRail label={tv("gallery")} />
@@ -368,12 +390,12 @@ export default function WorkShowcase({
       <div
         ref={scrollRowRef}
         className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto active:cursor-grabbing ${
-          editMode ? "mt-10 pb-6 pt-10" : "mt-2 min-h-0 flex-1 pb-2 pt-8 sm:mt-10 sm:flex-none sm:pb-6 sm:pt-10"
+          editMode ? "mt-10 pb-6 pt-10" : "mt-2 min-h-0 flex-1 pb-2 pt-8 sm:mt-4 sm:pt-10"
         }`}
       >
         <div
           className={`gallery-pad flex w-max items-start gap-6 sm:gap-8 ${
-            editMode ? "" : "h-full sm:h-auto"
+            editMode ? "" : "h-full"
           }`}
         >
           {cards}
@@ -385,7 +407,7 @@ export default function WorkShowcase({
           {/* Progress line for the journey across the cases. It runs full width
               as the last of them lands, where the gallery section below picks it
               up and opens it into its own band (see WorkGallery). */}
-          <Container className="mt-2 sm:mt-6">
+          <Container className="mt-2 sm:mt-4">
             <div className="h-px w-full bg-white/10">
               <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
             </div>
@@ -414,6 +436,22 @@ export default function WorkShowcase({
 }
 
 /**
+ * Live viewport height in px, for type that has to be sized against the screen
+ * rather than its container. Starts at a desktop-ish height so the server and
+ * the first client paint agree, then corrects on mount.
+ */
+function useViewportHeight() {
+  const [vh, setVh] = useState(900);
+  useEffect(() => {
+    const on = () => setVh(window.innerHeight);
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return vh;
+}
+
+/**
  * The showcase heading, in two responsive treatments (both skip wrapping and
  * binary-search-fit their type to the container width):
  *
@@ -437,20 +475,29 @@ function ShowcaseHeading({
   display: string;
   editMode: boolean;
 }) {
+  // The section is one screen tall, and whatever the heading takes of it comes
+  // out of the cards below — so the type is capped by the viewport's height as
+  // well as fitted to the container's width, and a short screen gets a smaller
+  // heading rather than cards pushed under the fold. (The cap can't be a
+  // max-height on the box: the accent word's halo rings spill outside the text,
+  // and the fit measures scrollHeight, which would count them.)
+  const vh = useViewportHeight();
+
   const { ref } = useFitText<HTMLDivElement>({
-    max: 150,
+    max: Math.min(150, vh * 0.095),
     min: 16,
     singleLine: true,
-    deps: [display, editMode],
+    deps: [display, editMode, vh],
   });
   // Separate fit for the phone treatment: singleLine only constrains width, so
   // with each line kept nowrap it sizes the block until the widest of the three
-  // lines spans the container.
+  // lines spans the container. Its cap is per-line, and the stack is ~3.15em
+  // tall, so it lands near a sixth of the screen.
   const { ref: mobileRef } = useFitText<HTMLDivElement>({
-    max: 110,
+    max: Math.min(110, vh * 0.058),
     min: 14,
     singleLine: true,
-    deps: [display, editMode],
+    deps: [display, editMode, vh],
   });
 
   if (editMode) {

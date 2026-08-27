@@ -24,10 +24,11 @@ type FeaturedCopy = {
   ctaHref: string;
 };
 
-// Card width also capped by viewport height (cards are 4:5) so the row always
-// fits alongside its header and progress line on short laptops.
-const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,44vh)] md:w-[min(30vw,44vh)]";
-const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,40vh)] md:w-[min(26vw,40vh)]";
+// Card width also capped by viewport height (cards are 4:5) so the section's
+// header, row, and progress line together stay inside one screen — the whole of
+// the cases is on view once you reach them, on short laptops included.
+const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,40vh)] md:w-[min(30vw,40vh)]";
+const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,36vh)] md:w-[min(26vw,36vh)]";
 
 /**
  * "Featured work" — a horizontal gallery of the shared work.items portfolio
@@ -272,13 +273,23 @@ export default function FeaturedWork({
   );
 
   return (
-    <section className="w-full overflow-hidden bg-navy py-20 sm:py-28">
+    // One screen, content centred in it: reaching the section puts the whole of
+    // it — header, cards, progress line — on view, with nothing of the row left
+    // below the fold. min-h (not h) so a short or narrow screen grows the
+    // section rather than clipping it. Edit mode grows freely instead.
+    <section
+      className={`w-full overflow-hidden bg-navy ${
+        editMode ? "py-20 sm:py-28" : "min-h-viewport flex flex-col justify-center py-10"
+      }`}
+    >
       <Container>
         <RevealOnScroll>{header}</RevealOnScroll>
       </Container>
       <div
         ref={scrollRowRef}
-        className="gallery-scroll mt-16 cursor-grab snap-x snap-mandatory overflow-x-auto pb-6 pt-12 active:cursor-grabbing"
+        className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
+          editMode ? "mt-16 pb-6" : "mt-10 pb-4"
+        }`}
       >
         <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
           {cards}
