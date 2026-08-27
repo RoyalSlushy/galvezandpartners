@@ -26,11 +26,13 @@ const MIN_SHOW_MS = 1000;
  * Rendered in the root layout. The veil ships in the server HTML already
  * covering the content (the spinner's delayed fade-in and spin are pure CSS, so
  * it works before hydration too); once mounted, the effect below waits for
- * every in-viewport <img> (swept repeatedly, so images mounted late by
- * client-only effects are caught) plus the webfonts, then fades the veil out.
- * Client-side navigations re-veil synchronously before the incoming page can
- * paint. Images below the fold are left to lazy-load as normal, and <noscript>
- * visitors never see the veil at all (see the style block in the layout).
+ * every in-viewport <img> and <video> (swept repeatedly, so media mounted late
+ * by client-only effects is caught) plus the webfonts, then fades the veil out
+ * — which is also the cue for the landing sections' entrances, so they play
+ * over a painted first screen rather than an empty one. Client-side navigations
+ * re-veil synchronously before the incoming page can paint. Media below the
+ * fold is left to lazy-load as normal, and <noscript> visitors never see the
+ * veil at all (see the style block in the layout).
  *
  * Navigations also carry a direction, taken from where the two pages sit in the
  * site nav: going to a menu item further right pushes the outgoing page out to
@@ -216,27 +218,44 @@ export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
       );
     };
 
-    const settled = (img: HTMLImageElement) =>
+    /** Every in-viewport thing that paints from a network fetch. Videos count:
+     * a hero whose film is an uploaded clip would otherwise be revealed as an
+     * empty box, with its entrance already playing over nothing. */
+    const media = (): (HTMLImageElement | HTMLVideoElement)[] => [
+      ...Array.from(document.images),
+      ...Array.from(document.querySelectorAll("video")),
+    ];
+
+    // A video is "there" once it has a frame to show (HAVE_CURRENT_DATA); it
+    // does not have to be buffered through to the end.
+    const loaded = (el: HTMLImageElement | HTMLVideoElement) =>
+      el instanceof HTMLVideoElement ? el.readyState >= 2 : el.complete;
+
+    const settled = (el: HTMLImageElement | HTMLVideoElement) =>
       new Promise<void>((resolve) => {
-        if (img.complete) return resolve();
+        if (loaded(el)) return resolve();
         const done = () => resolve();
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
+        el.addEventListener(
+          el instanceof HTMLVideoElement ? "loadeddata" : "load",
+          done,
+          { once: true },
+        );
+        el.addEventListener("error", done, { once: true });
         setTimeout(done, Math.max(0, deadline - performance.now()));
       });
 
     (async () => {
-      // Give client-only content a couple of frames to mount its images
+      // Give client-only content a couple of frames to mount its media
       // before the first sweep.
       await nextFrames();
-      const seen = new Set<HTMLImageElement>();
+      const seen = new Set<HTMLImageElement | HTMLVideoElement>();
       // Sweep until a pass finds nothing new still loading in the viewport.
       while (current() && performance.now() < deadline) {
-        const pending = Array.from(document.images).filter(
-          (img) => !seen.has(img) && !img.complete && inViewport(img)
+        const pending = media().filter(
+          (el) => !seen.has(el) && !loaded(el) && inViewport(el)
         );
         if (pending.length === 0) break;
-        pending.forEach((img) => seen.add(img));
+        pending.forEach((el) => seen.add(el));
         await Promise.all(pending.map(settled));
         await nextFrames();
       }

@@ -54,10 +54,15 @@ export default function Carousel({
   slides,
   className = "",
   ariaLabel = "Card carousel",
+  chrome = true,
 }: {
   slides: ReactNode[];
   className?: string;
   ariaLabel?: string;
+  /** Whether to draw the prev/next handles and the dot indicators. With them
+   * off the carousel is bare cards — it still auto-advances, swipes and takes
+   * keyboard arrows, so no way of moving through it is lost. */
+  chrome?: boolean;
 }) {
   const n = slides.length;
   const [current, setCurrent] = useState(0);
@@ -258,7 +263,12 @@ export default function Carousel({
           }}
         />
 
-        <div className="relative z-[1] grid min-h-0 flex-1 grid-rows-1">
+        {/* The track is positioned but carries no z-index: a z-index here would
+            make it a stacking context and trap any blend inside a slide (the
+            hero's clips screen against the surface the carousel stands on). It
+            still paints over the spotlight above — both are positioned, and it
+            comes later in the DOM. */}
+        <div className="relative grid min-h-0 flex-1 grid-rows-1">
           {slides.map((slide, i) => {
             const isActive = i === current;
             const offset = isActive ? 0 : i < current ? -dir * 24 : dir * 24;
@@ -269,9 +279,14 @@ export default function Carousel({
                 className="col-start-1 row-start-1 transition-[opacity,transform] duration-[450ms] ease-out"
                 style={{
                   opacity: isActive ? 1 : 0,
-                  transform: `translateX(${isActive ? 0 : offset}px)`,
+                  // The resting slide is left without a transform or a z-index
+                  // (both would make it a stacking context, trapping any blend
+                  // inside a slide short of the surface the carousel sits on —
+                  // see the hero's service previews). The slides it covers are
+                  // fully transparent, so paint order between them is moot.
+                  transform: isActive ? undefined : `translateX(${offset}px)`,
                   pointerEvents: isActive ? "auto" : "none",
-                  zIndex: isActive ? 2 : 0,
+                  zIndex: isActive ? undefined : 0,
                 }}
               >
                 {slide}
@@ -282,6 +297,8 @@ export default function Carousel({
 
         {/* Arrows — hidden until hovered, fading out 2s after the cursor leaves.
             Always shown on touch-only devices. */}
+        {chrome && (
+        <>
         <button
           type="button"
           aria-label="Previous"
@@ -323,6 +340,8 @@ export default function Carousel({
             />
           ))}
         </div>
+        </>
+        )}
       </CarouselContext.Provider>
     </div>
   );

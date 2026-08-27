@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import Container from "@/components/ui/Container";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
-import Carousel, { useCarouselSlide } from "@/components/ui/Carousel";
+import Carousel, { CarouselContext } from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import type { HeroGradient, Service } from "@/content/home";
 import { DEFAULT_HERO_GRADIENT } from "@/content/home";
@@ -22,6 +30,8 @@ import ListControls from "@/components/admin/editable/ListControls";
 import useFitText from "@/components/ui/useFitText";
 import { wixImage } from "@/lib/wix";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
+import { useMinWidth } from "@/components/ui/useMinWidth";
+import { useHeroSlots } from "@/components/layout/HeroSlots";
 
 type Hero = {
   headline: string;
@@ -32,15 +42,67 @@ type Hero = {
   gradient?: HeroGradient;
 };
 
+/** Where the strip goes when it is clicked — the works index it is advertising. */
+const WORKS_HREF = "/our-works";
+
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
-/** Matches the `sm` breakpoint upward — where the carousel heading is fit to
+/** Matches the `sm` breakpoint upward — where the carousel title is fit to
  * two lines (see HeroServiceSlide). */
 const DESKTOP = "(min-width: 751px)";
 
 /**
- * The entrance beats, in ms after the veil lifts. The picture goes first and
- * the copy climbs out of it, so the sequence reads as one movement rather than
+ * The gradient map every service clip is played through, paired with
+ * `mix-blend-screen`.
+ *
+ * `invert` does the mapping: the white ground turns black, and screen drops
+ * black out — so the ground goes transparent and whatever the clip sits on
+ * shows through untouched. Black ink turns white and stays white. The rotation
+ * carries what invert leaves of the artwork's teal (a light red) round to a
+ * golden yellow, and the saturate deepens it; neither touches white or black,
+ * which have no hue to turn.
+ */
+const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
+
+/**
+ * Shortened forms for the service titles, used only where the strip is standing
+ * in the masthead with the nav crowding it (see `short` in HomeHero). Whole
+ * words, matched case-insensitively and replaced in the title's own case, so a
+ * CMS-authored title picks these up without being written for them; anything
+ * unlisted is left alone.
+ */
+const SHORT_WORDS: Record<string, string> = {
+  management: "mgmt",
+  marketing: "mktg",
+  production: "prod",
+  productions: "prods",
+  development: "dev",
+  advertising: "ads",
+  communications: "comms",
+  photography: "photo",
+  strategy: "strat",
+  and: "&",
+};
+
+/** The title as it should read at this width — full, or with the long words in
+ * SHORT_WORDS cut down to keep the strip clear of the nav. */
+function fitTitle(title: string, short: boolean) {
+  if (!short) return title;
+  return title.replace(/[A-Za-z]+/g, (word) => {
+    const swap = SHORT_WORDS[word.toLowerCase()];
+    if (!swap) return word;
+    // Carry the word's own casing over: ALL CAPS, Capitalized, or as written.
+    if (word === word.toUpperCase()) return swap.toUpperCase();
+    if (word[0] === word[0].toUpperCase()) {
+      return swap[0].toUpperCase() + swap.slice(1);
+    }
+    return swap;
+  });
+}
+
+/**
+ * The entrance beats, in ms after the veil lifts. The film goes first and the
+ * copy climbs out of it, so the sequence reads as one movement rather than
  * four things arriving at once.
  */
 const BEAT = {
@@ -48,18 +110,28 @@ const BEAT = {
   headline: 260,
   sub: 400,
   carousel: 520,
-  /** The card the desktop button sits in. */
+  /** The CTA bar. */
   cta: 620,
-  /** The button itself, opening out of the card once the card has landed. */
+  /** The button itself, opening out of the bar once the bar has landed. */
   button: 780,
 } as const;
 
 /**
- * Homepage hero: fills the viewport below the header. On mobile everything —
- * image, CTA pill, services carousel and the skyline footer — is sized to fit
- * within one viewport height; type that would overflow is shrunk to fit (the
- * hero heading and sub each collapse onto a single line). Desktop keeps the
- * original grid + "Ready?" CTA card.
+ * Homepage hero: fills the viewport below the header. The hero film
+ * (home.hero.image — an image slot that also takes an uploaded video) is the
+ * whole section: it is laid full-bleed behind everything, and every other hero
+ * element — headline, sub, services carousel, CTA — sits over it, minimized to
+ * a column of bars along the bottom so the footage stays the subject.
+ *
+ * The services carousel is reduced to its titles and moves into the masthead
+ * (see HeroSlots); hovering a title plays that service's backdrop clip. On
+ * desktop it plays in the small preview beside the title and the film is left
+ * alone; on mobile, where the strip's cell has no room for a preview, it plays
+ * full-bleed over the film instead, mapped and screened into it so the clip's
+ * white ground drops out and only its artwork rides the footage. That layer lives
+ * here rather than inside the slide on purpose: mix-blend-mode only reaches the
+ * nearest stacking context, and the carousel's own slide wrappers (transform +
+ * z-index) would trap it short of the film.
  *
  * The whole thing makes one choreographed entrance (see the [data-gp-hero]
  * rules in globals.css), held until the page veil lifts so it plays to someone
@@ -87,6 +159,84 @@ export default function HomeHero({
 
   const phase = useRevealPhase();
 
+  // Which service's backdrop clip is showing, and the <video> elements to drive.
+  // Playback is hover-only: hovering a carousel title loops that clip; on
+  // hover-exit it keeps playing (no snap back mid-frame) until the current pass
+  // ends, then rests paused at the start — see the 'ended' handler below.
+  const [hovered, setHovered] = useState<number | null>(null);
+  // Which clips have something to paint. A blended clip that is still loading
+  // is not a faint version of itself — it is a raw box of whatever the map does
+  // to nothing — so each one stays hidden until its first frame is in.
+  const [ready, setReady] = useState<Record<number, boolean>>({});
+  const markReady = (index: number) =>
+    setReady((r) => (r[index] ? r : { ...r, [index]: true }));
+  // Pull a service's clips down before its slide is on screen. Videos are
+  // mounted for every slide, so this is only about the ones a browser has left
+  // unfetched; an image source is already on its way by the time it is mounted.
+  const preload = useCallback((index: number) => {
+    [videoRefs.current[index], thumbRefs.current[index]].forEach((v) => {
+      if (v && v.readyState < 2) v.load();
+    });
+  }, []);
+  // Each service's clip exists twice: full-bleed over the film, and (on desktop)
+  // as the small preview left of its title in the strip. Both play together.
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const thumbRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const videosFor = (index: number) =>
+    [videoRefs.current[index], thumbRefs.current[index]].filter(
+      Boolean,
+    ) as HTMLVideoElement[];
+
+  useEffect(() => {
+    const videos = [...videoRefs.current, ...thumbRefs.current].filter(
+      Boolean,
+    ) as HTMLVideoElement[];
+    const onEnded = (e: Event) => {
+      const v = e.currentTarget as HTMLVideoElement;
+      v.pause();
+      v.currentTime = 0;
+    };
+    videos.forEach((v) => v.addEventListener("ended", onEnded));
+    return () => videos.forEach((v) => v.removeEventListener("ended", onEnded));
+  }, [services]);
+
+  const onSlideHoverStart = (index: number) => {
+    setHovered(index);
+    videosFor(index).forEach((v) => {
+      v.loop = true;
+      v.play().catch(() => {});
+    });
+  };
+  const onSlideHoverEnd = (index: number) => {
+    setHovered((h) => (h === index ? null : h));
+    // Stop looping but keep playing — the 'ended' listener above rewinds to the
+    // start once the current pass actually finishes.
+    videosFor(index).forEach((v) => {
+      v.loop = false;
+    });
+  };
+
+  // The services strip lives in the masthead at both sizes — in the tagline's
+  // spot on desktop (bare, no card behind it), in the right-hand cell the header
+  // picture used to fill on mobile — reached by portal so it stays inside this
+  // tree and keeps driving the blended backdrops (see HeroSlots).
+  //
+  // It gives way by degrees as the window narrows rather than in one jump, and
+  // never leaves the masthead: full titles, then shortened ones once the nav
+  // starts crowding it (see fitTitle), then the clip alone. Below sm it moves to
+  // the header cell beside the logo, where the titles come back — there is no
+  // room for a clip there, and the film carries it instead.
+  const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
+  const desktop = useMinWidth(751);
+  const roomy = useMinWidth(1440);
+  const snug = useMinWidth(1152);
+  const stripSocket = desktop ? headerTagline : headerMedia;
+  const inMasthead = stripSocket === headerTagline;
+  // Neither shortening nor dropping a title happens in edit mode, where what is
+  // on screen has to be the text an admin is editing.
+  const short = !editMode && inMasthead && !roomy;
+  const clipOnly = !editMode && inMasthead && !snug;
+
   const slides = services.map((s, i) => (
     <HeroServiceSlide
       key={i}
@@ -95,21 +245,39 @@ export default function HomeHero({
       count={services.length}
       editMode={editMode}
       tv={tv}
+      short={short}
+      clipOnly={clipOnly}
+      onHoverStart={() => onSlideHoverStart(i)}
+      onHoverEnd={() => onSlideHoverEnd(i)}
+      onPreload={() => preload(i)}
+      thumbRef={(el) => {
+        thumbRefs.current[i] = el;
+      }}
     />
   ));
+
+  const servicesStrip = (className: string) => (
+    <ServicesStrip
+      className={className}
+      ariaLabel={t("Our services")}
+      editMode={editMode}
+      slides={slides}
+    />
+  );
 
   return (
     // Pinned to the top of the viewport: the header scrolls away and the
     // sections below scroll up and over the hero, the cityscape skyline rising
     // with them (see page.tsx). On mobile the bottom band (--cityscape-h) is
-    // left as bare gradient so the cityscape sits in the initial viewport
-    // against it; on desktop (sm+) that padding is dropped so the hero elements
-    // get the full height and the cityscape starts just below the fold. The
-    // gradient is admin-authored via the mobile header image config's color
-    // picker and affects only this section.
+    // left clear so the cityscape sits in the initial viewport against it; on
+    // desktop (sm+) that padding is dropped so the hero elements get the full
+    // height and the cityscape starts just below the fold. The gradient is
+    // admin-authored via the mobile header image config's color picker and
+    // affects only this section — it now backs the film (visible wherever the
+    // footage doesn't cover, e.g. while it loads).
     <section
       data-gp-hero={phase ?? undefined}
-      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:overflow-visible sm:pb-8"
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:pb-8"
       style={
         {
           // Linear ramp on mobile, a horizontal band across the bottom of the
@@ -120,82 +288,143 @@ export default function HomeHero({
         } as CSSProperties
       }
     >
-      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
-          a multiply shadow that continues down from the header and fades out
-          toward the bottom of the hero. `-z-10` sits it above the hero gradient
-          but behind all hero content, so it deepens the background only. */}
+      {/* Decorative case-study "photocards" sprinkled into the side gutters —
+          outside the film's frame, which on desktop ends at the body bounds. */}
+      <HeroPhotoCards />
+
+      {/* The film's frame: edge to edge on mobile, and on desktop the body
+          column, its edges flush with the header's content bounds (same
+          max-w-site + px-8 as the masthead row). Everything below is scoped to
+          it — the film, the blended backdrops, the scrims and the hero's own
+          content — so the whole hero reads as one framed screen. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-site flex-1 sm:px-8">
+      <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      {/* The hero film, full-bleed across the frame. The wipe needs a box of its
+          own: EditableImage owns the media element's class list, and clipping it
+          directly would fight it. */}
+      <div
+        data-hero-wipe
+        style={{ ["--d" as string]: `${BEAT.image}ms` }}
+        className="absolute inset-0 z-0 will-change-[clip-path,transform]"
+      >
+        <EditableImage
+          path="home.hero.image"
+          raw={hero.image}
+          src={
+            hero.image.startsWith("http")
+              ? hero.image
+              : wixImage(hero.image, 1920, 1200)
+          }
+          alt={t("Galvez & Partners storytelling")}
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Hovered service backdrop, over the film — mobile only, where the strip
+          sits in a cell too small to preview the clip beside its title. On
+          desktop the clip plays there instead and the film is left alone. The
+          map + screen leave the clip's ground transparent, so the footage shows
+          straight through it and only the artwork rides it. Only the hovered one
+          is opaque; the rest fade out in place. */}
+      {desktop
+        ? null
+        : services.map((s, i) =>
+            s.media ? (
+              <div
+                key={i}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-[1] mix-blend-screen transition-opacity duration-500"
+                style={{ opacity: hovered === i && ready[i] ? 1 : 0 }}
+              >
+                <EditableImage
+                  path={`home.services.${i}.media`}
+                  raw={s.media}
+                  src={resolveImage(s.media, 1600, 1000)}
+                  alt=""
+                  className={`h-full w-full object-cover ${MEDIA_MAP}`}
+                  playbackRate={0.75}
+                  autoPlayVideo={false}
+                  loopVideo={false}
+                  videoRef={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
+                  onReady={() => markReady(i)}
+                />
+              </div>
+            ) : null,
+          )}
+
+      {/* Legibility scrim: the copy and bars sit in the lower half, so the
+          footage is darkened toward the bottom and left largely clear up top. */}
       <div
         aria-hidden
-        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 -z-10"
+        className={`absolute inset-0 z-[2] bg-gradient-to-t from-navy/85 via-navy/35 to-navy/10${
+          editMode ? " pointer-events-none" : ""
+        }`}
       />
-      {/* Decorative case-study "photocards" sprinkled into the side gutters,
-          away from the body content (wide desktops only, where the gutters
-          exist). */}
-      <HeroPhotoCards />
-      <Container className="hero-shell flex min-h-0 flex-1 flex-col">
-        <div className="hero-grid min-h-0 flex-1">
-          <div className="hero-main relative min-h-0 overflow-hidden [container-type:inline-size] sm:min-h-[280px]">
-            {/* The wipe needs a box of its own: EditableImage owns the <img>'s
-                class list, and clipping the image directly would fight it. */}
-            <div
-              data-hero-wipe
-              style={{ ["--d" as string]: `${BEAT.image}ms` }}
-              className="absolute inset-0 will-change-[clip-path,transform]"
-            >
-              <EditableImage
-                path="home.hero.image"
-                raw={hero.image}
-                src={
-                  hero.image.startsWith("http")
-                    ? hero.image
-                    : wixImage(hero.image, 1280, 800)
-                }
-                alt={t("Galvez & Partners storytelling")}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-            <div
-              className={`absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent${
-                editMode ? " pointer-events-none" : ""
-              }`}
-            />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-10">
-              <FitLine
-                path="home.hero.headline"
-                value={tv(hero.headline)}
-                as="h1"
-                beat={BEAT.headline}
-                max={44}
-                min={18}
-                className="font-heading leading-none text-white sm:text-[clamp(2rem,4.5cqi,3rem)]"
-              />
-              <FitLine
-                path="home.hero.sub"
-                value={tv(hero.sub)}
-                as="p"
-                beat={BEAT.sub}
-                max={22}
-                min={8}
-                className="mt-2 font-body text-white/85 sm:mt-3 sm:text-[clamp(0.95rem,2.6cqi,1.4rem)]"
-              />
-            </div>
-          </div>
+      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
+          a multiply shadow that continues down from the header and fades out
+          toward the bottom of the hero. */}
+      <div
+        aria-hidden
+        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 z-[2]"
+      />
+      {/* Everything else, enveloped in the film: minimized bars along the foot
+          of the frame. On mobile a stack whose rhythm steps up — the sub sits
+          close under the headline (they read as one block), then a wider, even
+          gap to the CTA. On desktop they stand side by side in a row that is
+          only as tall as the copy beside it, and the CTA stretches to that
+          height rather than hugging its own contents; `contents` keeps the
+          mobile stack flat inside the shell's own gap. */}
+      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
+      <div className="contents sm:flex sm:items-stretch sm:gap-3">
+        <div className="min-w-0 sm:flex-1">
+          <FitLine
+            path="home.hero.headline"
+            value={tv(hero.headline)}
+            as="h1"
+            beat={BEAT.headline}
+            max={40}
+            min={18}
+            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:whitespace-normal sm:text-[clamp(1.6rem,3.2vw,2.9rem)]"
+          />
+          <FitLine
+            path="home.hero.sub"
+            value={tv(hero.sub)}
+            as="p"
+            beat={BEAT.sub}
+            max={20}
+            min={8}
+            className="mt-2 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
+          />
+        </div>
 
-          {/* Mobile CTA: a single full-width gold pill between the image and the
-              carousel card. Swapped for the "Ready?" card at the sm breakpoint. */}
-          <div className="hero-cta sm:hidden">
-            {/* The animation rides a wrapper rather than the Button itself: the
-                button is a shared primitive with a deliberately small API, and
-                clipping its wrapper looks identical. */}
+        {/* The services strip is not here: it lives in the masthead at every
+            width (see the portal below). */}
+
+        {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
+            its button side by side, with the cta grid still playing behind. */}
+        <div
+          data-hero-rise
+          style={{ ["--d" as string]: `${BEAT.cta}ms` }}
+          className="hero-cta relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-2 sm:justify-center sm:px-6 sm:py-2.5"
+        >
+          <CtaGrid />
+          <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
+            {t("Ready?")}
+          </p>
+          {/* The button and the menu hug: one pair of controls at the end of the
+              bar, sharing an edge rather than floating apart. */}
+          <div className="relative z-10 flex items-stretch">
             <span
               data-hero-open
-              style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-              className="block w-full"
+              style={{ ["--d" as string]: `${BEAT.button}ms` }}
+              className="inline-block"
             >
               <Button
                 href={hero.ctaHref}
                 variant="gold"
-                className="w-full py-3.5 text-xl font-bold normal-case"
+                className="h-full border-2 border-navy px-4 py-2 text-sm hover:bg-navy hover:text-gold sm:text-base"
               >
                 {editMode ? (
                   <EditableText
@@ -208,56 +437,97 @@ export default function HomeHero({
                 )}
               </Button>
             </span>
-          </div>
-
-          <div
-            data-hero-rise
-            style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
-            className="hero-carousel hero-card relative flex min-h-0 overflow-hidden bg-navy-soft py-4 sm:py-10"
-          >
-            <Carousel
-              slides={slides}
-              ariaLabel={t("Our services")}
-              className="flex w-full flex-col justify-center"
-            />
-          </div>
-
-          <div
-            data-hero-rise
-            style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-            className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden bg-gold p-6 text-center sm:flex"
-          >
-            <CtaGrid />
-            <div className="relative z-10">
-              <p className="font-display text-f6 leading-none text-navy">
-                {t("Ready?")}
-              </p>
-              <span
-                data-hero-open
-                style={{ ["--d" as string]: `${BEAT.button}ms` }}
-                className="mt-4 inline-block"
-              >
-                <Button
-                  href={hero.ctaHref}
-                  variant="gold"
-                  className="border-2 border-navy hover:bg-navy hover:text-gold"
-                >
-                  {editMode ? (
-                    <EditableText
-                      path="home.hero.ctaLabel"
-                      value={hero.ctaLabel}
-                      link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                    />
-                  ) : (
-                    t(hero.ctaLabel)
-                  )}
-                </Button>
-              </span>
-            </div>
+            {/* Socket for the mobile menu's hamburger, which comes down out of
+                its floating bar to sit flush against the CTA button while the
+                hero is on screen (see HeroSlots). Empty on desktop. */}
+            <span ref={setHeroCta} className="flex items-stretch empty:hidden sm:hidden" />
           </div>
         </div>
-      </Container>
+      </div>
+      </div>
+      </div>
+      </div>
+
+      {/* The strip in the masthead: bare in the desktop tagline's spot, and in a
+          bordered cell on mobile, where it stands against the logo. */}
+      {stripSocket
+        ? createPortal(
+            servicesStrip(
+              desktop
+                ? // Sized by its own content and flushed right, so whichever
+                  // title is showing ends against the social icons.
+                  "hero-strip-flush items-center px-4"
+                : "h-full flex-1 items-stretch border-l border-white/10 bg-navy-soft/45",
+            ),
+            stripSocket,
+          )
+        : null}
     </section>
+  );
+}
+
+/**
+ * The services strip: the carousel, wrapped so that clicking anywhere on it goes
+ * through to the works index — the titles are what it is advertising, so the
+ * whole strip is the link rather than each title separately. A drag is not a
+ * click: the carousel takes swipes, so a press that travels is let through to it
+ * and the navigation suppressed. Edit mode gets a plain box instead, where a
+ * click has to land on the text it is editing.
+ */
+function ServicesStrip({
+  className,
+  ariaLabel,
+  editMode,
+  slides,
+}: {
+  className: string;
+  ariaLabel: string;
+  editMode: boolean;
+  slides: React.ReactNode[];
+}) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const carousel = (
+    <Carousel
+      slides={slides}
+      ariaLabel={ariaLabel}
+      className="flex w-full flex-col justify-center"
+      chrome={false}
+    />
+  );
+  const shell = `relative flex min-w-0 overflow-hidden ${className}`;
+
+  if (editMode) {
+    return (
+      <div
+        data-hero-rise
+        style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+        className={shell}
+      >
+        {carousel}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={WORKS_HREF}
+      data-hero-rise
+      style={{ ["--d" as string]: `${BEAT.carousel}ms` }}
+      className={shell}
+      onPointerDown={(e) => {
+        start.current = { x: e.clientX, y: e.clientY };
+      }}
+      onClick={(e) => {
+        const from = start.current;
+        start.current = null;
+        if (!from) return;
+        const travelled =
+          Math.abs(e.clientX - from.x) > 8 || Math.abs(e.clientY - from.y) > 8;
+        if (travelled) e.preventDefault();
+      }}
+    >
+      {carousel}
+    </Link>
   );
 }
 
@@ -313,9 +583,10 @@ function FitLine({
 }
 
 /**
- * One services carousel slide. On mobile the title + body are shrunk together
- * to fit the card's (bounded) height so nothing is clipped or overflows the
- * viewport; on desktop the original type sizes and side-by-side layout apply.
+ * One services carousel slide, minimized to its title. Hovering it plays that
+ * service's backdrop clip over the hero film (the parent owns that layer and
+ * the playback). The description is no longer shown to visitors, but stays
+ * rendered in edit mode so it remains editable in place.
  */
 function HeroServiceSlide({
   service,
@@ -323,127 +594,73 @@ function HeroServiceSlide({
   count,
   editMode,
   tv,
+  short,
+  clipOnly,
+  onHoverStart,
+  onHoverEnd,
+  onPreload,
+  thumbRef,
 }: {
   service: Service;
   index: number;
   count: number;
   editMode: boolean;
   tv: (s: string) => string;
+  /** Whether to show the title's shortened form (see fitTitle). */
+  short: boolean;
+  /** Whether to drop the title entirely and stand on the clip alone — the last
+   * step before the mobile layout, where the nav has taken the room the title
+   * needs. A service with no clip keeps its title regardless. */
+  clipOnly: boolean;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
+  /** Called when this slide becomes the one up next, so its clips can be
+   * fetched before it is on screen. */
+  onPreload: () => void;
+  /** The preview clip's <video>, so the parent can play it in step with the
+   * full-bleed one over the film. */
+  thumbRef: (el: HTMLVideoElement | null) => void;
 }) {
   const admin = useAdmin();
   const media = service.media ?? "";
+  // The slide the carousel will land on next fetches its clips now, so they are
+  // decoded, mapped and blended by the time it arrives rather than fading in
+  // once it is already on screen.
+  const { current } = useContext(CarouselContext);
+  const isNext = count > 1 && index === (current + 1) % count;
+  // Through a ref so a fresh callback identity on every render doesn't re-fire
+  // the fetch — only actually becoming the next slide should.
+  const preloadRef = useRef(onPreload);
+  preloadRef.current = onPreload;
+  useEffect(() => {
+    if (isNext && media) preloadRef.current();
+  }, [isNext, media]);
+  // Held hidden until the clip has a frame: blended, a half-loaded one is not a
+  // faint version of itself but a raw box of the map applied to nothing.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(false), [media]);
+  // Mobile: shrink the title to the (small) masthead cell the strip rides in.
   const { ref } = useFitText<HTMLDivElement>({
-    max: 19,
-    min: 9,
+    max: 15,
+    min: 7,
     query: MOBILE,
-    deps: [service.title, service.description],
+    deps: [service.title, short],
   });
-  // Desktop: shrink the heading (only if needed) so it never exceeds two lines
-  // in its box — no clamp/ellipsis, so no text is ever hidden.
+  // Desktop: shrink the title (only if needed) so it never exceeds two lines in
+  // its box — no clamp/ellipsis, so no text is ever hidden.
   const { ref: headingRef } = useFitText<HTMLDivElement>({
-    max: 32,
-    min: 15,
+    max: 22,
+    min: 12,
     query: DESKTOP,
-    deps: [service.title],
+    deps: [service.title, short],
   });
-
-  // Backdrop video playback state machine:
-  //  - idle (default): paused at the start.
-  //  - hover: plays on loop; on hover-exit it keeps playing (no snap back to
-  //    the start) until the current pass ends, then rests at the start.
-  //  - swipe: plays through once, then rests at the start.
-  //  - autoscroll / arrows / dots / keyboard / leaving the slide: paused at
-  //    the start, immediately (no fade-out grace — the slide is off-stage).
-  const { isActive, cause } = useCarouselSlide(index);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const wasActiveRef = useRef(false);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const onEnded = () => {
-      v.pause();
-      v.currentTime = 0;
-    };
-    v.addEventListener("ended", onEnded);
-    return () => v.removeEventListener("ended", onEnded);
-  }, [media]);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const wasActive = wasActiveRef.current;
-    wasActiveRef.current = isActive;
-
-    if (!isActive) {
-      v.pause();
-      v.currentTime = 0;
-      v.loop = false;
-      return;
-    }
-    if (!wasActive) {
-      v.pause();
-      v.currentTime = 0;
-      v.loop = false;
-      if (cause === "swipe") {
-        v.play().catch(() => {});
-      }
-    }
-  }, [isActive, cause]);
-
-  const onBackdropHoverStart = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.loop = true;
-    v.play().catch(() => {});
-  };
-  const onBackdropHoverEnd = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    // Stop looping but keep playing — the 'ended' listener above rewinds to
-    // the start once the current pass actually finishes.
-    v.loop = false;
-  };
 
   return (
     <div
-      className="hero-slide relative flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3"
-      onMouseEnter={onBackdropHoverStart}
-      onMouseLeave={onBackdropHoverEnd}
+      className="hero-slide relative flex h-full items-center gap-2 px-3 py-2 sm:gap-1.5 sm:px-0 sm:py-0"
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
     >
-      {/* Decorative backdrop slot: a gif / mp4 / svg sitting to the right,
-          behind the text, tilted 15° counterclockwise at 10% opacity. The
-          filter chain collapses the media to a single gold-family hue
-          (grayscale → invert → sepia ≈ the theme's gold at ~35°), turning its
-          white background black; the screen blend then drops that black out,
-          so white areas vanish and only the artwork glows in the one hue.
-          The blend can't reach the real card behind it — the carousel slide
-          wrapper's transform isolates this subtree — so the media screens
-          against a local stand-in painted in the card's exact color, which
-          composites identically. The rotated layer intentionally bleeds past
-          the slide's edges — the card container's overflow-hidden
-          masks it. */}
-      {media ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-[-12%] right-[-6%] z-0 w-[55%] -rotate-[15deg] opacity-10 sm:inset-y-[-24%] sm:right-2 sm:w-auto sm:aspect-[4/5]"
-        >
-          <div className="relative isolate h-full w-full">
-            <div className="absolute inset-0 bg-navy-soft" />
-            <EditableImage
-              path={`home.services.${index}.media`}
-              raw={media}
-              src={resolveImage(media, 700, 900)}
-              alt=""
-              className="relative h-full w-full object-cover mix-blend-screen [filter:grayscale(1)_invert(1)_sepia(1)_saturate(5)_hue-rotate(-12deg)] sm:object-contain"
-              playbackRate={0.75}
-              autoPlayVideo={false}
-              loopVideo={false}
-              videoRef={videoRef}
-            />
-          </div>
-        </div>
-      ) : null}
       {editMode && (
         <>
           <ListControls
@@ -453,8 +670,8 @@ function HeroServiceSlide({
             label="service"
             className="right-8 top-2 sm:right-12"
           />
-          {/* The backdrop itself is pointer-transparent (it sits behind the
-              text), so edit mode gets this chip to open its media picker. */}
+          {/* The backdrop plays over the hero film rather than in this card, so
+              edit mode gets this chip to open its media picker. */}
           <button
             type="button"
             onClick={() =>
@@ -469,29 +686,64 @@ function HeroServiceSlide({
           </button>
         </>
       )}
+      {/* Auto-width (not flex-1): in the masthead the strip is as wide as its
+          widest title, and a filling box would leave the shorter ones stranded
+          mid-strip instead of ending against the icons beside it. */}
       <div
         ref={ref}
-        className="hero-slide-fit relative z-[1] flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
+        className={`relative z-[1] min-w-0 overflow-hidden ${
+          clipOnly && media ? "hidden" : ""
+        }`}
       >
-        {/* On mobile the heading scales with the shared fit (capped so it never
-            rivals the hero headline); on desktop it's fit to two lines within
-            this box (see .hero-slide-heading in globals.css). */}
         <div ref={headingRef} className="hero-slide-heading">
           <EditableText
             path={`home.services.${index}.title`}
-            value={tv(service.title)}
+            value={fitTitle(tv(service.title), short)}
             as="h3"
-            className="font-display text-[min(2em,1.55rem)] leading-none text-sky-200 sm:text-[1em] sm:leading-[1.15] sm:text-balance"
+            className="font-display text-[1em] leading-[1.1] text-sky-200 sm:leading-[1.15]"
           />
         </div>
-        <EditableText
-          path={`home.services.${index}.description`}
-          value={tv(service.description)}
-          as="p"
-          multiline
-          className="hero-slide-body mt-1 max-w-xl whitespace-pre-line font-body text-[0.92em] leading-snug text-white/80 sm:mt-3 sm:text-lg"
-        />
+        {editMode && (
+          <EditableText
+            path={`home.services.${index}.description`}
+            value={tv(service.description)}
+            as="p"
+            multiline
+            className="hero-slide-body mt-2 max-w-xl whitespace-pre-line font-body text-sm leading-snug text-white/60"
+          />
+        )}
       </div>
+      {/* The clip itself, right of the title (desktop, where the strip has the
+          room), so it holds the same spot slide to slide — the strip is flushed
+          right, and only the title's width varies. It plays in step with the
+          full-bleed copy over the film, under the same map (see MEDIA_MAP), and
+          blends against whatever the strip is actually standing on rather than a
+          stand-in painted to match it (the carousel leaves its resting slide
+          free of a stacking context for exactly this). */}
+      {media ? (
+        // The box fills the strip's own height (h-12, matching the socket, with
+        // no padding on the slide at this size) and clips its overflow, and the
+        // clip is contained rather than cropped — so the whole frame shows,
+        // whatever its aspect, and none of it lands outside the box.
+        <div
+          aria-hidden
+          style={{ opacity: ready ? 1 : 0 }}
+          className="hidden h-12 w-[5.25rem] shrink-0 overflow-hidden transition-opacity duration-300 sm:block"
+        >
+          <EditableImage
+            path={`home.services.${index}.media`}
+            raw={media}
+            src={resolveImage(media, 240, 160)}
+            alt=""
+            className={`h-full max-h-full w-full max-w-full object-contain mix-blend-screen ${MEDIA_MAP}`}
+            playbackRate={0.75}
+            autoPlayVideo={false}
+            loopVideo={false}
+            videoRef={thumbRef}
+            onReady={() => setReady(true)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

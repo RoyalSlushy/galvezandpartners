@@ -11,7 +11,9 @@ import MotionSwitcher from "@/components/motion/MotionSwitcher";
 import { useT } from "@/components/i18n/LocaleProvider";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import EditableImage from "@/components/admin/editable/EditableImage";
-import { useCmsValue } from "@/components/admin/AdminProvider";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useHeroSlots } from "@/components/layout/HeroSlots";
+import { createPortal } from "react-dom";
 import { wixImage } from "@/lib/wix";
 
 type Side = "left" | "right";
@@ -68,6 +70,12 @@ export default function MobileMenu({
   // Header picture (right half of the mobile header). Draft-aware so the admin
   // media picker updates it live; a bare Wix id is resized, a full URL used as-is.
   const headerImg = useCmsValue("site.headerImage", headerImage);
+  const editMode = useEditMode();
+  const { heroCta, setHeaderMedia } = useHeroSlots();
+  // While the hero is on screen the hamburger sits inside its CTA bar rather
+  // than floating over the cityscape; once the first screen is scrolled past
+  // (or on a page with no hero) it goes back to the floating bar.
+  const inHeroCta = !expanded && heroCta !== null;
   const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
 
   const isActive = (href: string) =>
@@ -440,23 +448,55 @@ export default function MobileMenu({
       {/* The picture is bottom-anchored (flush with the hero) and padded down to
           the logo's measured top offset, so its top never passes the logo's top.
           object-contain keeps the whole image in view without distortion. */}
-      <div className="w-[40%] overflow-hidden" style={{ paddingTop: logoTop }}>
-        <EditableImage
-          path="site.headerImage"
-          raw={headerImg}
-          src={headerSrc}
-          alt=""
-          className="h-full w-full object-contain object-bottom"
-        />
+      {/* The right-hand header cell. The picture that used to fill it is hidden
+          for visitors at every viewport (it stays in edit mode so the field
+          remains pickable — it still backs the hero gradient's eyedropper); on
+          the homepage the hero portals its services carousel in here instead
+          (see HeroSlots). */}
+      <div
+        ref={setHeaderMedia}
+        className="ml-3 flex w-[40%] items-stretch overflow-hidden"
+        style={editMode ? { paddingTop: logoTop } : undefined}
+      >
+        {editMode && (
+          <EditableImage
+            path="site.headerImage"
+            raw={headerImg}
+            src={headerSrc}
+            alt=""
+            className="h-full w-full object-contain object-bottom"
+          />
+        )}
       </div>
 
-      {/* Floating bottom nav (mobile only). In the hero it's a gold hamburger
-          button sized to sit within the cityscape band in the bottom-right
-          corner; once the first screen is scrolled past it grows into a
-          full-width glassmorphic bottom header — logotype (left), current page
-          (center), hamburger (right). */}
+      {/* The hamburger's home while the hero is on screen: the trailing end of
+          the hero's CTA bar, right of its button (see HeroSlots). */}
+      {inHeroCta &&
+        heroCta &&
+        createPortal(
+          <button
+            type="button"
+            aria-label={t("Open menu")}
+            aria-expanded={open}
+            onClick={() => {
+              setSide("right");
+              setOpen(true);
+            }}
+            className="-ml-0.5 flex w-10 shrink-0 items-center justify-center border-2 border-navy text-navy transition hover:bg-navy hover:text-gold"
+          >
+            <HamburgerIcon className="h-5 w-5" />
+          </button>,
+          heroCta,
+        )}
+
+      {/* Floating bottom nav (mobile only). On a page with no hero it's a gold
+          hamburger button in the bottom-right corner; once the first screen is
+          scrolled past it grows into a full-width glassmorphic bottom header —
+          logotype (left), current page (center), hamburger (right). */}
       <div
         className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
+          inHeroCta ? "pointer-events-none opacity-0" : ""
+        } ${
           expanded
             ? "bottom-0 right-0 h-16 w-screen gap-3 border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
             : "bottom-3 right-4 h-12 w-12 justify-center gap-0 bg-gold text-navy"
