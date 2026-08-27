@@ -15,7 +15,6 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 type FeaturedCopy = {
   eyebrow: string;
@@ -25,27 +24,21 @@ type FeaturedCopy = {
   ctaHref: string;
 };
 
-// Card width also capped by viewport height (cards are 4:5) so the pinned
-// viewport always fits header + track + progress line on short laptops.
+// Card width also capped by viewport height (cards are 4:5) so the row always
+// fits alongside its header and progress line on short laptops.
 const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,44vh)] md:w-[min(30vw,44vh)]";
 const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,40vh)] md:w-[min(26vw,40vh)]";
 
 /**
- * "Featured work" — a scroll-pinned horizontal gallery of the shared
- * work.items portfolio (the same list that powers /our-works, so CMS edits
- * propagate). The section pins for one viewport while vertical scroll drives
- * the card track sideways; images get a subtle counter-parallax and a gold
- * progress line tracks the journey. A closing card carries the CTA to the
- * Our Works page. Keyboard focus inside the track auto-scrolls the page so
- * the focused card is actually in view.
+ * "Featured work" — a horizontal gallery of the shared work.items portfolio
+ * (the same list that powers /our-works, so CMS edits propagate). The row is
+ * one you push sideways: swipe on touch, drag with the mouse, or scroll
+ * horizontally with a trackpad, snapping card to card. Vertical scroll is left
+ * alone — the page runs straight past the section — and a gold progress line
+ * under the row tracks how far along the cases you are. A closing card carries
+ * the CTA to the Our Works page.
  *
- * The site-wide motion setting picks the treatment: the pinned gallery
- * described above, or — under minimal — the plain snap row instead. Kinetic
- * reads the same as classic here: the case cards carry photography, and leaning
- * or over-travelling them fought the images rather than serving them.
- *
- * Edit mode and motion off swap in that same native snap-scroll row (all edit
- * affordances live there), which is also the graceful no-pin fallback.
+ * Edit mode shares the same row; all edit affordances live there.
  */
 export default function FeaturedWork({
   featured: serverFeatured,
@@ -57,104 +50,95 @@ export default function FeaturedWork({
   const featured = useCmsValue("home.featuredWork", serverFeatured);
   const items = useCmsValue("work.items", serverItems);
   const editMode = useEditMode();
-  const reduced = useMotionOff();
-  const motion = useMotionStyle();
   const t = useT();
   // Only the section heading is translated; work titles are brand names.
   const tv = useEditableT();
 
-  const sectionRef = useRef<HTMLElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const scrollRowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  // Minimal keeps the native snap row (which is also the edit-mode and
-  // motion-off fallback) — no scroll-jacking, just a gallery you push.
-  const pinned = !editMode && !reduced && motion !== "minimal";
-  /** How hard the images counter-travel against the track. */
-  const parallax = 34;
-
+  // Mouse users can grab the row and drag it sideways (touch already scrolls
+  // natively). Scroll snap is parked during the drag so the row follows the
+  // cursor instead of fighting the detents, and a real drag swallows the
+  // release click so the card under the cursor doesn't open.
   useEffect(() => {
-    if (!pinned) return;
-    // The hook's first paint predates its matchMedia effect — bail sync too.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const section = sectionRef.current;
-    const sticky = stickyRef.current;
-    const track = trackRef.current;
-    const bar = barRef.current;
-    if (!section || !sticky || !track || !bar) return;
-
-    let scrollable = 0;
-    let raf = 0;
-    let ticking = false;
-
-    const measure = () => {
-      scrollable = Math.max(0, track.scrollWidth - window.innerWidth);
-      // Total height = one pinned viewport + the horizontal distance to cover.
-      section.style.height = `${sticky.offsetHeight + scrollable}px`;
+    const scroller = scrollRowRef.current;
+    if (!scroller) return;
+    let down = false;
+    let dragged = false;
+    let lastX = 0;
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      down = true;
+      dragged = false;
+      lastX = e.clientX;
     };
+    const onMove = (e: PointerEvent) => {
+      if (!down) return;
+      const dx = e.clientX - lastX;
+      if (!dragged && Math.abs(dx) < 4) return;
+      if (!dragged) scroller.style.scrollSnapType = "none";
+      dragged = true;
+      lastX = e.clientX;
+      scroller.scrollLeft -= dx;
+    };
+    const onUp = () => {
+      down = false;
+      if (dragged) scroller.style.scrollSnapType = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+      e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
+    };
+    const onDragStart = (e: Event) => e.preventDefault();
+    scroller.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    scroller.addEventListener("click", onClick, true);
+    scroller.addEventListener("dragstart", onDragStart);
+    return () => {
+      scroller.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      scroller.removeEventListener("click", onClick, true);
+      scroller.removeEventListener("dragstart", onDragStart);
+      scroller.style.scrollSnapType = "";
+    };
+  }, [editMode]);
 
-    const parallaxEls = Array.from(track.querySelectorAll<HTMLElement>("[data-parallax]"));
-
+  // Progress line: how far the row has travelled, so the horizontal journey
+  // still reads at a glance.
+  useEffect(() => {
+    const scroller = scrollRowRef.current;
+    const bar = barRef.current;
+    if (!scroller || !bar) return;
+    let raf = 0;
     const update = () => {
-      ticking = false;
-      if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, -rect.top / scrollable));
-      const x = -p * scrollable;
-      track.style.transform = `translate3d(${x}px,0,0)`;
-      bar.style.transform = `scaleX(${p})`;
-
-      // Counter-parallax: shift each image against the track's travel based on
-      // how far its card sits from the viewport center.
-      const center = window.innerWidth / 2;
-      const cap = parallax * 1.3;
-      for (const el of parallaxEls) {
-        const r = el.getBoundingClientRect();
-        const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
-        const shift = Math.max(-cap, Math.min(cap, ratio * parallax));
-        el.style.transform = `translateX(${shift}px) scale(1.12)`;
-      }
+      raf = 0;
+      const max = scroller.scrollWidth - scroller.clientWidth;
+      const p = max > 0 ? scroller.scrollLeft / max : 1;
+      // A sliver stays lit at rest so the line reads as a track to travel
+      // rather than an empty rule.
+      bar.style.transform = `scaleX(${Math.max(0.03, Math.min(1, p))})`;
     };
     const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        raf = requestAnimationFrame(update);
-      }
+      if (!raf) raf = requestAnimationFrame(update);
     };
-    const onResize = () => {
-      measure();
-      onScroll();
-    };
-    // Keyboard users tab into links the transform has carried off-screen:
-    // undo the browser's clipped-container scroll and drive the page scroll
-    // (which maps 1:1 to horizontal travel) until the card is centered.
-    const onFocusIn = (e: Event) => {
-      sticky.scrollLeft = 0;
-      if (scrollable <= 0) return;
-      const target = (e.target as HTMLElement).closest("a") ?? (e.target as HTMLElement);
-      const r = target.getBoundingClientRect();
-      const delta = r.left + r.width / 2 - window.innerWidth / 2;
-      if (Math.abs(delta) > 4) window.scrollBy(0, delta);
-    };
-
-    measure();
     update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-    track.addEventListener("focusin", onFocusIn);
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      track.removeEventListener("focusin", onFocusIn);
-      // The static branch may reuse these nodes — leave no stale styles behind.
-      section.style.height = "";
-      track.style.transform = "";
+      if (raf) cancelAnimationFrame(raf);
+      scroller.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       bar.style.transform = "";
-      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
     };
-  }, [pinned, items.length]);
+  }, [items.length, editMode]);
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-6">
@@ -287,47 +271,30 @@ export default function FeaturedWork({
     </div>
   );
 
-  if (!pinned) {
-    return (
-      <section key="fw-static" className="w-full overflow-hidden bg-navy py-20 sm:py-28">
-        <Container>
-          <RevealOnScroll>{header}</RevealOnScroll>
-        </Container>
-        <div className="gallery-scroll mt-16 snap-x snap-mandatory overflow-x-auto pb-6 pt-12">
-          <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
-            {cards}
-            {endCard}
-          </div>
-        </div>
-        {editMode && (
-          <Container className="mt-6">
-            <AddChip listPath="work.items" label="work item" />
-          </Container>
-        )}
-      </section>
-    );
-  }
-
   return (
-    <section key="fw-pinned" ref={sectionRef} className="relative w-full bg-navy">
+    <section className="w-full overflow-hidden bg-navy py-20 sm:py-28">
+      <Container>
+        <RevealOnScroll>{header}</RevealOnScroll>
+      </Container>
       <div
-        ref={stickyRef}
-        className="h-viewport sticky top-0 flex flex-col justify-center overflow-hidden py-6"
+        ref={scrollRowRef}
+        className="gallery-scroll mt-16 cursor-grab snap-x snap-mandatory overflow-x-auto pb-6 pt-12 active:cursor-grabbing"
       >
-        <Container>{header}</Container>
-        <div
-          ref={trackRef}
-          className="gallery-pad mt-10 flex w-max items-start gap-6 pt-12 will-change-transform sm:gap-9"
-        >
+        <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
           {cards}
           {endCard}
         </div>
-        <Container className="mt-10">
-          <div className="h-px w-full bg-white/10">
-            <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
-          </div>
-        </Container>
       </div>
+      <Container className="mt-6">
+        <div className="h-px w-full bg-white/10">
+          <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
+        </div>
+      </Container>
+      {editMode && (
+        <Container className="mt-6">
+          <AddChip listPath="work.items" label="work item" />
+        </Container>
+      )}
     </section>
   );
 }
