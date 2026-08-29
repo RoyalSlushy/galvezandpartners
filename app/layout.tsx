@@ -96,6 +96,7 @@ export default async function RootLayout({
                 socials={site.socials}
                 tagline={site.tagline}
                 headerImage={site.headerImage}
+                services={home.services}
                 caseStudies={caseStudies.studies}
               />
               {/* The load veil covers the body content only — it lives inside

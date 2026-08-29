@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem, Social } from "@/content/site";
+import type { Service } from "@/content/home";
 import type { CaseStudy } from "@/content/caseStudies";
 import DesktopNav from "./DesktopNav";
+import HeaderServicesStrip from "./HeaderServicesStrip";
 import MobileMenu from "./MobileMenu";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
@@ -16,12 +18,15 @@ export default function Header({
   socials: serverSocials,
   tagline: serverTagline,
   headerImage: serverHeaderImage,
+  services,
   caseStudies,
 }: {
   nav: NavItem[];
   socials: Social[];
   tagline: string;
   headerImage: string;
+  /** Feeds the services strip standing in the masthead (see below). */
+  services: Service[];
   /** Feeds the "Our Work" mega menu in the desktop nav. */
   caseStudies: CaseStudy[];
 }) {
@@ -52,6 +57,12 @@ export default function Header({
           header scopes the multiply to the header's own background. The hero
           renders the matching lower slice. */}
       {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
+      {/* The services strip stands in the masthead on every page. On the
+          homepage the hero renders it, so its clips sit in the hero's own tree
+          and move with it; everywhere else this is who renders it. Only ever
+          one of the two — both fill the same socket (see HeroSlots), and a
+          second would land on top of the first. */}
+      {!isHome && <HeaderServicesStrip services={services} />}
       {/* Inner pages: an animated accent stroke along the header's bottom edge,
           colored from the hero gradient stops (see .header-accent-border). The
           wrapper mirrors the content row's centering + padding so the stroke
