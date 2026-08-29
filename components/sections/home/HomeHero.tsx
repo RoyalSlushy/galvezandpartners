@@ -204,8 +204,9 @@ export default function HomeHero({
   // It gives way by degrees as the window narrows rather than in one jump, and
   // never leaves the masthead: full titles, then shortened ones once the nav
   // starts crowding it (see fitTitle), then the clip alone. Below sm it moves to
-  // the header cell beside the logo, where the titles come back — there is no
-  // room for a clip there, and the film carries it instead.
+  // the header cell beside the logo, where the titles come back and the clip
+  // rides under one rather than beside it — the cell is too narrow to hold the
+  // two side by side, but it holds them stacked.
   const { headerMedia, headerTagline, setHeroCta } = useHeroSlots();
   const desktop = useMinWidth(751);
   const roomy = useMinWidth(1440);
@@ -563,8 +564,7 @@ function HeroServiceSlide({
   /** Called when this slide becomes the one up next, so its clips can be
    * fetched before it is on screen. */
   onPreload: () => void;
-  /** The preview clip's <video>, so the parent can play it in step with the
-   * full-bleed one over the film. */
+  /** The clip's <video>, so the parent can play and preload it on hover. */
   thumbRef: (el: HTMLVideoElement | null) => void;
 }) {
   const admin = useAdmin();
@@ -616,8 +616,9 @@ function HeroServiceSlide({
             label="service"
             className="right-8 top-2 sm:right-12"
           />
-          {/* The backdrop plays over the hero film rather than in this card, so
-              edit mode gets this chip to open its media picker. */}
+          {/* The clip's own box is small, blended, and hidden until it has a
+              frame, so edit mode gets this chip as a dependable way into its
+              media picker. */}
           <button
             type="button"
             onClick={() =>
