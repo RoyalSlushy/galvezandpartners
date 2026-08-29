@@ -421,6 +421,12 @@ export default function MobileMenu({
   return (
     <div
       ref={headerRowRef}
+      // The logo is centred in the row, so the room under it is the same
+      // measured offset as the room over it. Published here for whatever is
+      // standing in the cell beside it: the homepage portals its services strip
+      // in there (see HeroSlots), and sits its title on the logo's bottom edge
+      // by taking this as the cell's bottom padding.
+      style={{ ["--gp-logo-gap" as string]: `${logoTop}px` }}
       className={`flex w-full self-stretch sm:hidden ${
         // Home lets the header fade into the hero (see Header.tsx), so it needs
         // no divider; every other page gets a bottom underline under the logo +

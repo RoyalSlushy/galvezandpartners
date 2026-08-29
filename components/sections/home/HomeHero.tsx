@@ -74,7 +74,7 @@ const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
  * than full opacity would make one, leaving the clip to blend against the empty
  * box instead of the masthead it is standing on.
  */
-const BACKDROP_OPACITY = 0.45;
+const BACKDROP_OPACITY = 0.28;
 
 /**
  * Shortened forms for the service titles, used only where the strip is standing
@@ -416,7 +416,10 @@ export default function HomeHero({
                 ? // Sized by its own content and flushed right, so whichever
                   // title is showing ends against the social icons.
                   "hero-strip-flush items-center px-4"
-                : "h-full flex-1 items-stretch border-l border-white/10 bg-navy-soft/45",
+                : // No panel of its own: the cell is transparent, so the strip
+                  // stands on the masthead itself and the clip blends against
+                  // it rather than against a tint over it.
+                  "h-full flex-1 items-stretch border-l border-white/10",
             ),
             stripSocket,
           )
@@ -495,10 +498,18 @@ function ServicesStrip({
  * drops out and only its artwork rides whatever the strip is standing on. The
  * caller owns the box and how the clip sits in it — backdrop behind a title, or
  * subject in a box of its own.
+ *
+ * Until it has a frame it is painted rather than hidden, on the blend that takes
+ * white out instead of the one that takes black out: a video paints an opaque
+ * black box before its first frame, which the map turns white, and white is what
+ * `multiply` leaves untouched. So it loads and decodes on screen, in the box it
+ * will occupy, showing nothing — and appears the moment it has something to
+ * show, rather than being fetched behind a hidden element and fading in after.
  */
 function ServiceClip({
   index,
   media,
+  ready,
   className,
   style,
   thumbRef,
@@ -506,6 +517,8 @@ function ServiceClip({
 }: {
   index: number;
   media: string;
+  /** Whether the clip has a frame to paint (see the note above). */
+  ready: boolean;
   className: string;
   style?: React.CSSProperties;
   thumbRef: (el: HTMLVideoElement | null) => void;
@@ -517,7 +530,7 @@ function ServiceClip({
       raw={media}
       src={resolveImage(media, 240, 160)}
       alt=""
-      className={`mix-blend-screen ${MEDIA_MAP} ${className}`}
+      className={`${ready ? "mix-blend-screen" : "mix-blend-multiply"} ${MEDIA_MAP} ${className}`}
       style={style}
       playbackRate={0.75}
       autoPlayVideo={false}
@@ -656,8 +669,9 @@ function HeroServiceSlide({
       // The title sits on the slide's bottom edge, with the clip standing behind
       // it. min-h holds the strip's own height now that the clip is out of the
       // flow and no longer sets it — and gives the title a box to sit at the
-      // foot of.
-      className="hero-slide relative flex h-full gap-2 px-3 py-2 max-sm:flex-col max-sm:items-start max-sm:justify-end max-sm:gap-1.5 sm:min-h-[3rem] sm:items-end sm:gap-1.5 sm:px-0 sm:py-0"
+      // foot of. On mobile that foot is the logo's own bottom edge, from the gap
+      // the header row measures under it (see MobileMenu).
+      className="hero-slide relative flex h-full gap-2 px-3 pb-[var(--gp-logo-gap,0.5rem)] pt-2 max-sm:flex-col max-sm:items-start max-sm:justify-end max-sm:gap-1.5 sm:min-h-[3rem] sm:items-end sm:gap-1.5 sm:px-0 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -729,12 +743,12 @@ function HeroServiceSlide({
         clipOnly ? (
           <div
             aria-hidden
-            style={{ opacity: ready ? 1 : 0 }}
-            className="h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:h-12 sm:w-[5.25rem]"
+            className="h-8 w-14 shrink-0 overflow-hidden sm:h-12 sm:w-[5.25rem]"
           >
             <ServiceClip
               index={index}
               media={media}
+              ready={ready}
               thumbRef={thumbRef}
               onReady={() => setReady(true)}
               className="h-full max-h-full w-full max-w-full object-contain"
@@ -745,13 +759,21 @@ function HeroServiceSlide({
             aria-hidden
             className="pointer-events-none absolute inset-0 overflow-hidden"
           >
+            {/* A quarter larger than the box it fills and turned off square, so
+                the tilt still covers the corners it would otherwise open up.
+                Both the size and the turn ride on the clip itself, never on the
+                wrapper — a transform makes a stacking context, and the blend
+                needs the wrapper not to (see BACKDROP_OPACITY). */}
             <ServiceClip
               index={index}
               media={media}
+              ready={ready}
               thumbRef={thumbRef}
               onReady={() => setReady(true)}
-              className="h-full w-full object-cover transition-opacity duration-300"
-              style={{ opacity: ready ? BACKDROP_OPACITY : 0 }}
+              // max-w-none: preflight caps media at max-width:100%, which would
+              // clamp the extra quarter back to the box's own width.
+              className="absolute -left-[12.5%] -top-[12.5%] h-[125%] w-[125%] max-w-none rotate-[-15deg] object-cover"
+              style={{ opacity: BACKDROP_OPACITY }}
             />
           </div>
         )
