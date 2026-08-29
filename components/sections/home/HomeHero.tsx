@@ -124,14 +124,10 @@ const BEAT = {
  * a column of bars along the bottom so the footage stays the subject.
  *
  * The services carousel is reduced to its titles and moves into the masthead
- * (see HeroSlots); hovering a title plays that service's backdrop clip. On
- * desktop it plays in the small preview beside the title and the film is left
- * alone; on mobile, where the strip's cell has no room for a preview, it plays
- * full-bleed over the film instead, mapped and screened into it so the clip's
- * white ground drops out and only its artwork rides the footage. That layer lives
- * here rather than inside the slide on purpose: mix-blend-mode only reaches the
- * nearest stacking context, and the carousel's own slide wrappers (transform +
- * z-index) would trap it short of the film.
+ * (see HeroSlots); each title carries its service's backdrop clip beside it —
+ * under it in the narrower mobile cell — and hovering plays it. The clip is
+ * mapped and screened so its white ground drops out and only its artwork rides
+ * whatever the strip is standing on; the film itself is left alone.
  *
  * The whole thing makes one choreographed entrance (see the [data-gp-hero]
  * rules in globals.css), held until the page veil lifts so it plays to someone
@@ -163,34 +159,20 @@ export default function HomeHero({
   // Playback is hover-only: hovering a carousel title loops that clip; on
   // hover-exit it keeps playing (no snap back mid-frame) until the current pass
   // ends, then rests paused at the start — see the 'ended' handler below.
-  const [hovered, setHovered] = useState<number | null>(null);
-  // Which clips have something to paint. A blended clip that is still loading
-  // is not a faint version of itself — it is a raw box of whatever the map does
-  // to nothing — so each one stays hidden until its first frame is in.
-  const [ready, setReady] = useState<Record<number, boolean>>({});
-  const markReady = (index: number) =>
-    setReady((r) => (r[index] ? r : { ...r, [index]: true }));
-  // Pull a service's clips down before its slide is on screen. Videos are
+  // Pull a service's clip down before its slide is on screen. Videos are
   // mounted for every slide, so this is only about the ones a browser has left
   // unfetched; an image source is already on its way by the time it is mounted.
   const preload = useCallback((index: number) => {
-    [videoRefs.current[index], thumbRefs.current[index]].forEach((v) => {
-      if (v && v.readyState < 2) v.load();
-    });
+    const v = thumbRefs.current[index];
+    if (v && v.readyState < 2) v.load();
   }, []);
-  // Each service's clip exists twice: full-bleed over the film, and (on desktop)
-  // as the small preview left of its title in the strip. Both play together.
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  // The clip plays in the strip itself, beside its title, at every width.
   const thumbRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const videosFor = (index: number) =>
-    [videoRefs.current[index], thumbRefs.current[index]].filter(
-      Boolean,
-    ) as HTMLVideoElement[];
+    [thumbRefs.current[index]].filter(Boolean) as HTMLVideoElement[];
 
   useEffect(() => {
-    const videos = [...videoRefs.current, ...thumbRefs.current].filter(
-      Boolean,
-    ) as HTMLVideoElement[];
+    const videos = thumbRefs.current.filter(Boolean) as HTMLVideoElement[];
     const onEnded = (e: Event) => {
       const v = e.currentTarget as HTMLVideoElement;
       v.pause();
@@ -201,14 +183,12 @@ export default function HomeHero({
   }, [services]);
 
   const onSlideHoverStart = (index: number) => {
-    setHovered(index);
     videosFor(index).forEach((v) => {
       v.loop = true;
       v.play().catch(() => {});
     });
   };
   const onSlideHoverEnd = (index: number) => {
-    setHovered((h) => (h === index ? null : h));
     // Stop looping but keep playing — the 'ended' listener above rewinds to the
     // start once the current pass actually finishes.
     videosFor(index).forEach((v) => {
@@ -319,40 +299,6 @@ export default function HomeHero({
           className="h-full w-full object-cover"
         />
       </div>
-
-      {/* Hovered service backdrop, over the film — mobile only, where the strip
-          sits in a cell too small to preview the clip beside its title. On
-          desktop the clip plays there instead and the film is left alone. The
-          map + screen leave the clip's ground transparent, so the footage shows
-          straight through it and only the artwork rides it. Only the hovered one
-          is opaque; the rest fade out in place. */}
-      {desktop
-        ? null
-        : services.map((s, i) =>
-            s.media ? (
-              <div
-                key={i}
-                aria-hidden
-                className="pointer-events-none absolute inset-0 z-[1] mix-blend-screen transition-opacity duration-500"
-                style={{ opacity: hovered === i && ready[i] ? 1 : 0 }}
-              >
-                <EditableImage
-                  path={`home.services.${i}.media`}
-                  raw={s.media}
-                  src={resolveImage(s.media, 1600, 1000)}
-                  alt=""
-                  className={`h-full w-full object-cover ${MEDIA_MAP}`}
-                  playbackRate={0.75}
-                  autoPlayVideo={false}
-                  loopVideo={false}
-                  videoRef={(el) => {
-                    videoRefs.current[i] = el;
-                  }}
-                  onReady={() => markReady(i)}
-                />
-              </div>
-            ) : null,
-          )}
 
       {/* Legibility scrim: the copy and bars sit in the lower half, so the
           footage is darkened toward the bottom and left largely clear up top. */}
@@ -657,7 +603,7 @@ function HeroServiceSlide({
 
   return (
     <div
-      className="hero-slide relative flex h-full items-center gap-2 px-3 py-2 sm:gap-1.5 sm:px-0 sm:py-0"
+      className="hero-slide relative flex h-full gap-2 px-3 py-2 max-sm:flex-col max-sm:items-start max-sm:justify-center max-sm:gap-1.5 sm:items-center sm:gap-1.5 sm:px-0 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -713,22 +659,23 @@ function HeroServiceSlide({
           />
         )}
       </div>
-      {/* The clip itself, right of the title (desktop, where the strip has the
-          room), so it holds the same spot slide to slide — the strip is flushed
-          right, and only the title's width varies. It plays in step with the
-          full-bleed copy over the film, under the same map (see MEDIA_MAP), and
+      {/* The clip itself: right of the title on desktop, where the strip is
+          flushed right, so it holds the same spot slide to slide while only the
+          title's width varies. It is played through the map (see MEDIA_MAP) and
           blends against whatever the strip is actually standing on rather than a
           stand-in painted to match it (the carousel leaves its resting slide
           free of a stacking context for exactly this). */}
       {media ? (
-        // The box fills the strip's own height (h-12, matching the socket, with
-        // no padding on the slide at this size) and clips its overflow, and the
-        // clip is contained rather than cropped — so the whole frame shows,
-        // whatever its aspect, and none of it lands outside the box.
+        // On desktop the box fills the strip's own height (h-12, matching the
+        // socket, with no padding on the slide at this size); on mobile it sits
+        // under the title in the masthead cell, which is too narrow to hold the
+        // two side by side. Either way it clips its overflow and contains rather
+        // than crops the clip — so the whole frame shows, whatever its aspect,
+        // and none of it lands outside the box.
         <div
           aria-hidden
           style={{ opacity: ready ? 1 : 0 }}
-          className="hidden h-12 w-[5.25rem] shrink-0 overflow-hidden transition-opacity duration-300 sm:block"
+          className="h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:h-12 sm:w-[5.25rem]"
         >
           <EditableImage
             path={`home.services.${index}.media`}
