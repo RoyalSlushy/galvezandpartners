@@ -74,7 +74,7 @@ const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
  * than full opacity would make one, leaving the clip to blend against the empty
  * box instead of the masthead it is standing on.
  */
-const BACKDROP_OPACITY = 0.28;
+const BACKDROP_OPACITY = 0.2;
 
 /**
  * Shortened forms for the service titles, used only where the strip is standing
@@ -354,7 +354,7 @@ export default function HomeHero({
             beat={BEAT.sub}
             max={20}
             min={8}
-            className="mt-2 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-2 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
+            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-1 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
           />
         </div>
 
@@ -366,7 +366,7 @@ export default function HomeHero({
         <div
           data-hero-rise
           style={{ ["--d" as string]: `${BEAT.cta}ms` }}
-          className="hero-cta relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-2 sm:justify-center sm:px-6 sm:py-2.5"
+          className="hero-cta relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-4 sm:justify-center sm:px-6 sm:py-5"
         >
           <CtaGrid />
           <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
@@ -414,12 +414,14 @@ export default function HomeHero({
             servicesStrip(
               desktop
                 ? // Sized by its own content and flushed right, so whichever
-                  // title is showing ends against the social icons.
-                  "hero-strip-flush items-center px-4"
-                : // No panel of its own: the cell is transparent, so the strip
-                  // stands on the masthead itself and the clip blends against
-                  // it rather than against a tint over it.
-                  "h-full flex-1 items-stretch border-l border-white/10",
+                  // title is showing ends against the social icons — which it
+                  // must not run over, so this one keeps its bounds.
+                  "hero-strip-flush items-center overflow-hidden px-4"
+                : // No panel of its own and no rule down its edge: the strip
+                  // stands on the masthead itself, so the clip blends against
+                  // it rather than a tint over it, and runs past the cell
+                  // toward the logo rather than stopping at a border.
+                  "h-full flex-1 items-stretch",
             ),
             stripSocket,
           )
@@ -456,7 +458,10 @@ function ServicesStrip({
       chrome={false}
     />
   );
-  const shell = `relative flex min-w-0 overflow-hidden ${className}`;
+  // Whether the strip keeps its clip inside its own bounds is the caller's to
+  // say (see the two socket classes): the masthead cell lets it run out, the
+  // tagline spot does not.
+  const shell = `relative flex min-w-0 ${className}`;
 
   if (editMode) {
     return (
@@ -757,7 +762,10 @@ function HeroServiceSlide({
         ) : (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden"
+            // Unclipped: the oversized, tilted clip is meant to run past the
+            // slide it backs (the masthead cell it sits in lets it out — the
+            // tagline spot still holds it in).
+            className="pointer-events-none absolute inset-0"
           >
             {/* A quarter larger than the box it fills and turned off square, so
                 the tilt still covers the corners it would otherwise open up.

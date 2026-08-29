@@ -276,7 +276,14 @@ export default function Carousel({
               <div
                 key={i}
                 aria-hidden={!isActive}
-                className="col-start-1 row-start-1 transition-[opacity,transform] duration-[450ms] ease-out"
+                // The change is a cut, not a cross-fade. Fading one slide out
+                // under another dips the light between them, and — worse for a
+                // slide carrying a blend — puts the arriving slide under an
+                // opacity and a transform for the length of the fade, both of
+                // which make a stacking context and cut its blend off from the
+                // surface it is standing on, so the clip lands rather than
+                // arrives. Whichever slide is showing is shown outright.
+                className="col-start-1 row-start-1"
                 style={{
                   opacity: isActive ? 1 : 0,
                   // The resting slide is left without a transform or a z-index
