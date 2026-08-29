@@ -65,6 +65,18 @@ const DESKTOP = "(min-width: 751px)";
 const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
 
 /**
+ * How far up the clip comes when it is standing behind a title rather than
+ * beside it: enough to read as the surface the words are set on, not so much
+ * that it competes with them.
+ *
+ * It rides on the clip itself, never on a wrapper — `mix-blend-screen` blends an
+ * element with the backdrop of its own stacking context, and an ancestor at less
+ * than full opacity would make one, leaving the clip to blend against the empty
+ * box instead of the masthead it is standing on.
+ */
+const BACKDROP_OPACITY = 0.45;
+
+/**
  * Shortened forms for the service titles, used only where the strip is standing
  * in the masthead with the nav crowding it (see `short` in HomeHero). Whole
  * words, matched case-insensitively and replaced in the title's own case, so a
@@ -479,6 +491,44 @@ function ServicesStrip({
 }
 
 /**
+ * One service's clip, mapped and screened (see MEDIA_MAP) so its white ground
+ * drops out and only its artwork rides whatever the strip is standing on. The
+ * caller owns the box and how the clip sits in it — backdrop behind a title, or
+ * subject in a box of its own.
+ */
+function ServiceClip({
+  index,
+  media,
+  className,
+  style,
+  thumbRef,
+  onReady,
+}: {
+  index: number;
+  media: string;
+  className: string;
+  style?: React.CSSProperties;
+  thumbRef: (el: HTMLVideoElement | null) => void;
+  onReady: () => void;
+}) {
+  return (
+    <EditableImage
+      path={`home.services.${index}.media`}
+      raw={media}
+      src={resolveImage(media, 240, 160)}
+      alt=""
+      className={`mix-blend-screen ${MEDIA_MAP} ${className}`}
+      style={style}
+      playbackRate={0.75}
+      autoPlayVideo={false}
+      loopVideo={false}
+      videoRef={thumbRef}
+      onReady={onReady}
+    />
+  );
+}
+
+/**
  * A CMS-editable line of text that is shrunk (mobile only) to fit on a single
  * line within its container. The inner text sizes in `em`, so the fitted
  * font-size set on the wrapper scales it; at `sm`+ the wrapper size is cleared
@@ -603,7 +653,11 @@ function HeroServiceSlide({
 
   return (
     <div
-      className="hero-slide relative flex h-full gap-2 px-3 py-2 max-sm:flex-col max-sm:items-start max-sm:justify-center max-sm:gap-1.5 sm:items-center sm:gap-1.5 sm:px-0 sm:py-0"
+      // The title sits on the slide's bottom edge, with the clip standing behind
+      // it. min-h holds the strip's own height now that the clip is out of the
+      // flow and no longer sets it — and gives the title a box to sit at the
+      // foot of.
+      className="hero-slide relative flex h-full gap-2 px-3 py-2 max-sm:flex-col max-sm:items-start max-sm:justify-end max-sm:gap-1.5 sm:min-h-[3rem] sm:items-end sm:gap-1.5 sm:px-0 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -660,37 +714,47 @@ function HeroServiceSlide({
           />
         )}
       </div>
-      {/* The clip itself: right of the title on desktop, where the strip is
-          flushed right, so it holds the same spot slide to slide while only the
-          title's width varies. It is played through the map (see MEDIA_MAP) and
-          blends against whatever the strip is actually standing on rather than a
-          stand-in painted to match it (the carousel leaves its resting slide
-          free of a stacking context for exactly this). */}
+      {/* The clip, behind the title: it fills the slide and covers it, so it
+          reads as the surface the words are set on rather than a picture beside
+          them. It is played through the map (see MEDIA_MAP) and blends against
+          whatever the strip is actually standing on rather than a stand-in
+          painted to match it (the carousel leaves its resting slide free of a
+          stacking context for exactly this — and so does the wrapper here: it
+          carries no opacity, z-index or transform of its own).
+          Where the nav has taken the room for a title (clipOnly), the clip is
+          the only thing in the strip: there it keeps a box of its own, contained
+          rather than cropped and at full strength, since it is the subject and
+          not a backdrop to anything. */}
       {media ? (
-        // On desktop the box fills the strip's own height (h-12, matching the
-        // socket, with no padding on the slide at this size); on mobile it sits
-        // under the title in the masthead cell, which is too narrow to hold the
-        // two side by side. Either way it clips its overflow and contains rather
-        // than crops the clip — so the whole frame shows, whatever its aspect,
-        // and none of it lands outside the box.
-        <div
-          aria-hidden
-          style={{ opacity: ready ? 1 : 0 }}
-          className="h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:h-12 sm:w-[5.25rem]"
-        >
-          <EditableImage
-            path={`home.services.${index}.media`}
-            raw={media}
-            src={resolveImage(media, 240, 160)}
-            alt=""
-            className={`h-full max-h-full w-full max-w-full object-contain mix-blend-screen ${MEDIA_MAP}`}
-            playbackRate={0.75}
-            autoPlayVideo={false}
-            loopVideo={false}
-            videoRef={thumbRef}
-            onReady={() => setReady(true)}
-          />
-        </div>
+        clipOnly ? (
+          <div
+            aria-hidden
+            style={{ opacity: ready ? 1 : 0 }}
+            className="h-8 w-14 shrink-0 overflow-hidden transition-opacity duration-300 sm:h-12 sm:w-[5.25rem]"
+          >
+            <ServiceClip
+              index={index}
+              media={media}
+              thumbRef={thumbRef}
+              onReady={() => setReady(true)}
+              className="h-full max-h-full w-full max-w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden"
+          >
+            <ServiceClip
+              index={index}
+              media={media}
+              thumbRef={thumbRef}
+              onReady={() => setReady(true)}
+              className="h-full w-full object-cover transition-opacity duration-300"
+              style={{ opacity: ready ? BACKDROP_OPACITY : 0 }}
+            />
+          </div>
+        )
       ) : null}
     </div>
   );
