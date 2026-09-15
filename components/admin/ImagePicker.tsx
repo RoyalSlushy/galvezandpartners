@@ -5,13 +5,30 @@ import { createPortal } from "react-dom";
 import { useAdmin } from "./AdminProvider";
 import {
   collectImages,
+  getByPath,
   isVideoUrl,
   listUploadedImages,
   resolveImage,
   uploadImage,
 } from "@/lib/adminClient";
 import { labelFor } from "@/lib/adminSchema";
+import { stripFocus } from "@/lib/wix";
+import { DEFAULT_HERO_GRADIENT, type HeroGradient } from "@/content/home";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
+import HeroGradientPicker from "./HeroGradientPicker";
+import FocusPicker from "./FocusPicker";
+
+/** Configs whose picker also edits the hero background gradient. */
+const GRADIENT_PATH = "home.hero.gradient";
+const GRADIENT_HOST_PATHS = new Set(["site.headerImage"]);
+
+/** Image slots that get cropped hard somewhere on the site (the case-study
+ * hero band, the Our Works case cards), so their picker also offers a focal
+ * point for that crop. */
+const FOCUS_PATHS = [
+  /^case_studies\.studies\.\d+\.gallery\.\d+$/,
+  /^work\.items\.\d+\.img$/,
+];
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -30,6 +47,17 @@ export default function ImagePicker() {
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlDebounce = useRef<ReturnType<typeof setTimeout>>();
+
+  // For the header-image config, the hero gradient is edited alongside the
+  // image. Its edits are held here as a pending value (captured on open) and
+  // only committed on Apply — so Apply governs the stops just like the image.
+  const showsGradient = GRADIENT_HOST_PATHS.has(picker.path);
+  const [initialGradient] = useState<HeroGradient>(
+    () => (getByPath(admin.drafts ?? {}, GRADIENT_PATH) as HeroGradient) ?? DEFAULT_HERO_GRADIENT,
+  );
+  const [gradient, setGradient] = useState<HeroGradient>(initialGradient);
+  const gradientChanged =
+    showsGradient && JSON.stringify(gradient) !== JSON.stringify(initialGradient);
 
   // Body scroll lock + Escape to close (same pattern as MobileMenu).
   useEffect(() => {
@@ -102,7 +130,19 @@ export default function ImagePicker() {
     }, 400);
   }
 
-  const changed = selected !== picker.raw && selected.trim().length > 0;
+  const imageChanged = selected !== picker.raw && selected.trim().length > 0;
+  const changed = imageChanged || gradientChanged;
+
+  // Hard-cropped slots get a focal point (images only — object-position is
+  // meaningless for the video element).
+  const showsFocus =
+    FOCUS_PATHS.some((re) => re.test(picker.path)) && !!selected && !isVideoUrl(selected);
+
+  const applyChanges = () => {
+    if (imageChanged) admin.setValue(picker.path, selected.trim());
+    if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
+    admin.closeImagePicker();
+  };
 
   return createPortal(
     <div
@@ -115,7 +155,7 @@ export default function ImagePicker() {
       aria-modal="true"
       aria-label={`Change ${labelFor(picker.path)}`}
     >
-      <div className="mx-auto my-8 w-[min(42rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-navy-soft p-6 shadow-2xl">
+      <div className="mx-auto my-8 w-[min(42rem,calc(100vw-2rem))] border border-white/10 bg-navy-soft p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-heading text-xl text-white">
@@ -129,14 +169,14 @@ export default function ImagePicker() {
             type="button"
             onClick={admin.closeImagePicker}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
+            className="p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
           >
             <XIcon className="h-5 w-5" />
           </button>
         </div>
 
         {/* Preview */}
-        <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-navy">
+        <div className="mt-5 overflow-hidden border border-white/10 bg-navy">
           <div className="relative flex max-h-64 min-h-40 items-center justify-center">
             {selected ? (
               isVideoUrl(selected) ? (
@@ -170,10 +210,13 @@ export default function ImagePicker() {
             )}
           </div>
           <div className="flex items-center justify-between border-t border-white/10 px-3 py-1.5 text-[11px] text-white/40">
-            <span>{changed ? "New image (applies when you press Apply)" : "Current image"}</span>
-            <span className="max-w-[50%] truncate">{selected}</span>
+            <span>{imageChanged ? "New image (applies when you press Apply)" : "Current image"}</span>
+            <span className="max-w-[50%] truncate">{stripFocus(selected)}</span>
           </div>
         </div>
+
+        {/* Focal point for case-study frames (the tall phone hero crop). */}
+        {showsFocus && <FocusPicker raw={selected} onChange={setSelected} />}
 
         {/* Upload */}
         <div
@@ -187,7 +230,7 @@ export default function ImagePicker() {
             setDragOver(false);
             void handleFiles(e.dataTransfer.files);
           }}
-          className={`mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${
+          className={`mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed px-4 py-6 text-center transition ${
             dragOver ? "border-gold bg-gold/10" : "border-white/15 hover:border-gold/60"
           }`}
           onClick={() => fileInputRef.current?.click()}
@@ -235,7 +278,7 @@ export default function ImagePicker() {
                     setSelected(img.raw);
                     setPreviewError(false);
                   }}
-                  className={`group relative aspect-[4/3] overflow-hidden rounded-lg border transition ${
+                  className={`group relative aspect-[4/3] overflow-hidden border transition ${
                     selected === img.raw
                       ? "border-gold ring-2 ring-gold"
                       : "border-white/10 hover:border-white/40"
@@ -250,7 +293,7 @@ export default function ImagePicker() {
                         preload="metadata"
                         className="h-full w-full object-cover transition group-hover:scale-105"
                       />
-                      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-navy/80 px-1 text-[9px] font-heading uppercase tracking-wide text-gold">
+                      <span className="pointer-events-none absolute bottom-1 right-1 bg-navy/80 px-1 text-[9px] font-heading uppercase tracking-wide text-gold">
                         Video
                       </span>
                     </>
@@ -278,26 +321,30 @@ export default function ImagePicker() {
             value={urlText}
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder="https://… (or a Wix media id)"
-            className="mt-2 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
+            className="mt-2 w-full border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
           />
         </div>
+
+        {/* The mobile header image config also hosts the color picker for the
+            hero's background gradient stops (the gradient affects only the hero).
+            Edits are pending until Apply, alongside the image. */}
+        {showsGradient && (
+          <HeroGradientPicker gradient={gradient} onChange={setGradient} imageRaw={selected} />
+        )}
 
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={admin.closeImagePicker}
-            className="rounded-lg px-4 py-2 text-sm text-white/60 transition hover:text-white"
+            className="px-4 py-2 text-sm text-white/60 transition hover:text-white"
           >
             Cancel
           </button>
           <button
             type="button"
             disabled={!changed}
-            onClick={() => {
-              admin.setValue(picker.path, selected.trim());
-              admin.closeImagePicker();
-            }}
-            className="rounded-lg bg-gold px-5 py-2 font-heading text-sm text-navy transition hover:bg-cream disabled:opacity-40"
+            onClick={applyChanges}
+            className="bg-gold px-5 py-2 font-heading text-sm text-navy transition hover:bg-cream disabled:opacity-40"
           >
             Apply
           </button>

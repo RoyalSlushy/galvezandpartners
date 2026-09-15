@@ -1,17 +1,21 @@
 "use client";
 
-import Container from "@/components/ui/Container";
+import { type CSSProperties } from "react";
 import Button from "@/components/ui/Button";
-import Carousel from "@/components/ui/Carousel";
 import CtaGrid from "@/components/sections/home/CtaGrid";
-import type { Service } from "@/content/home";
+import type { HeroGradient, Service } from "@/content/home";
+import { DEFAULT_HERO_GRADIENT } from "@/content/home";
+import { heroGradientCss, heroBottomBandCss } from "@/lib/heroGradient";
+import HeroPhotoCards from "@/components/sections/home/HeroPhotoCards";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
-import ListControls from "@/components/admin/editable/ListControls";
 import useFitText from "@/components/ui/useFitText";
 import { wixImage } from "@/lib/wix";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
+import { useHeroSlots } from "@/components/layout/HeroSlots";
+import HeaderServicesStrip from "@/components/layout/HeaderServicesStrip";
 
 type Hero = {
   headline: string;
@@ -19,17 +23,45 @@ type Hero = {
   image: string;
   ctaLabel: string;
   ctaHref: string;
+  gradient?: HeroGradient;
 };
 
 /** Fit the type to a single line below the `sm` breakpoint (see useFitText). */
 const MOBILE = "(max-width: 750px)";
+/**
+ * The entrance beats, in ms after the veil lifts. The film goes first and the
+ * copy climbs out of it, so the sequence reads as one movement rather than
+ * four things arriving at once.
+ */
+const BEAT = {
+  image: 0,
+  headline: 260,
+  sub: 400,
+  carousel: 520,
+  /** The CTA bar. */
+  cta: 620,
+  /** The button itself, opening out of the bar once the bar has landed. */
+  button: 780,
+} as const;
 
 /**
- * Homepage hero: fills the viewport below the header. On mobile everything —
- * image, CTA pill, services carousel and the skyline footer — is sized to fit
- * within one viewport height; type that would overflow is shrunk to fit (the
- * hero heading and sub each collapse onto a single line). Desktop keeps the
- * original grid + "Ready?" CTA card.
+ * Homepage hero: fills the viewport below the header. The hero film
+ * (home.hero.image — an image slot that also takes an uploaded video) is the
+ * whole section: it is laid full-bleed behind everything, and every other hero
+ * element — headline, sub, services carousel, CTA — sits over it, minimized to
+ * a column of bars along the bottom so the footage stays the subject.
+ *
+ * The services carousel is not part of that column: it stands in the masthead
+ * at every width, and every page has it (see HeaderServicesStrip). This page
+ * renders it so its clips sit in the hero's own tree; the header renders the
+ * same strip on every other page. The film itself is left alone.
+ *
+ * The whole thing makes one choreographed entrance (see the [data-gp-hero]
+ * rules in globals.css), held until the page veil lifts so it plays to someone
+ * actually looking at it rather than to the back of the veil. It runs once per
+ * load, follows the site-wide motion setting, and is skipped entirely with
+ * motion off — where the hero is simply there, as it is for a visitor with no
+ * JS at all.
  */
 export default function HomeHero({
   hero: serverHero,
@@ -40,88 +72,148 @@ export default function HomeHero({
 }) {
   const hero = useCmsValue("home.hero", serverHero);
   const services = useCmsValue("home.services", serverServices);
+  const gradient = useCmsValue<HeroGradient>(
+    "home.hero.gradient",
+    serverHero.gradient ?? DEFAULT_HERO_GRADIENT,
+  );
   const editMode = useEditMode();
   const t = useT();
-  // Admins edit the English source, so translation is suppressed in edit mode.
-  const tv = (s: string) => (editMode ? s : t(s));
+  const tv = useEditableT();
 
-  const slides = services.map((s, i) => (
-    <HeroServiceSlide
-      key={i}
-      service={s}
-      index={i}
-      count={services.length}
-      editMode={editMode}
-      tv={tv}
-    />
-  ));
+  const phase = useRevealPhase();
+
+  // The mobile menu's hamburger comes down into the hero's CTA bar while the
+  // hero is on screen (see HeroSlots).
+  const { setHeroCta } = useHeroSlots();
 
   return (
-    <section className="hero-breathe hero-fill flex w-full flex-col overflow-hidden bg-gradient-to-b from-navy via-navy to-blue-muted/50 pb-0 pt-0 sm:overflow-visible sm:pb-4">
-      <Container className="hero-shell flex min-h-0 flex-1 flex-col">
-        <div className="hero-grid min-h-0 flex-1">
-          <div className="hero-main relative min-h-0 overflow-hidden rounded-2xl [container-type:inline-size] sm:min-h-[280px]">
-            <EditableImage
-              path="home.hero.image"
-              raw={hero.image}
-              src={hero.image.startsWith("http") ? hero.image : wixImage(hero.image, 1280, 800)}
-              alt="Galvez & Partners storytelling"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div
-              className={`absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent${
-                editMode ? " pointer-events-none" : ""
-              }`}
-            />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-10">
-              <FitLine
-                path="home.hero.headline"
-                value={tv(hero.headline)}
-                as="h1"
-                max={44}
-                min={18}
-                className="font-heading leading-none text-white sm:text-[clamp(2rem,4.5cqi,3rem)]"
-              />
-              <FitLine
-                path="home.hero.sub"
-                value={tv(hero.sub)}
-                as="p"
-                max={22}
-                min={8}
-                className="mt-2 font-body text-white/85 sm:mt-3 sm:text-[clamp(0.95rem,2.6cqi,1.4rem)]"
-              />
-            </div>
-          </div>
+    // Pinned to the top of the viewport: the header scrolls away and the
+    // sections below scroll up and over the hero, the cityscape skyline rising
+    // with them (see page.tsx). On mobile the bottom band (--cityscape-h) is
+    // left clear so the cityscape sits in the initial viewport against it; on
+    // desktop (sm+) that padding is dropped so the hero elements get the full
+    // height and the cityscape starts just below the fold. The gradient is
+    // admin-authored via the mobile header image config's color picker and
+    // affects only this section — it now backs the film (visible wherever the
+    // footage doesn't cover, e.g. while it loads).
+    <section
+      data-gp-hero={phase ?? undefined}
+      className="hero-breathe hero-fill sticky top-0 z-0 flex w-full flex-col overflow-hidden pt-0 pb-[var(--cityscape-h)] sm:pb-8"
+      style={
+        {
+          // Linear ramp on mobile, a horizontal band across the bottom of the
+          // viewport on desktop (see .hero-fill in globals.css, which picks the
+          // variable per breakpoint).
+          "--hero-grad": heroGradientCss(gradient),
+          "--hero-grad-desktop": heroBottomBandCss(gradient),
+        } as CSSProperties
+      }
+    >
+      {/* Decorative case-study "photocards" sprinkled into the side gutters —
+          outside the film's frame, which on desktop ends at the body bounds. */}
+      <HeroPhotoCards />
 
-          {/* Mobile CTA: a single full-width gold pill between the image and the
-              carousel card. Swapped for the "Ready?" card at the sm breakpoint. */}
-          <div className="hero-cta sm:hidden">
-            <Button
-              href={hero.ctaHref}
-              variant="gold"
-              className="w-full py-3.5 text-xl font-bold normal-case"
+      {/* The film's frame: edge to edge on mobile, and on desktop the body
+          column, its edges flush with the header's content bounds (same
+          max-w-site + px-8 as the masthead row). Everything below is scoped to
+          it — the film, the blended backdrops, the scrims and the hero's own
+          content — so the whole hero reads as one framed screen. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-site flex-1 sm:px-8">
+      <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      {/* The hero film, full-bleed across the frame. The wipe needs a box of its
+          own: EditableImage owns the media element's class list, and clipping it
+          directly would fight it. */}
+      <div
+        data-hero-wipe
+        style={{ ["--d" as string]: `${BEAT.image}ms` }}
+        className="absolute inset-0 z-0 will-change-[clip-path,transform]"
+      >
+        <EditableImage
+          path="home.hero.image"
+          raw={hero.image}
+          src={
+            hero.image.startsWith("http")
+              ? hero.image
+              : wixImage(hero.image, 1920, 1200)
+          }
+          alt={t("Galvez & Partners storytelling")}
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
+          a multiply shadow that continues down from the header and fades out
+          toward the bottom of the hero. */}
+      <div
+        aria-hidden
+        className="masthead-scrim masthead-scrim--hero pointer-events-none absolute inset-0 z-[2]"
+      />
+      {/* Everything else, enveloped in the film: minimized bars along the foot
+          of the frame. On mobile a stack whose rhythm steps up — the sub sits
+          close under the headline (they read as one block), then a wider, even
+          gap to the CTA. On desktop they stand side by side in a row that is
+          only as tall as the copy beside it, and the CTA stretches to that
+          height rather than hugging its own contents; `contents` keeps the
+          mobile stack flat inside the shell's own gap. */}
+      <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
+      <div className="contents sm:flex sm:items-stretch sm:gap-3">
+        <div className="relative min-w-0 sm:flex-1">
+          {/* The legibility wash, and only here: it pools behind the copy so
+              the words hold against whatever the footage is doing under them,
+              and leaves the rest of the film alone. -z-10 puts it at the back
+              of the shell's own stacking context — behind the copy, still over
+              the film. */}
+          <div
+            aria-hidden
+            className="hero-copy-scrim pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10"
+          />
+          <FitLine
+            path="home.hero.headline"
+            value={tv(hero.headline)}
+            as="h1"
+            beat={BEAT.headline}
+            max={40}
+            min={18}
+            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:whitespace-normal sm:text-[clamp(1.6rem,3.2vw,2.9rem)]"
+          />
+          <FitLine
+            path="home.hero.sub"
+            value={tv(hero.sub)}
+            as="p"
+            beat={BEAT.sub}
+            max={20}
+            min={8}
+            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-1 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
+          />
+        </div>
+
+        {/* The services strip is not here: it lives in the masthead at every
+            width (see the portal below). */}
+
+        {/* CTA, minimized to one bar for every viewport: the "Ready?" line and
+            its button side by side, with the cta grid still playing behind. */}
+        <div
+          data-hero-rise
+          style={{ ["--d" as string]: `${BEAT.cta}ms` }}
+          className="hero-cta relative flex shrink-0 items-center justify-between gap-4 overflow-hidden bg-gold px-4 py-4 sm:justify-center sm:px-6 sm:py-5"
+        >
+          <CtaGrid />
+          <p className="relative z-10 font-display text-2xl leading-none text-navy sm:text-3xl">
+            {t("Ready?")}
+          </p>
+          {/* The button and the menu hug: one pair of controls at the end of the
+              bar, sharing an edge rather than floating apart. */}
+          <div className="relative z-10 flex items-stretch">
+            <span
+              data-hero-open
+              style={{ ["--d" as string]: `${BEAT.button}ms` }}
+              className="inline-block"
             >
-              {editMode ? (
-                <EditableText
-                  path="home.hero.ctaLabel"
-                  value={hero.ctaLabel}
-                  link={{ path: "home.hero.ctaHref", value: hero.ctaHref }}
-                />
-              ) : (
-                t(hero.ctaLabel)
-              )}
-            </Button>
-          </div>
-
-          <div className="hero-carousel hero-card relative flex min-h-0 overflow-hidden rounded-2xl bg-navy-soft py-4 sm:py-10">
-            <Carousel slides={slides} ariaLabel="Our services" className="flex w-full flex-col justify-center" />
-          </div>
-
-          <div className="hero-cta relative hidden min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-gold p-6 text-center sm:flex">
-            <CtaGrid />
-            <div className="relative z-10">
-              <p className="font-display text-f6 leading-none text-navy">{t("Ready?")}</p>
-              <Button href={hero.ctaHref} variant="gold" className="mt-4 border-2 border-navy hover:bg-navy hover:text-gold">
+              <Button
+                href={hero.ctaHref}
+                variant="gold"
+                className="h-full border-2 border-navy px-4 py-2 text-sm hover:bg-navy hover:text-gold sm:text-base"
+              >
                 {editMode ? (
                   <EditableText
                     path="home.hero.ctaLabel"
@@ -132,12 +224,22 @@ export default function HomeHero({
                   t(hero.ctaLabel)
                 )}
               </Button>
-            </div>
+            </span>
+            {/* Socket for the mobile menu's hamburger, which comes down out of
+                its floating bar to sit flush against the CTA button while the
+                hero is on screen (see HeroSlots). Empty on desktop. */}
+            <span ref={setHeroCta} className="flex items-stretch empty:hidden sm:hidden" />
           </div>
         </div>
-      </Container>
+      </div>
+      </div>
+      </div>
+      </div>
 
-      <HeroSkyline />
+      {/* The strip in the masthead, at every width (see HeaderServicesStrip).
+          The hero renders it on this page so its clips sit in the hero's own
+          tree; every other page's header renders the same strip itself. */}
+      <HeaderServicesStrip services={services} />
     </section>
   );
 }
@@ -155,6 +257,7 @@ function FitLine({
   className,
   max,
   min,
+  beat,
 }: {
   path: string;
   value: string;
@@ -162,6 +265,9 @@ function FitLine({
   className: string;
   max: number;
   min: number;
+  /** Delay, in ms, of this line's beat in the hero entrance. The wrapper is
+   * already clipped for the fit, so the line has an edge to climb out from. */
+  beat?: number;
 }) {
   const { ref } = useFitText<HTMLDivElement>({
     max,
@@ -171,125 +277,20 @@ function FitLine({
     deps: [value],
   });
   return (
-    <div ref={ref} className="overflow-hidden">
+    <div
+      ref={ref}
+      data-hero-line={beat === undefined ? undefined : ""}
+      style={
+        beat === undefined ? undefined : { ["--d" as string]: `${beat}ms` }
+      }
+      className="overflow-hidden"
+    >
       <EditableText
         path={path}
         value={value}
         as={as}
         className={`inline-block max-w-full whitespace-nowrap text-[1em] ${className}`}
       />
-    </div>
-  );
-}
-
-/**
- * One services carousel slide. On mobile the title + body are shrunk together
- * to fit the card's (bounded) height so nothing is clipped or overflows the
- * viewport; on desktop the original type sizes and side-by-side layout apply.
- */
-function HeroServiceSlide({
-  service,
-  index,
-  count,
-  editMode,
-  tv,
-}: {
-  service: Service;
-  index: number;
-  count: number;
-  editMode: boolean;
-  tv: (s: string) => string;
-}) {
-  const { ref } = useFitText<HTMLDivElement>({
-    max: 19,
-    min: 9,
-    query: MOBILE,
-    deps: [service.title, service.description],
-  });
-  return (
-    <div
-      className={`hero-slide flex h-full flex-col justify-center px-8 pb-7 pt-2 sm:px-12 sm:py-3${
-        editMode ? " relative" : ""
-      }`}
-    >
-      {editMode && (
-        <ListControls
-          listPath="home.services"
-          index={index}
-          count={count}
-          label="service"
-          className="right-8 top-2 sm:right-12"
-        />
-      )}
-      <div
-        ref={ref}
-        className="hero-slide-fit flex min-h-0 flex-1 flex-col justify-center overflow-hidden sm:block sm:overflow-visible"
-      >
-        <EditableText
-          path={`home.services.${index}.title`}
-          value={tv(service.title)}
-          as="h3"
-          className="font-display text-[2em] leading-none text-sky-200 sm:text-[2.025rem]"
-        />
-        <EditableText
-          path={`home.services.${index}.description`}
-          value={tv(service.description)}
-          as="p"
-          multiline
-          className="hero-slide-body mt-1 max-w-xl whitespace-pre-line font-body text-[0.92em] leading-snug text-white/80 sm:mt-3 sm:text-lg"
-        />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Mobile-only hero footer: a downtown skyline silhouette (two depth layers)
- * over a warm sunset glow, bleeding to the full viewport width and sitting
- * flush with the bottom of the hero.
- */
-function HeroSkyline() {
-  return (
-    <div aria-hidden className="relative shrink-0 sm:hidden">
-      {/* Sunset glow the buildings sit against — ramps up into a bright cream
-          horizon behind the rooftops. */}
-      <div className="absolute inset-x-0 bottom-0 h-full bg-[linear-gradient(to_bottom,transparent_0%,rgba(243,216,176,0.18)_38%,rgba(248,232,198,0.75)_70%,#fdf2d6_100%)]" />
-      <svg
-        viewBox="0 0 800 150"
-        preserveAspectRatio="xMidYMax meet"
-        className="relative block w-full"
-      >
-        {/* Back row: taller, hazier towers. */}
-        <g fill="#4d608a" opacity="0.7">
-          <rect x="20" y="55" width="34" height="95" />
-          <rect x="95" y="30" width="28" height="120" />
-          <rect x="107" y="12" width="3" height="18" />
-          <rect x="165" y="62" width="40" height="88" />
-          <rect x="270" y="25" width="30" height="125" />
-          <rect x="283" y="8" width="3" height="17" />
-          <rect x="350" y="52" width="36" height="98" />
-          <rect x="455" y="38" width="30" height="112" />
-          <rect x="530" y="60" width="42" height="90" />
-          <rect x="635" y="30" width="32" height="120" />
-          <rect x="649" y="12" width="3" height="18" />
-          <rect x="720" y="64" width="40" height="86" />
-        </g>
-        {/* Front row: shorter, darker buildings with sunset gaps between them. */}
-        <g fill="#2c3550">
-          <rect x="0" y="92" width="52" height="58" />
-          <rect x="68" y="78" width="48" height="72" />
-          <rect x="135" y="100" width="52" height="50" />
-          <rect x="205" y="84" width="46" height="66" />
-          <rect x="280" y="104" width="58" height="46" />
-          <rect x="360" y="88" width="50" height="62" />
-          <rect x="440" y="74" width="44" height="76" />
-          <rect x="505" y="100" width="54" height="50" />
-          <rect x="580" y="84" width="48" height="66" />
-          <rect x="648" y="104" width="54" height="46" />
-          <rect x="715" y="80" width="40" height="70" />
-          <rect x="770" y="100" width="30" height="50" />
-        </g>
-      </svg>
     </div>
   );
 }

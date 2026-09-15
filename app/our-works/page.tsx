@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import WorkGrid from "@/components/sections/work/WorkGrid";
+import WorkShowcase from "@/components/sections/work/WorkShowcase";
+import WorkGallery from "@/components/sections/work/WorkGallery";
 import { getWork } from "@/lib/cms";
 
 export const dynamic = "force-dynamic";
@@ -11,5 +12,10 @@ export const metadata: Metadata = {
 
 export default async function OurWorks() {
   const work = await getWork();
-  return <WorkGrid items={work.items} heading={work.heading} />;
+  return (
+    <>
+      <WorkShowcase items={work.items} heading={work.heading} />
+      <WorkGallery gallery={work.gallery} />
+    </>
+  );
 }

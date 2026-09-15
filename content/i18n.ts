@@ -24,7 +24,7 @@ const ES: Record<string, string> = {
   Connect: "Conéctate",
   "Let's Connect": "Conectemos",
   "Ready?": "¿List@s?",
-  "We Work Our Ads Off.": "Trabajamos Sin Descanso.",
+  "We Work Our Ads Off.": "Le echamos ganas a tus anuncios.",
 
   // --- Home hero ---
   "We Are Storytellers.": "Somos Narradores.",
@@ -52,12 +52,292 @@ const ES: Record<string, string> = {
     "Nuestros diseñadores son talentosos y visionarios. Creamos diseños visualmente impactantes para todo tipo de negocios. Ya sea un logotipo, rotulación de autobús, folleto o banner, te respaldamos.",
   "We develop and refine your brand identity, messaging, and positioning to differentiate you from your competition.":
     "Desarrollamos y refinamos la identidad, el mensaje y el posicionamiento de tu marca para diferenciarte de tu competencia.",
+
+  // --- Footer / chrome ---
+  "Get in Touch": "Contáctanos",
+  Menu: "Menú",
+  "Follow Us": "Síguenos",
+  "Open menu": "Abrir menú",
+  "Change language": "Cambiar idioma",
+
+  // --- Services grid ---
+  "the works": "el trabajo",
+  "What We Can Do For YOU.": "Lo Que Podemos Hacer Por TI.",
+  "View More": "Ver Más",
+  "Our services": "Nuestros servicios",
+  "Galvez & Partners storytelling": "Narrativa de Galvez & Partners",
+
+  // --- Marquee band (English words only; the Spanish ones fall through) ---
+  storytellers: "narradores",
+  creatives: "creativos",
+  producers: "productores",
+
+  // --- Featured work ---
+  "featured work": "trabajo destacado",
+  "Stories We've Told.": "Historias Que Hemos Contado.",
+  "Campaigns, brands and films we poured ourselves into. Scroll through a few of our favorites.":
+    "Campañas, marcas y películas en las que nos volcamos. Desliza para ver algunas de nuestras favoritas.",
+  "See All Works": "Ver Todo el Trabajo",
+  "there's": "hay",
+  more: "más",
+  "Every story on one page.": "Cada historia en una sola página.",
+
+  // --- Instagram ---
+  "on the gram": "en el gram",
+  "Follow the Story.": "Sigue la Historia.",
+  "Behind the scenes": "Detrás de cámaras",
+  "On set with the crew": "En el set con el equipo",
+  "ELG Accident Attorneys — campaign day": "ELG Accident Attorneys — día de campaña",
+  "Adelante Scholars with Helios": "Adelante Scholars con Helios",
+  // --- Motion control (components/motion/MotionSwitcher.tsx) ---
+  "Motion settings": "Ajustes de movimiento",
+  Off: "Sin movimiento",
+  Classic: "Clásico",
+  Kinetic: "Cinético",
+  Minimal: "Mínimo",
+  "Nothing moves": "Nada se mueve",
+  "The house motion": "El movimiento de la casa",
+  "Springier, more travel": "Más rebote, más recorrido",
+  "Gentle fades only": "Solo desvanecidos suaves",
+  "Your device asks for reduced motion, so the site is holding still.":
+    "Tu dispositivo pide menos movimiento, así que el sitio se queda quieto.",
+
+  "Instagram post": "Publicación de Instagram",
+  "Open Instagram post": "Abrir publicación de Instagram",
+  "Open on Instagram": "Ver en Instagram",
+  "Loading…": "Cargando…",
+
+  // --- Multicultural manifesto ---
+  "the multi-cultural": "la agencia multicultural",
+  "Agency doing": "que hace",
+  "big things": "grandes cosas",
+  "Welcome to G+P Advertising, your go-to destination for all things marketing and advertising.":
+    "Bienvenido a G+P Advertising, tu destino ideal para todo lo relacionado con marketing y publicidad.",
+  "reach new Heights": "alcanza nuevas alturas",
+  "Dedicated experts delivering unparalleled business solutions for growth.":
+    "Expertos dedicados que ofrecen soluciones empresariales inigualables para el crecimiento.",
+  "built to last": "hecho para durar",
+  "Our extensive services establish a lasting, impactful brand image.":
+    "Nuestros amplios servicios establecen una imagen de marca duradera e impactante.",
+  "storytellers at heart": "narradores de corazón",
+  "We are passionate about delivering top-notch results for your brand's success in a competitive market.":
+    "Nos apasiona ofrecer resultados de primera para el éxito de tu marca en un mercado competitivo.",
+
+  // --- Team: heading + roles (names are left untranslated) ---
+  "Meet Our Storytellers": "Conoce a Nuestros Narradores",
+  "The people who turn your brand into a story worth repeating.":
+    "Las personas que convierten tu marca en una historia que vale la pena repetir.",
+  "What we are": "Lo que somos",
+  Principal: "Director",
+  "Marketing Manager": "Gerente de Marketing",
+  "Social Media Manager": "Gerente de Redes Sociales",
+  "Social Media Specialist": "Especialista en Redes Sociales",
+  "Graphic & Web Designer": "Diseñador Gráfico y Web",
+  "Senior Creative Designer": "Diseñador Creativo Senior",
+  "Producer / Social Media": "Productor / Redes Sociales",
+  "Multimedia Specialist": "Especialista en Multimedia",
+  "Video Content Creator": "Creador de Contenido de Video",
+  "Digital Marketing": "Marketing Digital",
+
+  // --- Team profile cards: chrome ---
+  "See More": "Ver Más",
+  Close: "Cerrar",
+  Previous: "Anterior",
+  Next: "Siguiente",
+
+  // --- Team profile cards: the FACT_PROMPTS question library (content/team.ts).
+  //     Every prompt admins can pick needs an entry here. ---
+  Superpower: "Superpoder",
+  "Fuel of choice": "Combustible de cabecera",
+  "Currently obsessed with": "Obsesión del momento",
+  "Hidden talent": "Talento oculto",
+  "First job ever": "Mi primer trabajo",
+  "Karaoke go-to": "Mi canción de karaoke",
+  "Desk essential": "Indispensable en mi escritorio",
+  "Walk-up song": "Mi canción de entrada",
+  "Comfort watch": "Lo que veo para relajarme",
+  "Weekend mode": "Modo fin de semana",
+  "Pet peeve": "Lo que no soporto",
+  "Dream project": "Proyecto soñado",
+  "Go-to taco order": "Mis tacos de siempre",
+  "Can't work without": "No puedo trabajar sin",
+  "Favorite word": "Palabra favorita",
+  "Childhood dream job": "Lo que quería ser de niñ@",
+  "Best advice I ever got": "El mejor consejo que me han dado",
+  "Proudest work moment": "Mi momento de mayor orgullo",
+  "Always in my camera roll": "Siempre en mi carrete",
+  "Ask me about": "Pregúntame sobre",
+
+  // --- Team profile cards: default values (admin-edited values fall through
+  //     untranslated, same as roles) ---
+  "Seeing the story before anyone else does": "Ve la historia antes que nadie",
+  "Black coffee, no sugar": "Café negro, sin azúcar",
+  "Brands with something to say": "Marcas con algo que decir",
+  "Listen twice, pitch once": "Escucha dos veces, propón una",
+  "Stretched logos": "Los logotipos deformados",
+  "A highlighter for every department": "Un marcador para cada departamento",
+  "Anything with a heist in it": "Cualquier cosa con un atraco",
+  "Closes deals in two languages mid-sentence":
+    "Cierra tratos en dos idiomas a media frase",
+  "Every brand has a story worth telling.":
+    "Toda marca tiene una historia que vale la pena contar.",
+  "Turning spreadsheets into strategy": "Convierte hojas de cálculo en estrategia",
+  "Cold brew by the liter": "Cold brew por litro",
+  "Campaigns that make the numbers dance": "Campañas que hacen bailar los números",
+  "Remembers every client's birthday": "Recuerda el cumpleaños de cada cliente",
+  "Good marketing is a good story on schedule.":
+    "El buen marketing es una buena historia a tiempo.",
+  "Reading the algorithm's mind": "Le lee la mente al algoritmo",
+  "Iced horchata latte": "Latte de horchata con hielo",
+  "Micro-trends that peak on a Tuesday": "Microtendencias que explotan un martes",
+  "Types a caption faster than autocorrect can ruin it":
+    "Escribe un pie de foto más rápido de lo que el autocorrector lo arruina",
+  "Post it like you mean it.": "Publícalo con toda la intención.",
+  "Making comment sections feel like family":
+    "Hace que los comentarios se sientan como familia",
+  "Matcha with extra foam": "Matcha con espuma extra",
+  "The perfect story sticker placement": "El sticker perfecto en la story",
+  "Spots a typo from across the room": "Detecta un error de dedo desde lejos",
+  "Community first, content always.": "Primero la comunidad, siempre el contenido.",
+  "Kerning injustices, corrected on sight":
+    "Corrige injusticias de kerning a primera vista",
+  "Café de olla, extra cinnamon": "Café de olla, con canela extra",
+  "Grids nobody notices but everybody feels":
+    "Retículas que nadie nota pero todos sienten",
+  "Names the font on any billboard in seconds":
+    "Nombra la fuente de cualquier espectacular en segundos",
+  "Design is storytelling you can see.": "El diseño es una historia que se ve.",
+  "Sketching the big idea on a napkin": "Boceta la gran idea en una servilleta",
+  "Espresso, doubled": "Espresso, doble",
+  "Color palettes hiding in old movie posters":
+    "Paletas de color escondidas en carteles de cine viejos",
+  "Draws a perfect circle freehand": "Dibuja un círculo perfecto a mano alzada",
+  "Make it bold or make it again.": "Hazlo audaz o hazlo de nuevo.",
+  "Herding a whole shoot with one clipboard":
+    "Dirige todo un rodaje con una sola tabla de apuntes",
+  "Vanilla oat-milk latte": "Latte de avena con vainilla",
+  "Call sheets that actually run on time":
+    "Planes de rodaje que de verdad salen a tiempo",
+  "Packs a production van like a Tetris champion":
+    "Carga la van de producción como campeona de Tetris",
+  "Plan the magic, then let it happen.": "Planea la magia y deja que suceda.",
+  "Finding the golden hour at any hour": "Encuentra la hora dorada a cualquier hora",
+  "Chai, extra spicy": "Chai, extra especiado",
+  "B-roll nobody asked for but everybody loves":
+    "B-roll que nadie pidió pero todos aman",
+  "Steady hands — no gimbal required": "Pulso firme, sin necesidad de gimbal",
+  "Every frame earns its place.": "Cada cuadro se gana su lugar.",
+  "Cutting a scroll-stopper before lunch":
+    "Edita un video que detiene el scroll antes de comer",
+  "Agua de jamaica, ice cold": "Agua de jamaica, bien fría",
+  "Transitions smoother than the song's drop":
+    "Transiciones más suaves que el drop de la canción",
+  "Quotes every line of his favorite movies":
+    "Cita cada línea de sus películas favoritas",
+  "If it doesn't hook in three seconds, cut again.":
+    "Si no engancha en tres segundos, edita otra vez.",
+  "Squeezing ROI out of every last click": "Le exprime ROI hasta al último clic",
+  "Green tea and analytics dashboards": "Té verde y tableros de analítica",
+  "A/B tests with a plot twist": "Pruebas A/B con giro inesperado",
+  "Explains attribution at a family dinner":
+    "Explica la atribución en la cena familiar",
+  "Data tells you where the story lands.": "Los datos te dicen dónde aterriza la historia.",
+
+  // --- Work index ---
+  "our work speaks for itself": "nuestro trabajo habla por sí mismo",
+
+  // --- Work showcase / gallery (Our Works page) ---
+  "the gallery": "la galería",
+  gallery: "galería",
+  overview: "resumen",
+  "Map to our office": "Mapa a nuestra oficina",
+  "get directions": "cómo llegar",
+  "Every frame on one wall — sort it, filter it, tag it.":
+    "Cada imagen en un solo muro: ordénala, fíltrala, etiquétala.",
+  explore: "explorar",
+  "Search the gallery": "Busca en la galería",
+  "search the wall…": "busca en el muro…",
+  sort: "ordenar",
+  "curated order": "orden curado",
+  "recently added": "añadido recientemente",
+  "title a → z": "título a → z",
+  "title z → a": "título z → a",
+  any: "cualquiera",
+  all: "todas",
+  clear: "limpiar",
+  "nothing on the wall": "no hay nada en el muro",
+  "No images match that search and tag combination.":
+    "Ninguna imagen coincide con esa búsqueda y combinación de etiquetas.",
+  "clear filters": "limpiar filtros",
+
+  // --- Partners ---
+  "our partners": "nuestros socios",
+  "Where exceptional results are made.": "Donde se logran resultados excepcionales.",
+  "We partner with ambitious brands to tell stories that move people and drive results.":
+    "Nos asociamos con marcas ambiciosas para contar historias que conmueven a las personas y generan resultados.",
+
+  // --- Contact page ---
+  "Contact us": "Contáctanos",
+  "Tell us about your brand and what you want to achieve. We'll take it from there.":
+    "Cuéntanos sobre tu marca y lo que quieres lograr. Nosotros nos encargamos del resto.",
+
+  // --- Contact form ---
+  "Please add your email and a message.": "Por favor añade tu correo y un mensaje.",
+  "Something went wrong. Please try again.": "Algo salió mal. Por favor inténtalo de nuevo.",
+  "Thank you!": "¡Gracias!",
+  "We received your message and will be in touch soon.":
+    "Recibimos tu mensaje y nos pondremos en contacto pronto.",
+  "Send another message": "Enviar otro mensaje",
+  "First name": "Nombre",
+  "Last name": "Apellido",
+  Email: "Correo electrónico",
+  "Email *": "Correo electrónico *",
+  Message: "Mensaje",
+  "Message *": "Mensaje *",
+  "Sending...": "Enviando...",
+  Submit: "Enviar",
+
+  // --- Case study ---
+  Background: "Contexto",
+  "A full-service campaign for ELG Accident Attorneys — brand storytelling, media buying, and video production built to drive qualified case leads across the Phoenix market.":
+    "Una campaña integral para ELG Accident Attorneys: narrativa de marca, compra de medios y producción de video diseñada para generar prospectos de casos calificados en todo el mercado de Phoenix.",
+  "Creative and digital work for Helios Education Foundation's Adelante Scholars, amplifying access to higher education through multicultural storytelling.":
+    "Trabajo creativo y digital para Adelante Scholars de Helios Education Foundation, ampliando el acceso a la educación superior a través de narrativas multiculturales.",
+  "Brand identity, social, and video content for La Bombita — bold, flavorful creative that captures the energy of the brand.":
+    "Identidad de marca, redes sociales y contenido de video para La Bombita: creatividad audaz y llena de sabor que captura la energía de la marca.",
+  "Science-forward brand and campaign work for the Precision Aging Network, translating complex research into clear, human stories.":
+    "Trabajo de marca y campaña con enfoque científico para Precision Aging Network, traduciendo investigaciones complejas en historias claras y humanas.",
 };
 
 const TABLES: Record<Locale, Record<string, string>> = { en: {}, es: ES };
 
+/**
+ * Translations kept in the CMS rather than in this file, keyed the same way: by
+ * English source string. Copy written in the editor can't have an entry here —
+ * nobody knew the wording when this file was written — so the editor keeps its
+ * own table alongside it, and that one is consulted first. It also lets a client
+ * correct any translation below without touching code.
+ */
+export type TranslationTable = Partial<Record<Locale, Record<string, string>>>;
+
+export const DEFAULT_TRANSLATIONS: TranslationTable = { es: {} };
+
 /** Translate an English source string into `locale`, falling back to the source. */
-export function translate(locale: Locale, source: string): string {
+export function translate(
+  locale: Locale,
+  source: string,
+  overrides?: TranslationTable,
+): string {
   if (locale === "en") return source;
-  return TABLES[locale]?.[source] ?? source;
+  return overrides?.[locale]?.[source] || TABLES[locale]?.[source] || source;
+}
+
+/** Whether anything — the editor's table or this file's — translates `source`. */
+export function hasTranslation(
+  locale: Locale,
+  source: string,
+  overrides?: TranslationTable,
+): boolean {
+  if (locale === "en") return true;
+  return Boolean(overrides?.[locale]?.[source] || TABLES[locale]?.[source]);
 }

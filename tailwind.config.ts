@@ -56,12 +56,20 @@ export default {
         f10: ["0.75rem", { lineHeight: "1.4em" }], // 12px din
       },
       maxWidth: {
-        site: "1200px", // canonical site width (header + body containers)
+        // Canonical site width (header + body containers). Driven by a CSS var so
+        // ultrawide screens can widen the header and body together in one place
+        // (see the --site-max media queries in globals.css); defaults to 1200px.
+        site: "var(--site-max, 1200px)",
       },
       screens: {
         // Wix breakpoints: mobile <= 750, tablet <= 1000
         sm: "751px",
         md: "1001px",
+        // The two widths where the site's own content column steps up (see the
+        // --site-max media queries in globals.css), so layout that should only
+        // change once there is genuinely more room to fill can hang off them.
+        wide: "1920px",
+        ultra: "2400px",
       },
     },
   },

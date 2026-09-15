@@ -27,7 +27,7 @@ function EditingHint() {
   const { editingInfo } = useAdmin();
   if (!editingInfo) return null;
   return (
-    <div className="pointer-events-none fixed bottom-4 left-4 z-[75] flex items-center gap-3 rounded-full border border-white/10 bg-navy-soft/95 py-2 pl-4 pr-5 text-xs shadow-xl backdrop-blur">
+    <div className="pointer-events-none fixed bottom-4 left-4 z-[75] flex items-center gap-3 border border-white/10 bg-navy-soft/95 py-2 pl-4 pr-5 text-xs shadow-xl backdrop-blur">
       <span className="font-heading uppercase tracking-widest text-gold">
         {editingInfo.label}
       </span>
@@ -53,7 +53,7 @@ function ToastHost() {
         <div
           key={t.id}
           role="status"
-          className={`rounded-xl border px-4 py-2 text-sm shadow-xl backdrop-blur ${
+          className={`border px-4 py-2 text-sm shadow-xl backdrop-blur ${
             t.kind === "err"
               ? "border-red-400/40 bg-red-950/90 text-red-200"
               : "border-white/10 bg-navy-soft/95 text-white/90"

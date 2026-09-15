@@ -5,6 +5,7 @@ import {
   CONTACT,
   FOOTER,
   TAGLINE,
+  HEADER_IMAGE,
   SITE,
   THEME,
   GLYPHS,
@@ -23,12 +24,27 @@ import {
   SERVICES_HEADING,
   type Service,
   type InstagramPost,
+  type HeroGradient,
 } from "@/content/home";
-import { TEAM, TEAM_HEADING, type Member } from "@/content/team";
-import { WORK, WORK_HEADING, type Work } from "@/content/work";
+import {
+  TEAM,
+  TEAM_HEADING,
+  TEAM_LANDER,
+  type Member,
+  type TeamLander,
+} from "@/content/team";
+import {
+  WORK,
+  WORK_HEADING,
+  WORK_GALLERY,
+  WORK_GALLERY_HEADING,
+  type Work,
+  type GalleryItem,
+} from "@/content/work";
 import { CASE_STUDIES, type CaseStudy } from "@/content/caseStudies";
 import { PARTNERS, type PartnersContent } from "@/content/partners";
 import { CONTACT_PAGE, type ContactPageContent } from "@/content/contact";
+import { DEFAULT_TRANSLATIONS, type TranslationTable } from "@/content/i18n";
 
 export type SiteContent = {
   nav: NavItem[];
@@ -39,6 +55,11 @@ export type SiteContent = {
   site: { name: string; brand: string; description: string };
   theme: string;
   glyphs: Glyph[];
+  headerImage: string;
+  /** Translations for copy written in the editor, which content/i18n.ts can't
+   * know about. Kept with the rest of the site-wide settings rather than in a
+   * section of its own, since it belongs to no one page. */
+  translations: TranslationTable;
 };
 
 export type HomeContent = {
@@ -48,6 +69,7 @@ export type HomeContent = {
     image: string;
     ctaLabel: string;
     ctaHref: string;
+    gradient: HeroGradient;
   };
   services: Service[];
   worksEyebrow: string;
@@ -75,8 +97,12 @@ export type HomeContent = {
   };
 };
 
-export type TeamContent = { heading: string; members: Member[] };
-export type WorkContent = { heading: string; items: Work[] };
+export type TeamContent = { heading: string; lander: TeamLander; members: Member[] };
+export type WorkContent = {
+  heading: string;
+  items: Work[];
+  gallery: { heading: string; items: GalleryItem[] };
+};
 export type CaseStudiesContent = { studies: CaseStudy[] };
 export type { PartnersContent, ContactPageContent };
 
@@ -89,6 +115,8 @@ export const DEFAULT_SITE: SiteContent = {
   site: { name: SITE.name, brand: SITE.brand, description: SITE.description },
   theme: THEME,
   glyphs: GLYPHS.map((g) => ({ ...g })),
+  headerImage: HEADER_IMAGE,
+  translations: structuredClone(DEFAULT_TRANSLATIONS),
 };
 
 export const DEFAULT_HOME: HomeContent = {
@@ -111,12 +139,21 @@ export const DEFAULT_HOME: HomeContent = {
 
 export const DEFAULT_TEAM: TeamContent = {
   heading: TEAM_HEADING,
+  lander: {
+    subtitle: TEAM_LANDER.subtitle,
+    background: TEAM_LANDER.background,
+    images: [...TEAM_LANDER.images],
+  },
   members: TEAM.map((m) => ({ ...m, socials: m.socials.map((s) => ({ ...s })) })),
 };
 
 export const DEFAULT_WORK: WorkContent = {
   heading: WORK_HEADING,
   items: WORK.map((w) => ({ ...w })),
+  gallery: {
+    heading: WORK_GALLERY_HEADING,
+    items: WORK_GALLERY.map((g) => ({ ...g })),
+  },
 };
 
 export const DEFAULT_CASE_STUDIES: CaseStudiesContent = {

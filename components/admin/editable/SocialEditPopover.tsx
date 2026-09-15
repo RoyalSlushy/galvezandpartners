@@ -71,7 +71,7 @@ export default function SocialEditPopover({
       role="dialog"
       aria-label="Edit social link"
       style={{ top: pos.top, left: pos.left }}
-      className="fixed z-[85] w-72 rounded-2xl border border-white/10 bg-navy-soft p-4 shadow-2xl"
+      className="fixed z-[85] w-72 border border-white/10 bg-navy-soft p-4 shadow-2xl"
     >
       <div className="flex items-center justify-between">
         <p className="font-heading text-xs uppercase tracking-widest text-white/50">Social link</p>
@@ -133,7 +133,7 @@ export default function SocialEditPopover({
           if (e.key === "Enter") commit();
         }}
         placeholder="Label (e.g. Instagram)"
-        className="mt-3 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
+        className="mt-3 w-full border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
       />
       <input
         value={href}
@@ -143,7 +143,7 @@ export default function SocialEditPopover({
           if (e.key === "Enter") commit();
         }}
         placeholder="https://…"
-        className="mt-2 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
+        className="mt-2 w-full border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
       />
 
       <div className="mt-3 flex items-center gap-1.5">
@@ -154,7 +154,7 @@ export default function SocialEditPopover({
             title={icon}
             aria-pressed={current.icon === icon}
             onClick={() => admin.setValue(`${basePath}.${index}.icon`, icon)}
-            className={`rounded-lg border px-2.5 py-1.5 text-xs capitalize transition ${
+            className={`border px-2.5 py-1.5 text-xs capitalize transition ${
               current.icon === icon
                 ? "border-gold bg-gold/15 text-gold"
                 : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
@@ -169,14 +169,14 @@ export default function SocialEditPopover({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg px-3 py-1.5 text-xs text-white/60 transition hover:text-white"
+          className="px-3 py-1.5 text-xs text-white/60 transition hover:text-white"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={commit}
-          className="rounded-lg bg-gold px-3 py-1.5 font-heading text-xs text-navy transition hover:bg-cream"
+          className="bg-gold px-3 py-1.5 font-heading text-xs text-navy transition hover:bg-cream"
         >
           Apply
         </button>
@@ -206,7 +206,7 @@ function MiniButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-6 w-6 items-center justify-center rounded-full transition ${
+      className={`flex h-6 w-6 items-center justify-center transition ${
         danger ? "text-red-400 hover:bg-red-400/15" : "text-white/70 hover:bg-white/10 hover:text-gold"
       } disabled:opacity-30`}
     >

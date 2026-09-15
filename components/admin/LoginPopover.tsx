@@ -46,7 +46,7 @@ export default function LoginPopover() {
     <form
       ref={cardRef}
       onSubmit={submit}
-      className="fixed bottom-4 right-4 z-[80] w-72 rounded-2xl border border-white/10 bg-navy-soft p-5 shadow-2xl"
+      className="fixed bottom-4 right-4 z-[80] w-72 border border-white/10 bg-navy-soft p-5 shadow-2xl"
       role="dialog"
       aria-label="Admin unlock"
     >
@@ -59,7 +59,7 @@ export default function LoginPopover() {
           type="button"
           onClick={admin.closeLogin}
           aria-label="Close"
-          className="rounded-lg p-1 text-white/50 transition hover:text-white"
+          className="p-1 text-white/50 transition hover:text-white"
         >
           <XIcon className="h-4 w-4" />
         </button>
@@ -70,13 +70,13 @@ export default function LoginPopover() {
         value={pw}
         onChange={(e) => setPw(e.target.value)}
         placeholder="Password"
-        className="mt-4 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-white placeholder-white/40 outline-none focus:border-gold"
+        className="mt-4 w-full border border-white/10 bg-navy px-3 py-2 text-white placeholder-white/40 outline-none focus:border-gold"
       />
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={busy || !pw}
-        className="mt-4 w-full rounded-lg bg-gold px-4 py-2 font-heading text-navy transition hover:bg-cream disabled:opacity-60"
+        className="mt-4 w-full bg-gold px-4 py-2 font-heading text-navy transition hover:bg-cream disabled:opacity-60"
       >
         {busy ? "Checking..." : "Unlock"}
       </button>

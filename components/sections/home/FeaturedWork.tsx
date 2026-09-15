@@ -5,15 +5,16 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { wixImage } from "@/lib/wix";
-import { PLACEHOLDER_IMG } from "@/lib/adminClient";
+import { focusPosition } from "@/lib/wix";
+import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
-import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
 
 type FeaturedCopy = {
   eyebrow: string;
@@ -23,22 +24,22 @@ type FeaturedCopy = {
   ctaHref: string;
 };
 
-// Card width also capped by viewport height (cards are 4:5) so the pinned
-// viewport always fits header + track + progress line on short laptops.
-const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,44vh)] md:w-[min(30vw,44vh)]";
-const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,40vh)] md:w-[min(26vw,40vh)]";
+// Card width also capped by viewport height (cards are 4:5) so the section's
+// header, row, and progress line together stay inside one screen — the whole of
+// the cases is on view once you reach them, on short laptops included.
+const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,40vh)] md:w-[min(30vw,40vh)]";
+const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,36vh)] md:w-[min(26vw,36vh)]";
 
 /**
- * "Featured work" — a scroll-pinned horizontal gallery of the shared
- * work.items portfolio (the same list that powers /our-works, so CMS edits
- * propagate). The section pins for one viewport while vertical scroll drives
- * the card track sideways; images get a subtle counter-parallax and a gold
- * progress line tracks the journey. A closing card carries the CTA to the
- * Our Works page. Keyboard focus inside the track auto-scrolls the page so
- * the focused card is actually in view.
+ * "Featured work" — a horizontal gallery of the shared work.items portfolio
+ * (the same list that powers /our-works, so CMS edits propagate). The row is
+ * one you push sideways: swipe on touch, drag with the mouse, or scroll
+ * horizontally with a trackpad, snapping card to card. Vertical scroll is left
+ * alone — the page runs straight past the section — and a gold progress line
+ * under the row tracks how far along the cases you are. A closing card carries
+ * the CTA to the Our Works page.
  *
- * Edit mode and reduced motion swap in a native snap-scroll row (all edit
- * affordances live there), which is also the graceful no-pin fallback.
+ * Edit mode shares the same row; all edit affordances live there.
  */
 export default function FeaturedWork({
   featured: serverFeatured,
@@ -50,114 +51,115 @@ export default function FeaturedWork({
   const featured = useCmsValue("home.featuredWork", serverFeatured);
   const items = useCmsValue("work.items", serverItems);
   const editMode = useEditMode();
-  const reduced = usePrefersReducedMotion();
+  const t = useT();
+  // Only the section heading is translated; work titles are brand names.
+  const tv = useEditableT();
 
-  const sectionRef = useRef<HTMLElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const scrollRowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const pinned = !editMode && !reduced;
-
+  // Mouse users can grab the row and drag it sideways (touch already scrolls
+  // natively). Scroll snap is parked during the drag so the row follows the
+  // cursor instead of fighting the detents, and a real drag swallows the
+  // release click so the card under the cursor doesn't open.
   useEffect(() => {
-    if (!pinned) return;
-    // The hook's first paint predates its matchMedia effect — bail sync too.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const section = sectionRef.current;
-    const sticky = stickyRef.current;
-    const track = trackRef.current;
-    const bar = barRef.current;
-    if (!section || !sticky || !track || !bar) return;
-
-    let scrollable = 0;
-    let raf = 0;
-    let ticking = false;
-
-    const measure = () => {
-      scrollable = Math.max(0, track.scrollWidth - window.innerWidth);
-      // Total height = one pinned viewport + the horizontal distance to cover.
-      section.style.height = `${sticky.offsetHeight + scrollable}px`;
+    const scroller = scrollRowRef.current;
+    if (!scroller) return;
+    let down = false;
+    let dragged = false;
+    let lastX = 0;
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      down = true;
+      dragged = false;
+      lastX = e.clientX;
     };
+    const onMove = (e: PointerEvent) => {
+      if (!down) return;
+      const dx = e.clientX - lastX;
+      if (!dragged && Math.abs(dx) < 4) return;
+      if (!dragged) scroller.style.scrollSnapType = "none";
+      dragged = true;
+      lastX = e.clientX;
+      scroller.scrollLeft -= dx;
+    };
+    const onUp = () => {
+      down = false;
+      if (dragged) scroller.style.scrollSnapType = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+      e.stopPropagation();
+      // The page transition starts its outgoing push on any link press, so tell
+      // it this one is going nowhere (see PageReveal).
+      window.dispatchEvent(new Event("gp:nav-cancel"));
+    };
+    const onDragStart = (e: Event) => e.preventDefault();
+    scroller.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    scroller.addEventListener("click", onClick, true);
+    scroller.addEventListener("dragstart", onDragStart);
+    return () => {
+      scroller.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      scroller.removeEventListener("click", onClick, true);
+      scroller.removeEventListener("dragstart", onDragStart);
+      scroller.style.scrollSnapType = "";
+    };
+  }, [editMode]);
 
-    const parallaxEls = Array.from(track.querySelectorAll<HTMLElement>("[data-parallax]"));
-
+  // Progress line: how far the row has travelled, so the horizontal journey
+  // still reads at a glance.
+  useEffect(() => {
+    const scroller = scrollRowRef.current;
+    const bar = barRef.current;
+    if (!scroller || !bar) return;
+    let raf = 0;
     const update = () => {
-      ticking = false;
-      if (scrollable <= 0) return;
-      const rect = section.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, -rect.top / scrollable));
-      const x = -p * scrollable;
-      track.style.transform = `translate3d(${x}px,0,0)`;
-      bar.style.transform = `scaleX(${p})`;
-
-      // Counter-parallax: shift each image against the track's travel based on
-      // how far its card sits from the viewport center.
-      const center = window.innerWidth / 2;
-      for (const el of parallaxEls) {
-        const r = el.getBoundingClientRect();
-        const ratio = (r.left + r.width / 2 - center) / window.innerWidth;
-        el.style.transform = `translateX(${Math.max(-44, Math.min(44, ratio * 34))}px) scale(1.12)`;
-      }
+      raf = 0;
+      const max = scroller.scrollWidth - scroller.clientWidth;
+      const p = max > 0 ? scroller.scrollLeft / max : 1;
+      // A sliver stays lit at rest so the line reads as a track to travel
+      // rather than an empty rule.
+      bar.style.transform = `scaleX(${Math.max(0.03, Math.min(1, p))})`;
     };
     const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        raf = requestAnimationFrame(update);
-      }
+      if (!raf) raf = requestAnimationFrame(update);
     };
-    const onResize = () => {
-      measure();
-      onScroll();
-    };
-    // Keyboard users tab into links the transform has carried off-screen:
-    // undo the browser's clipped-container scroll and drive the page scroll
-    // (which maps 1:1 to horizontal travel) until the card is centered.
-    const onFocusIn = (e: Event) => {
-      sticky.scrollLeft = 0;
-      if (scrollable <= 0) return;
-      const target = (e.target as HTMLElement).closest("a") ?? (e.target as HTMLElement);
-      const r = target.getBoundingClientRect();
-      const delta = r.left + r.width / 2 - window.innerWidth / 2;
-      if (Math.abs(delta) > 4) window.scrollBy(0, delta);
-    };
-
-    measure();
     update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-    track.addEventListener("focusin", onFocusIn);
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      track.removeEventListener("focusin", onFocusIn);
-      // The static branch may reuse these nodes — leave no stale styles behind.
-      section.style.height = "";
-      track.style.transform = "";
+      if (raf) cancelAnimationFrame(raf);
+      scroller.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       bar.style.transform = "";
-      for (const el of parallaxEls) el.style.transform = "scale(1.12)";
     };
-  }, [pinned, items.length]);
+  }, [items.length, editMode]);
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-6">
       <div>
         <EditableText
           path="home.featuredWork.eyebrow"
-          value={featured.eyebrow}
+          value={tv(featured.eyebrow)}
           as="p"
           className="font-display text-f6 lowercase text-gold"
         />
         <EditableText
           path="home.featuredWork.heading"
-          value={featured.heading}
+          value={tv(featured.heading)}
           as="h2"
           className="mt-2 font-heading text-f3 leading-none text-white"
         />
       </div>
       <EditableText
         path="home.featuredWork.blurb"
-        value={featured.blurb}
+        value={tv(featured.blurb)}
         as="p"
         multiline
         className="max-w-md whitespace-pre-line pb-2 font-body text-base leading-relaxed text-white/60 sm:text-lg"
@@ -184,18 +186,13 @@ export default function FeaturedWork({
             className="right-2 top-2"
           />
         )}
-        <div className="group relative overflow-hidden rounded-2xl bg-navy-soft">
+        <div className="group relative overflow-hidden bg-navy-soft">
           <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
             <EditableImage
               path={`work.items.${i}.img`}
               raw={w.img}
-              src={
-                w.img
-                  ? w.img.startsWith("http")
-                    ? w.img
-                    : wixImage(w.img, 700, 875)
-                  : PLACEHOLDER_IMG
-              }
+              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
+              style={{ objectPosition: focusPosition(w.img) }}
               alt={w.title}
               className="aspect-[4/5] w-full object-cover"
             />
@@ -221,7 +218,7 @@ export default function FeaturedWork({
             {w.slug && (
               <span
                 aria-hidden
-                className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center rounded-full bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+                className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
                   <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -251,15 +248,16 @@ export default function FeaturedWork({
 
   const endCard = (
     <div className={`flex ${END_CARD_W} snap-start items-center`}>
-      <div className="flex aspect-[4/5] w-full flex-col items-start justify-center rounded-2xl border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
-        <p className="font-display text-f5 lowercase leading-[0.95] text-white">
-          there&rsquo;s{" "}
-          <span className="text-gold">more</span>
+      <div className="relative flex aspect-[4/5] w-full flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
+        <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
+        <p className="relative font-display text-f5 lowercase leading-[0.95] text-white">
+          {t("there's")}{" "}
+          <span className="text-gold">{t("more")}</span>
         </p>
-        <p className="mt-3 font-body text-base text-white/60">
-          Every story on one page.
+        <p className="relative mt-3 font-body text-base text-white/60">
+          {t("Every story on one page.")}
         </p>
-        <Button href={featured.ctaHref} variant="gold" className="mt-8">
+        <Button href={featured.ctaHref} variant="gold" className="relative mt-8">
           {editMode ? (
             <EditableText
               path="home.featuredWork.ctaLabel"
@@ -267,54 +265,47 @@ export default function FeaturedWork({
               link={{ path: "home.featuredWork.ctaHref", value: featured.ctaHref }}
             />
           ) : (
-            featured.ctaLabel
+            t(featured.ctaLabel)
           )}
         </Button>
       </div>
     </div>
   );
 
-  if (!pinned) {
-    return (
-      <section key="fw-static" className="w-full overflow-hidden bg-navy py-20 sm:py-28">
-        <Container>
-          <RevealOnScroll>{header}</RevealOnScroll>
-        </Container>
-        <div className="gallery-scroll mt-16 snap-x snap-mandatory overflow-x-auto pb-6 pt-12">
-          <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
-            {cards}
-            {endCard}
-          </div>
-        </div>
-        {editMode && (
-          <Container className="mt-6">
-            <AddChip listPath="work.items" label="work item" />
-          </Container>
-        )}
-      </section>
-    );
-  }
-
   return (
-    <section key="fw-pinned" ref={sectionRef} className="relative w-full bg-navy">
+    // One screen, content centred in it: reaching the section puts the whole of
+    // it — header, cards, progress line — on view, with nothing of the row left
+    // below the fold. min-h (not h) so a short or narrow screen grows the
+    // section rather than clipping it. Edit mode grows freely instead.
+    <section
+      className={`w-full overflow-hidden bg-navy ${
+        editMode ? "py-20 sm:py-28" : "min-h-viewport flex flex-col justify-center py-10"
+      }`}
+    >
+      <Container>
+        <RevealOnScroll>{header}</RevealOnScroll>
+      </Container>
       <div
-        ref={stickyRef}
-        className="h-viewport sticky top-0 flex flex-col justify-center overflow-hidden py-6"
+        ref={scrollRowRef}
+        className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
+          editMode ? "mt-16 pb-6" : "mt-10 pb-4"
+        }`}
       >
-        <Container>{header}</Container>
-        <div
-          ref={trackRef}
-          className="gallery-pad mt-10 flex w-max items-start gap-6 pt-12 will-change-transform sm:gap-9"
-        >
+        <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
           {cards}
           {endCard}
         </div>
-        <Container className="mt-10">
-          <div className="h-px w-full bg-white/10">
-            <div ref={barRef} className="h-full origin-left scale-x-0 bg-gold" />
-          </div>
-        </Container>
       </div>
+      <Container className="mt-6">
+        <div className="h-px w-full bg-white/10">
+          <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
+        </div>
+      </Container>
+      {editMode && (
+        <Container className="mt-6">
+          <AddChip listPath="work.items" label="work item" />
+        </Container>
+      )}
     </section>
   );
 }

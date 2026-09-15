@@ -4,19 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { NavItem } from "@/content/site";
+import type { CaseStudy } from "@/content/caseStudies";
+import WorkMegaMenu from "./WorkMegaMenu";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import { useT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import ListControls from "@/components/admin/editable/ListControls";
+import { ChevronDownIcon } from "@/components/admin/icons";
 
 /** The two links that collapse into the "More" dropdown when space is tight. */
 const MORE_HREFS = ["/our-team", "/our-partners"];
+/** The nav item that opens the case-study mega menu instead of a plain link. */
+const MEGA_HREF = "/our-works";
 
 /** Shared link styling: an active-page gold underline that scales in from its
  * center (transform-only, so the 2px stroke weight stays constant); the active
  * link sits at full size while inactive links shrink slightly. */
 function linkClass(active: boolean) {
-  return `relative inline-block font-heading text-lg transition duration-300 hover:text-sky-200 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
+  return `relative inline-block font-heading text-xl transition duration-300 hover:text-sky-200 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-gold after:transition-transform after:duration-300 ${
     active
       ? "scale-100 text-white after:scale-x-100"
       : "scale-90 text-white/90 after:scale-x-0"
@@ -34,11 +39,14 @@ export default function NavLinks({
   className = "",
   hideHome = false,
   condenseMore = false,
+  caseStudies = [],
 }: {
   nav: NavItem[];
   className?: string;
   hideHome?: boolean;
   condenseMore?: boolean;
+  /** Case studies for the "Our Work" mega menu. */
+  caseStudies?: CaseStudy[];
 }) {
   const pathname = usePathname();
   const editMode = useEditMode();
@@ -61,7 +69,19 @@ export default function NavLinks({
   return (
     <nav aria-label="Site" className={className}>
       <ul className="flex items-center gap-10">
-        {mainItems.map(({ item, i }) => (
+        {mainItems.map(({ item, i }) =>
+          // "Our Work" carries the case-study mega menu — but not in edit mode,
+          // where the link has to stay a plain editable label.
+          item.href === MEGA_HREF && !editMode && caseStudies.length > 0 ? (
+            <WorkMegaMenu
+              key={item.href}
+              href={item.href}
+              label={t(item.label)}
+              studies={caseStudies}
+              linkClassName={linkClass(isActive(item.href))}
+              active={isActive(item.href)}
+            />
+          ) : (
           <li key={item.href} className={editMode ? "relative" : undefined}>
             {editMode && (
               <ListControls
@@ -88,7 +108,8 @@ export default function NavLinks({
               )}
             </Link>
           </li>
-        ))}
+          ),
+        )}
 
         {moreItems.length > 0 && (
           <MoreMenu items={moreItems.map(({ item }) => item)} active={moreItems.some(({ item }) => isActive(item.href))} />
@@ -119,19 +140,27 @@ function MoreMenu({ items, active }: { items: NavItem[]; active: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onFocus={() => setOpen(true)}
-        className={`${linkClass(active)} cursor-default`}
+        className={`${linkClass(active)} inline-flex cursor-default items-center gap-1`}
       >
         {t("More")}
+        <ChevronDownIcon
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        />
       </button>
       <div
         role="menu"
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
         }}
-        className={`absolute right-0 top-full z-50 mt-3 min-w-[11rem] overflow-hidden rounded-xl border border-white/10 bg-navy-soft shadow-xl transition ${
+        // pt-3 (instead of mt-3) keeps the gap between the trigger and the panel
+        // *inside* the hover target, so the cursor can travel from "More" down to
+        // the menu without crossing a dead zone that would close it (the padding
+        // is part of this hover-tracked element, unlike a margin).
+        className={`absolute right-0 top-full z-50 min-w-[11rem] pt-3 transition ${
           open ? "pointer-events-auto opacity-100" : "pointer-events-none -translate-y-1 opacity-0"
         }`}
       >
+        <div className="overflow-hidden border border-white/10 bg-navy-soft shadow-xl">
         {items.map((item) => {
           const itemActive = pathname.startsWith(item.href);
           return (
@@ -148,6 +177,7 @@ function MoreMenu({ items, active }: { items: NavItem[]; active: boolean }) {
             </Link>
           );
         })}
+        </div>
       </div>
     </li>
   );

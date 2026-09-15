@@ -54,7 +54,7 @@ export default function LinkChip({ link }: { link: LinkSpec }) {
           }
           setOpen(true);
         }}
-        className="relative z-30 ml-2 inline-flex max-w-[12rem] items-center gap-1 truncate rounded-full border border-gold/40 bg-navy-soft/90 px-2 py-0.5 align-middle font-body text-[10px] normal-case tracking-normal text-gold transition hover:border-gold"
+        className="relative z-30 ml-2 inline-flex max-w-[12rem] items-center gap-1 truncate border border-gold/40 bg-navy-soft/90 px-2 py-0.5 align-middle font-body text-[10px] normal-case tracking-normal text-gold transition hover:border-gold"
       >
         <LinkIcon className="h-3 w-3 shrink-0" />
         <span className="truncate">{display}</span>
@@ -120,7 +120,7 @@ function LinkPopover({
       role="dialog"
       aria-label="Edit link"
       style={{ top: pos.top, left: pos.left }}
-      className="fixed z-[85] w-72 rounded-2xl border border-white/10 bg-navy-soft p-4 shadow-2xl"
+      className="fixed z-[85] w-72 border border-white/10 bg-navy-soft p-4 shadow-2xl"
     >
       <p className="font-heading text-xs uppercase tracking-widest text-white/50">
         {isSlug ? "Case study slug" : "Link destination"}
@@ -137,7 +137,7 @@ function LinkPopover({
           }
         }}
         placeholder={isSlug ? "e.g. la-bombita (empty = no page)" : "e.g. /contact-us or https://…"}
-        className="mt-2 w-full rounded-lg border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
+        className="mt-2 w-full border border-white/10 bg-navy px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-gold"
       />
       {isSlug && (
         <p className="mt-2 text-[11px] leading-snug text-white/50">
@@ -161,7 +161,7 @@ function LinkPopover({
             admin.notify("Case study staged — save, then open its page to edit it");
             onClose();
           }}
-          className="mt-3 w-full rounded-lg border border-dashed border-gold/50 px-3 py-2 text-xs text-gold transition hover:border-gold hover:bg-gold/10"
+          className="mt-3 w-full border border-dashed border-gold/50 px-3 py-2 text-xs text-gold transition hover:border-gold hover:bg-gold/10"
         >
           + Create case study page for “{slug}”
         </button>
@@ -170,14 +170,14 @@ function LinkPopover({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg px-3 py-1.5 text-xs text-white/60 transition hover:text-white"
+          className="px-3 py-1.5 text-xs text-white/60 transition hover:text-white"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={commit}
-          className="rounded-lg bg-gold px-3 py-1.5 font-heading text-xs text-navy transition hover:bg-cream"
+          className="bg-gold px-3 py-1.5 font-heading text-xs text-navy transition hover:bg-cream"
         >
           Apply
         </button>

@@ -20,15 +20,12 @@ import { useGlyphMap } from "@/components/ui/Glyph";
  * The panel-wide opacity + bottom fade live in the `.cta-grid` CSS; this
  * component renders the letter cells and animates the layer's `transform`.
  */
-const TILE = 28; // px — one letter per tile (letter box 20px + 8px gutter)
-const GLYPH_H = 20; // px — masked-glyph / font letter height (25% up from 16)
-const GLYPH_W = 17.5; // px — masked-glyph box width (25% up from 14)
+const TILE = 28; // px — one letter per tile (letter box 20px + 8px gutter) at scale 1
+const GLYPH_H = 20; // px — masked-glyph / font letter height at scale 1
+const GLYPH_W = 17.5; // px — masked-glyph box width at scale 1
 const LETTERS = ["G", "A", "L", "V", "E", "Z"];
-const PERIOD = TILE * LETTERS.length; // 144px — the letter pattern repeats here
 const OVERSCAN = LETTERS.length; // extra tiles per side so the drift never gaps
-const BASE_SPEED = TILE / 4500; // px per ms → one tile every 4.5s
-const HOVER_SPEED = BASE_SPEED * 3; // 200% faster while hovered
-const RAMP_MS = 150; // time to ramp fully between base and hover speed
+const RAMP_MS = 300; // time to ease fully between base and hover speed (in/out)
 
 const easeInQuad = (u: number) => u * u;
 const easeOutQuad = (u: number) => u * (2 - u);
@@ -48,28 +45,91 @@ function maskStyle(svg: string): React.CSSProperties {
   };
 }
 
-export default function CtaGrid() {
+export default function CtaGrid({
+  className = "cta-grid",
+  glyphClassName = "bg-navy",
+  fontClassName = "text-navy",
+  scale = 1,
+  coverAspect = 0,
+}: {
+  /** Wrapper class controlling panel-wide opacity + fade (defaults to the home
+   * CTA's gold-panel treatment; the mobile drawer passes `drawer-glyph-grid`). */
+  className?: string;
+  /** Tailwind background class the masked glyph boxes are tinted with. */
+  glyphClassName?: string;
+  /** Tailwind text-color class for the font fallback letters. */
+  fontClassName?: string;
+  /** Uniform size multiplier for the tile/glyph grid (drift speed scales with
+   * it too, so the period still takes the same time). Defaults to 1 (the home
+   * CTA's original sizing); the drawer passes a larger value. */
+  scale?: number;
+  /** Width-to-height ratio the grid should cover no matter how narrow the panel
+   * currently is. Set this when the panel's *width* is animated (the /our-works
+   * accordion expands its gallery card from a sliver to 5:4): the grid is then
+   * built once for the full width and simply clipped while narrow, so an
+   * expansion costs no re-render at all. 0 (default) sizes to the element. */
+  coverAspect?: number;
+} = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const glyphs = useGlyphMap();
   const [dims, setDims] = useState({ cols: 0, rows: 0 });
+  // Fixed wrapper width under `coverAspect` (0 = follow the element). Pinning it
+  // keeps the wrapper's own box — and so its gradient mask — from being
+  // re-rasterised on every frame of the panel's width animation.
+  const [coverW, setCoverW] = useState(0);
+
+  const tile = TILE * scale;
+  const glyphW = GLYPH_W * scale;
+  const glyphH = GLYPH_H * scale;
+  const period = tile * LETTERS.length;
+  const baseSpeed = tile / 4500;
+  const hoverSpeed = baseSpeed * 3;
 
   // Size the letter grid to cover the panel plus one period of overscan on
   // every side, so the up-right drift never exposes an uncovered edge.
+  //
+  // The grid is hundreds of masked cells, so re-rendering it per resize frame is
+  // expensive — and this panel does get resized every frame (the /our-works
+  // accordion animates its gallery card's width as you swipe to it). Three
+  // guards keep that cheap: `coverAspect` panels are sized for their full width
+  // up front and never resize at all; counts are quantised to whole letter
+  // periods, so a free-resizing panel crosses a threshold only rarely; and the
+  // grid only ever grows during a resize (shrinking waits for it to settle).
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
-    const measure = () => {
+    const step = LETTERS.length; // quantum, in tiles
+    const quantise = (px: number) =>
+      Math.ceil(Math.ceil(px / tile) / step) * step + OVERSCAN * 2;
+    let shrinkTimer: ReturnType<typeof setTimeout> | undefined;
+    const apply = (cols: number, rows: number, allowShrink: boolean) =>
+      setDims((d) => {
+        const c = allowShrink ? cols : Math.max(d.cols, cols);
+        const r = allowShrink ? rows : Math.max(d.rows, rows);
+        return d.cols === c && d.rows === r ? d : { cols: c, rows: r };
+      });
+    const measure = (allowShrink: boolean) => {
       const { width, height } = wrap.getBoundingClientRect();
-      const cols = Math.ceil(width / TILE) + OVERSCAN * 2;
-      const rows = Math.ceil(height / TILE) + OVERSCAN * 2;
-      setDims((d) => (d.cols === cols && d.rows === rows ? d : { cols, rows }));
+      // With a cover aspect the height drives both counts, so a width animation
+      // leaves the measurement (and the rendered grid) untouched.
+      const w = coverAspect > 0 ? Math.max(width, height * coverAspect) : width;
+      if (coverAspect > 0) setCoverW((prev) => (allowShrink || w > prev ? w : prev));
+      apply(quantise(w), quantise(height), allowShrink);
     };
-    measure();
-    const ro = new ResizeObserver(measure);
+    measure(true);
+    const ro = new ResizeObserver(() => {
+      measure(false);
+      // Reclaim the overshoot once the element stops changing size.
+      clearTimeout(shrinkTimer);
+      shrinkTimer = setTimeout(() => measure(true), 300);
+    });
     ro.observe(wrap);
-    return () => ro.disconnect();
-  }, []);
+    return () => {
+      ro.disconnect();
+      clearTimeout(shrinkTimer);
+    };
+  }, [tile, coverAspect]);
 
   // Drift the whole letter layer diagonally, easing the speed up on hover.
   useEffect(() => {
@@ -103,7 +163,19 @@ export default function CtaGrid() {
     card?.addEventListener("mouseenter", onEnter);
     card?.addEventListener("mouseleave", onLeave);
 
+    const root = document.documentElement;
     const tick = (t: number) => {
+      raf = 0;
+      // The drift is driven here rather than by a CSS animation, so pausing
+      // animations doesn't reach it: hold it by hand while the page is being
+      // pictured for a view transition (see [data-gp-swapping] in globals.css).
+      // Advancing `last` without advancing `pos` is what makes it a pause rather
+      // than a skip — otherwise it would jump the whole held interval at once.
+      if (root.hasAttribute("data-gp-swapping")) {
+        last = t;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       if (last == null) last = t;
       const dt = t - last;
       last = t;
@@ -111,21 +183,38 @@ export default function CtaGrid() {
       const u = Math.min(1, (t - tweenStart) / tweenDur);
       factor = from + (to - from) * ease(u);
 
-      const speed = BASE_SPEED + (HOVER_SPEED - BASE_SPEED) * factor;
-      pos = (pos + speed * dt) % PERIOD;
+      const speed = baseSpeed + (hoverSpeed - baseSpeed) * factor;
+      pos = (pos + speed * dt) % period;
       // Up-right drift: shift the layer right (+x) and up (-y).
       layer.style.transform = `translate(${pos}px, ${-pos}px)`;
 
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    // Only drift while the grid is actually on screen — several of these live on
+    // the page at once (the CTA, the drawer, the gallery hand-off card), and an
+    // off-screen one has no business burning a frame's worth of work.
+    const start = () => {
+      if (!raf) {
+        last = null;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const io = new IntersectionObserver(([entry]) => (entry.isIntersecting ? start() : stop()), {
+      rootMargin: "100px",
+    });
+    io.observe(wrap);
 
     return () => {
-      cancelAnimationFrame(raf);
+      io.disconnect();
+      stop();
       card?.removeEventListener("mouseenter", onEnter);
       card?.removeEventListener("mouseleave", onLeave);
     };
-  }, []);
+  }, [period, baseSpeed, hoverSpeed]);
 
   const cells = useMemo(() => {
     const out: React.ReactNode[] = [];
@@ -138,17 +227,17 @@ export default function CtaGrid() {
           <span
             key={`${r}-${c}`}
             className="flex items-center justify-center"
-            style={{ width: TILE, height: TILE }}
+            style={{ width: tile, height: tile }}
           >
             {svg ? (
               <span
-                className="bg-navy"
-                style={{ width: GLYPH_W, height: GLYPH_H, ...maskStyle(svg) }}
+                className={glyphClassName}
+                style={{ width: glyphW, height: glyphH, ...maskStyle(svg) }}
               />
             ) : (
               <span
-                className="font-display font-bold leading-none text-navy"
-                style={{ fontSize: GLYPH_H }}
+                className={`font-display font-bold leading-none ${fontClassName}`}
+                style={{ fontSize: glyphH }}
               >
                 {ch}
               </span>
@@ -158,18 +247,30 @@ export default function CtaGrid() {
       }
     }
     return out;
-  }, [dims, glyphs]);
+  }, [dims, glyphs, glyphClassName, fontClassName, tile, glyphW, glyphH]);
 
   return (
-    <div ref={wrapRef} aria-hidden className="cta-grid pointer-events-none absolute inset-0">
+    <div
+      ref={wrapRef}
+      aria-hidden
+      className={`${className} pointer-events-none absolute ${
+        coverAspect > 0 ? "inset-y-0 left-0" : "inset-0"
+      }`}
+      // The letter layer is large and always overflows this box; containment
+      // keeps its paint (and its layout) from rippling out into the card that a
+      // scroll-driven animation may be resizing every frame. Under `coverAspect`
+      // the box is pinned to the panel's expanded width and simply clipped by
+      // the panel while it is narrower, so nothing here resizes mid-animation.
+      style={{ contain: "layout paint", ...(coverAspect > 0 ? { width: coverW || "100%" } : null) }}
+    >
       <div
         ref={layerRef}
         className="absolute grid"
         style={{
-          top: -PERIOD,
-          left: -PERIOD,
-          gridTemplateColumns: `repeat(${dims.cols}, ${TILE}px)`,
-          gridAutoRows: `${TILE}px`,
+          top: -period,
+          left: -period,
+          gridTemplateColumns: `repeat(${dims.cols}, ${tile}px)`,
+          gridAutoRows: `${tile}px`,
           willChange: "transform",
         }}
       >

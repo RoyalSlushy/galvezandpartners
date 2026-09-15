@@ -89,10 +89,17 @@ export default function useFitText<T extends HTMLElement>({
     mq?.addEventListener("change", onChange);
     window.addEventListener("resize", onChange);
 
+    // Webfonts landing after mount change the text's metrics without resizing
+    // the observed boxes — refit once the pending set settles, and again on
+    // any later load (e.g. a lazy-loaded weight).
+    document.fonts?.ready.then(onChange);
+    document.fonts?.addEventListener("loadingdone", onChange);
+
     return () => {
       ro.disconnect();
       mq?.removeEventListener("change", onChange);
       window.removeEventListener("resize", onChange);
+      document.fonts?.removeEventListener("loadingdone", onChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fit, ...deps]);

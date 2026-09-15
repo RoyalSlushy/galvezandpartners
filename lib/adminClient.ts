@@ -1,5 +1,5 @@
 import type { ContentKey } from "@/lib/cms";
-import { wixImage } from "@/lib/wix";
+import { stripFocus, wixImage } from "@/lib/wix";
 
 // NOTE: keep this module free of `@/lib/supabase` / `@/lib/cms` value imports —
 // it is statically bundled into every page via AdminProvider, and those pull
@@ -56,6 +56,69 @@ export async function uploadImage(password: string, file: File): Promise<string>
     data,
   });
   return res.url as string;
+}
+
+/** Per translate request: small enough that one request is quick and a failure
+ * costs little, big enough that the translator sees a page's copy together and
+ * keeps a consistent voice across it. Bounded by length as well as by count,
+ * since a batch of paragraphs is a very different request from a batch of button
+ * labels. Both sit well inside the edge function's own limits. */
+const TRANSLATE_BATCH = 40;
+const TRANSLATE_BATCH_CHARS = 12_000;
+
+/** Split `sources` into batches, breaking on either bound. A single string over
+ * the length bound still goes out on its own rather than being dropped. */
+function batchSources(sources: string[]): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let chars = 0;
+  for (const source of sources) {
+    if (batch.length > 0 && (batch.length >= TRANSLATE_BATCH || chars + source.length > TRANSLATE_BATCH_CHARS)) {
+      batches.push(batch);
+      batch = [];
+      chars = 0;
+    }
+    batch.push(source);
+    chars += source.length;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
+}
+
+/**
+ * A machine first pass at the translations for `sources`. Returns a map keyed by
+ * the English source, the same shape the translation table itself uses; strings
+ * the translator skipped are simply absent, so nothing is filled in blindly. The
+ * API key lives in the edge function's environment and never comes near the
+ * browser.
+ *
+ * Sent in batches, and a batch that fails doesn't lose the ones that worked —
+ * whatever came back is returned, with the failure reported once at the end.
+ */
+export async function translateSources(
+  password: string,
+  locale: string,
+  sources: string[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ translations: Record<string, string>; missed: number; error?: string }> {
+  const translations: Record<string, string> = {};
+  let error: string | undefined;
+  let done = 0;
+
+  for (const batch of batchSources(sources)) {
+    try {
+      const res = await callAdmin(password, { action: "translate", locale, sources: batch });
+      Object.assign(translations, (res.translations as Record<string, string>) ?? {});
+    } catch (err) {
+      // Keep going: a later batch may well succeed, and the ones already
+      // translated are worth having.
+      error = err instanceof Error ? err.message : "Could not translate";
+    }
+    done += batch.length;
+    onProgress?.(done, sources.length);
+  }
+
+  return { translations, missed: sources.length - Object.keys(translations).length, error };
 }
 
 export async function listUploadedImages(password: string): Promise<string[]> {
@@ -139,7 +202,7 @@ export type ImageRef = { raw: string; previewUrl: string };
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#232a3d'/><g fill='none' stroke='#e6b367' stroke-width='6' opacity='0.8'><rect x='140' y='96' width='120' height='90' rx='10'/><circle cx='178' cy='128' r='11'/><path d='M150 178l32-30 24 22 20-16 34 24'/></g></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#232a3d'/><g fill='none' stroke='#e6b367' stroke-width='6' opacity='0.8'><rect x='140' y='96' width='120' height='90'/><circle cx='178' cy='128' r='11'/><path d='M150 178l32-30 24 22 20-16 34 24'/></g></svg>`,
   );
 
 /** Video file extensions we treat as playable media rather than images. */
@@ -150,13 +213,16 @@ export function isVideoUrl(raw: string): boolean {
   return !!raw && VIDEO_EXT.test(raw);
 }
 
-/** Resolve a stored media value (full URL or bare Wix media id) to a URL.
- * Videos and any http(s) URL are returned untouched; bare Wix media ids get a
- * server-side crop at the requested size. */
+/** Resolve a stored media value to a URL. Anything that is already a URL — an
+ * http(s) address, an inline data URI, or a path served by the app itself — is
+ * returned untouched, as are videos; only a bare Wix media id is sent through
+ * the CDN for a server-side crop at the requested size. */
 export function resolveImage(raw: string, w = 400, h = 300): string {
   if (!raw) return PLACEHOLDER_IMG;
-  if (isVideoUrl(raw)) return raw;
-  return raw.startsWith("http") ? raw : wixImage(raw, w, h);
+  // Drop any focal-point suffix before turning the value into a URL.
+  const src = stripFocus(raw);
+  if (isVideoUrl(src) || /^(https?:|data:|\/)/.test(src)) return src;
+  return wixImage(src, w, h);
 }
 
 /** Every distinct image currently referenced across the site content. */
@@ -176,9 +242,12 @@ export function collectImages(sections: Partial<Record<ContentKey, unknown>>): I
   const site = sections.site as { glyphs?: { svg?: string }[] } | undefined;
   for (const g of site?.glyphs ?? []) if (g?.svg) raws.push(g.svg);
 
+  // Dedup by the media itself (ignoring any focal-point suffix), and surface the
+  // plain media in the picker gallery — focus is set per placement, not here.
   const seen = new Set<string>();
   const out: ImageRef[] = [];
-  for (const raw of raws) {
+  for (const rawWithFocus of raws) {
+    const raw = stripFocus(rawWithFocus);
     if (seen.has(raw)) continue;
     seen.add(raw);
     out.push({ raw, previewUrl: resolveImage(raw) });

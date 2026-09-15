@@ -1,41 +1,120 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { NavItem, Social } from "@/content/site";
+import type { Service } from "@/content/home";
+import type { CaseStudy } from "@/content/caseStudies";
 import DesktopNav from "./DesktopNav";
+import HeaderServicesStrip from "./HeaderServicesStrip";
 import MobileMenu from "./MobileMenu";
-import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import EditableImage from "@/components/admin/editable/EditableImage";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { wixImage } from "@/lib/wix";
 
 /** Site header: logo, desktop nav + social/tagline cluster, Connect CTA on the far right. */
 export default function Header({
   nav: serverNav,
   socials: serverSocials,
   tagline: serverTagline,
+  headerImage: serverHeaderImage,
+  services,
+  caseStudies,
 }: {
   nav: NavItem[];
   socials: Social[];
   tagline: string;
+  headerImage: string;
+  /** Feeds the services strip standing in the masthead (see below). */
+  services: Service[];
+  /** Feeds the "Our Work" mega menu in the desktop nav. */
+  caseStudies: CaseStudy[];
 }) {
   const nav = useCmsValue("site.nav", serverNav);
   const socials = useCmsValue("site.socials", serverSocials);
   const tagline = useCmsValue("site.tagline", serverTagline);
+  const headerImg = useCmsValue("site.headerImage", serverHeaderImage);
+  const headerSrc = headerImg.startsWith("http") ? headerImg : wixImage(headerImg, 480, 360);
   const editMode = useEditMode();
+  // On the homepage the header is painted with the hero's top color (exposed as
+  // --hero-top-color on <body> in the layout) so the header and the hero below
+  // form one seamless surface — no visible seam at their boundary — for any
+  // theme or admin-authored hero gradient. It falls back to the theme navy. The
+  // header stays in normal flow (it does not overlap the hero), so the hero
+  // image never bleeds up behind it. Other pages keep the header solid navy.
+  const isHome = usePathname() === "/";
 
   return (
-    <header className="w-full bg-navy">
-      <div className="mx-auto flex h-[var(--header-h)] max-w-site items-center justify-between gap-6 px-5 sm:px-8">
-        <Link href="/" aria-label="Galvez & Partners — home" className="shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-20" />
-        </Link>
-
-        <DesktopNav nav={nav} socials={socials} tagline={tagline} editMode={editMode} />
-
-        <div className="flex flex-col items-end gap-1.5 sm:hidden">
-          <MobileMenu nav={nav} socials={socials} />
-          <LanguageSwitcher />
+    <header
+      // z-50 lifts the whole masthead above the page content below it so the
+      // language dropdown (and the mobile drawer) render in front of everything.
+      className={`relative isolate z-50 w-full ${isHome ? "" : "bg-navy"}`}
+      style={isHome ? { background: "var(--hero-top-color, rgb(var(--c-navy)))" } : undefined}
+    >
+      {/* Top slice of the masthead scrim (see .masthead-scrim). `-z-10` keeps it
+          above the header background but behind the header content, so it
+          deepens the surface only — never the logo or nav. `isolate` on the
+          header scopes the multiply to the header's own background. The hero
+          renders the matching lower slice. */}
+      {isHome && <div aria-hidden className="masthead-scrim pointer-events-none absolute inset-0 -z-10" />}
+      {/* The services strip stands in the masthead on every page. On the
+          homepage the hero renders it, so its clips sit in the hero's own tree
+          and move with it; everywhere else this is who renders it. Only ever
+          one of the two — both fill the same socket (see HeroSlots), and a
+          second would land on top of the first. */}
+      {!isHome && <HeaderServicesStrip services={services} />}
+      {/* Inner pages: an animated accent stroke along the header's bottom edge,
+          colored from the hero gradient stops (see .header-accent-border). The
+          wrapper mirrors the content row's centering + padding so the stroke
+          spans the body column and ends at the site bounds, not edge to edge. */}
+      {!isHome && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto w-full max-w-site px-5 sm:px-8"
+        >
+          <div className="header-accent-border" />
         </div>
+      )}
+      {/* items-stretch on mobile lets the header picture fill the full height and
+          sit flush against the hero; the desktop cluster re-centers at sm+. */}
+      <div className="mx-auto flex h-[var(--header-h)] max-w-site items-stretch justify-between gap-6 px-5 sm:items-center sm:px-8">
+        {/* Desktop logo + header image cluster — on mobile the logo lives inside
+            MobileMenu (and opens the drawer), so this is hidden below sm.
+            self-stretch fills the full header height so the header image can
+            bottom-anchor to the header's bottom edge (see below). */}
+        <div className="hidden shrink-0 items-center gap-4 sm:flex sm:self-stretch">
+          <Link href="/" aria-label="Galvez & Partners — home" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
+          </Link>
+          {/* Header image: hidden for visitors at every viewport — the masthead
+              is logo + nav only. The field itself is untouched (it still feeds
+              the hero gradient's eyedropper and the media picker), so it stays
+              rendered in edit mode: bottom flush with the header's bottom edge
+              (self-end) while its top stays level with the centered logo. Its
+              height is (header-h + logo-h) / 2 — i.e. header-h/2 + 3rem, since
+              the logo is sm:h-24 (6rem) — which places its top exactly at the
+              logo's top for any header height. */}
+          {editMode && (
+            <EditableImage
+              path="site.headerImage"
+              raw={headerImg}
+              src={headerSrc}
+              alt=""
+              className="h-14 w-auto object-contain sm:h-[calc(var(--header-h)*0.5_+_3rem)] sm:self-end"
+            />
+          )}
+        </div>
+
+        <DesktopNav
+          nav={nav}
+          socials={socials}
+          tagline={tagline}
+          editMode={editMode}
+          caseStudies={caseStudies}
+        />
+
+        <MobileMenu nav={nav} socials={socials} headerImage={serverHeaderImage} />
       </div>
     </header>
   );

@@ -1,3 +1,8 @@
+/* Spring easing tokens, sampled from Remotion's spring solver at build time
+   (see scripts/generate-motion-curves.mjs). Must lead the file: @import may
+   only be preceded by @charset. */
+@import "./motion-curves.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -40,6 +45,7 @@
   --font-heading: wf_c848322e7cb046f8945bedd0a;
   --font-body: wf_a7e11b7c415f4d0cbdac5a7e9;
   --header-h: 124px; /* mobile header height */
+  --cityscape-h: 64px; /* skyline band reserved at the bottom of the hero */
 
   /* Brand color tokens (space-separated RGB, consumed by the Tailwind `navy`,
      `gold`, … utilities). These defaults are the "Midnight Gold" theme; the
@@ -62,102 +68,160 @@
 /* Desktop (Tailwind `sm` breakpoint = 751px) header height */
 @media (min-width: 751px) {
   :root {
-    --header-h: 140px; /* taller, to give the logo + nav/social more room */
+    --header-h: 168px; /* taller, to give the logo + nav/social more room */
+    --cityscape-h: 104px;
   }
 }
 
-/* Homepage hero is exactly the viewport minus the header, on every breakpoint,
-   so the whole hero (image, CTA, carousel and skyline) fits in one screen. */
+/* Ultrawide: widen the shared site width (header + body containers, via the
+   Tailwind `site` maxWidth token) by a good amount. Only kicks in on genuinely
+   ultrawide viewports so normal desktops keep the 1200px column — and the side
+   gutters that hold the hero photocards — untouched. Even at the widest tier the
+   viewport still leaves generous gutters for those cards. */
+@media (min-width: 1920px) {
+  :root {
+    --site-max: 1560px;
+  }
+}
+@media (min-width: 2400px) {
+  :root {
+    --site-max: 1760px;
+  }
+}
+@media (min-width: 3000px) {
+  :root {
+    --site-max: 2000px;
+  }
+}
+
+/* Homepage hero fills the viewport below the header (it starts under the header,
+   never behind it). The section is padded down by --cityscape-h so no hero
+   content sits in that bottom band; the rising section's cityscape overlaps that
+   band, so its buildings stand against the hero gradient itself rather than a
+   separate panel. */
 .hero-fill {
   height: calc(100vh - var(--header-h));
   height: calc(100svh - var(--header-h));
+  /* Admin-authored hero gradient: a linear ramp on mobile, floating radial orbs
+     on desktop. HomeHero sets both as inline custom properties. */
+  background-image: var(--hero-grad);
 }
 
-/* Hero layout grid holding the storefront image ("main"), the carousel card and
-   the CTA. Mobile stacks them with the CTA button between the image and the
-   carousel card. */
-.hero-grid {
-  display: grid;
-  gap: 0.85rem;
-  grid-template-columns: 1fr;
-  /* Image and carousel flex to share the leftover height (and can shrink so the
-     shrink-to-fit type keeps them inside the viewport); the CTA keeps its own
-     height so the pill is never clipped. */
-  grid-template-rows: minmax(0, 1.35fr) auto minmax(0, 1fr);
-  grid-template-areas:
-    "main"
-    "cta"
-    "carousel";
+/* Masthead scrim: a multiply-blended shadow that deepens the top of the
+   header/hero surface and fades out downward, giving the masthead depth over
+   the (otherwise flat) top of the hero gradient. It sits behind the header/hero
+   content (as their first child), so it darkens only the background surface and
+   never dims the logo, nav, or hero artwork. The gradient is sized to one
+   viewport height and each copy is offset so the header slice (0 → --header-h)
+   and the hero slice (--header-h → 100vh) join into a single continuous fade
+   across their shared boundary — keeping the seam invisible. */
+.masthead-scrim {
+  mix-blend-mode: multiply;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
+  background-size: 100% 100svh;
 }
-.hero-main {
-  grid-area: main;
-}
-.hero-carousel {
-  grid-area: carousel;
-}
-.hero-cta {
-  grid-area: cta;
+/* The hero copy starts where the header copy ended: shift the shared gradient up
+   by the header height so the two slices line up seamlessly. */
+.masthead-scrim--hero {
+  background-position: 0 calc(-1 * var(--header-h));
 }
 
+/* The hero copy's legibility wash. It used to be a scrim over the whole frame,
+   which dimmed the film to hold up two lines of type; this pools behind the
+   copy instead and leaves the footage alone. Anchored at the block's
+   bottom-left, where the copy sits, and faded out well before its own edges so
+   there is nothing to read as a panel behind the words. */
+.hero-copy-scrim {
+  background: radial-gradient(
+    115% 145% at 12% 88%,
+    rgb(var(--c-navy) / 0.88) 0%,
+    rgb(var(--c-navy) / 0.55) 38%,
+    rgb(var(--c-navy) / 0) 72%
+  );
+}
+
+/* Inner-page header accent: a thin bottom stroke whose colors are the hero
+   gradient stops (the mobile header image's color picker, via
+   --header-border-grad). The gradient paints at full strength (no dimming blend)
+   so the colors read boldly on the dark header, and it drifts sideways forever —
+   the gradient loops back to its first color and is twice the element width, so
+   shifting the background-position by one full tile wraps with no visible seam.
+   The element is constrained to the site column width by its wrapper in
+   Header.tsx, so it ends at the body bounds rather than bleeding edge to edge. */
+.header-accent-border {
+  height: 3px;
+  background-image: var(
+    --header-border-grad,
+    linear-gradient(90deg, rgb(var(--c-gold)), rgb(var(--c-gold-dark)), rgb(var(--c-gold)))
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat;
+  /* Punch up the stops so the stroke reads boldly even when the source gradient
+     is dark/desaturated (its darkest stops otherwise vanish into the navy
+     header). */
+  filter: brightness(1.7) saturate(1.5);
+  animation: header-border-drift 18s linear infinite;
+}
+@keyframes header-border-drift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-accent-border {
+    animation: none;
+  }
+}
+
+/* Hero layout: the film's frame fills the section (bounded to the body column
+   at sm+, see HomeHero) and the shell holds the minimized bars along its foot —
+   stacked on mobile, side by side on desktop. Both are flex boxes owned by the
+   component's classes; only the desktop background swap lives here. */
 @media (min-width: 751px) {
-  /* The shell is a size container so the grid can respond to its aspect ratio. */
-  .hero-shell {
-    container-type: size;
-    container-name: heroshell;
+  /* Desktop swaps the linear ramp for a horizontal band across the bottom of
+     the viewport. */
+  .hero-fill {
+    background-image: var(--hero-grad-desktop);
   }
-  /* Default desktop: image on top (full width), carousel + CTA in the row below. */
-  .hero-grid {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.5fr);
-    grid-template-rows: minmax(0, 1fr) fit-content(340px);
-    grid-template-areas:
-      "main main"
-      "carousel cta";
-  }
-}
-
-/* When the main-hero container is over twice as wide as it is long, put the image
-   in a full-height 2/3 column and stack the carousel (top) + CTA (bottom) in the
-   1/3 column. */
-@container heroshell (min-aspect-ratio: 2/1) {
-  .hero-grid {
-    /* Let the grid shrink to the (fixed-height) shell instead of overflowing it. */
-    min-height: 0;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    /* Carousel row flexes to fill the leftover height (and may shrink on very
-       short viewports); the CTA keeps its content height so its button is never
-       clipped. */
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "main carousel"
-      "main cta";
+  /* The bottom band is anchored to the bottom edge, so the vertical breathe
+     drift would slide it out of place — pin it flat on desktop instead. Both
+     classes are on the section, so this outranks the base `.hero-breathe` rule
+     regardless of source order. */
+  .hero-fill.hero-breathe {
+    background-size: 100% 100%;
+    animation: none;
   }
 }
 
-/* The carousel card is a query container so its slides can switch to a
-   side-by-side layout once it is wide enough (see the @container rule below). */
-.hero-card {
-  container-type: inline-size;
+/* The strip standing in the masthead's tagline spot is as wide as its widest
+   title (the slides are stacked in one grid cell), so its slides are flushed
+   right — whichever title is showing then ends against the social icons beside
+   it, instead of floating off the shorter ones. */
+.hero-strip-flush .hero-slide {
+  justify-content: flex-end;
+  /* Right-aligned as well as flushed right: a title long enough to wrap would
+     otherwise set its second line against the left edge, reading as a stray
+     left-aligned block inside a strip that ends on the icons. */
+  text-align: right;
 }
 
-/* When the carousel card is wide enough, lay each slide's heading and body
-   side by side instead of stacked. */
-@container (min-width: 620px) {
-  .hero-slide-fit {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 2rem;
-  }
-  /* Narrow the heading to its longest word so it stacks (GRAPHIC / DESIGN),
-     leaving the body the rest of the row for maximum breathing room. */
-  .hero-slide-fit > h3 {
-    flex: 0 0 auto;
-    width: min-content;
-  }
-  .hero-slide-body {
-    margin-top: 0;
-    max-width: none;
-    flex: 1;
+/* Desktop (sm+) heading: capped to two lines. useFitText shrinks the type until
+   the words wrap into at most two lines inside this box; overflow is hidden only
+   as a backstop below the min font size, which the fit is tuned to avoid. Gated
+   on the sm breakpoint so it always pairs with the desktop fit. */
+@media (min-width: 751px) {
+  .hero-slide-heading {
+    max-height: 2.45em; /* two lines at leading-1.15, relative to the fitted font */
+    overflow: hidden;
   }
 }
 
@@ -170,6 +234,75 @@
 .hero-breathe {
   background-size: 100% 140%;
   animation: hero-breathe 8s ease-in-out infinite;
+}
+
+/* Hero photocards drift slowly downward and back — a gentle, weighted "slow
+   fall" (the downward reach is larger than the upward one). Each card sets its
+   own duration/delay inline so they fall out of sync. The translate lives on the
+   figure (page-space vertical); the card's tilt sits on the inner element, so
+   the two transforms don't fight. */
+@keyframes photocard-fall {
+  0% { transform: translateY(-8px); }
+  100% { transform: translateY(20px); }
+}
+/* Each card also phases its opacity in and out on its own cycle, so at any
+   moment different cards in the sprinkled collection are surfacing while others
+   recede. Fall (transform) and phase (opacity) run as two independent
+   animations, each with its own per-card duration/delay set inline via CSS
+   vars, so they never fall in sync. */
+/* --phase-min is how dim a card gets at the turn of its cycle. The home hero
+   leaves cards faintly present; the Our Team lander's narrow-screen gallery
+   drops them to nothing, because it swaps each card's photograph and moves it at
+   that moment and the change has to happen out of sight. */
+@keyframes photocard-phase {
+  0%, 100% { opacity: var(--phase-min, 0.08); }
+  50% { opacity: 1; }
+}
+
+/* One photograph of the Our Team lander's cursor trail. It snaps up where the
+   pointer is and then holds — a picture only leaves once newer ones have pushed
+   it out of the held window (see HOLD in LanderPhotoTrail), so a cursor coming
+   to a stop leaves its last few pictures behind rather than an empty masthead.
+   The centring offset is part of every keyframe, since the animations own the
+   transform outright, and leaving picks up exactly where arriving finished.
+   Nothing suppresses this under reduced motion because nothing is drawn at all
+   there. */
+.gp-trail-card {
+  animation: gp-trail-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gp-trail-card.is-leaving {
+  animation: gp-trail-out 620ms ease-in both;
+}
+@keyframes gp-trail-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes gp-trail-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -44%) scale(0.9);
+  }
+}
+.photocard-fall {
+  animation:
+    photocard-fall var(--fall-dur, 13s) ease-in-out infinite alternate,
+    photocard-phase var(--phase-dur, 11s) ease-in-out infinite;
+  animation-delay: var(--fall-delay, 0s), var(--phase-delay, 0s);
+  will-change: transform, opacity;
 }
 
 /* CTA backdrop: a tiled grid of navy "GALVEZ" letterforms with gutters between
@@ -188,8 +321,47 @@
      50%, reaching full alpha at the bottom (base opacity 0.1 scaled by the mask). */
   opacity: 0.1;
   overflow: hidden;
+  transition: opacity 500ms ease;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.5) 50%, #000 100%);
+}
+/* Hovering the CTA card lifts the letter grid a little more into view (partway,
+   not fully) — pairs with the drift speed-up CtaGrid runs on the same hover. */
+.hero-cta:hover .cta-grid {
+  opacity: 0.22;
+}
+
+/* Mobile drawer backdrop: the same drifting "GALVEZ" letter grid as the CTA,
+   tinted in a light (cream) tone so it reads over the navy drawer. The pattern
+   is anchored to the TOP of the drawer (behind the logo) and fades downward so
+   the nav links lower down stay on a clean background: 10% opacity at the top,
+   ~5% by 40% height, gone by 60% height. */
+.drawer-glyph-grid {
+  opacity: 0.1;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 60%, transparent 100%);
+}
+
+/* Our Team, bottom-right above the footer: the same drifting "GALVEZ" letter
+   grid, gathered into the corner and fading away up and to the left. Held
+   fainter than the other placements so it reads as a shift in the navy itself
+   rather than a pattern laid over it. */
+.team-glyph-grid {
+  opacity: 0.07;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
+  mask-image: radial-gradient(125% 125% at 100% 100%, #000 0%, rgba(0, 0, 0, 0.45) 38%, transparent 72%);
+}
+
+/* Card backdrop: the same drifting "GALVEZ" letter grid, held faint and fading
+   out toward the LEFT so the card's left-anchored copy stays clean — used on the
+   "gallery / explore" hand-off card and the home "there's more" card. */
+.glyph-grid-fade-left {
+  opacity: 0.12;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.5) 45%, #000 100%);
 }
 
 @layer base {
@@ -199,17 +371,30 @@
   html {
     overscroll-behavior-x: none;
   }
+  /* In-page anchors (the Our Works gallery rail) glide instead of jumping —
+     scrolling through the pinned cases section plays its horizontal travel. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
   body {
     @apply bg-navy font-body text-white antialiased;
     overscroll-behavior-x: none;
   }
   /* Themed "sky": a fixed gradient painted behind all content. Themes without a
      backdrop leave --c-backdrop: none, so nothing is drawn and the flat bg-navy
-     shows through (Midnight Gold and Denim Blue stay exactly as before). */
+     shows through (Midnight Gold and Denim Blue stay exactly as before). Starts
+     below the header (rather than inset: 0) so the glow can never paint behind
+     the transparent homepage header, no matter how large its spread is — the
+     header area always shows the flat bg-navy above it instead. */
   body::before {
     content: "";
     position: fixed;
-    inset: 0;
+    top: var(--header-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: -1;
     pointer-events: none;
     background: var(--c-backdrop, none);
@@ -222,7 +407,7 @@
 @layer components {
   /* Gold pill CTA — the site's primary button style ("Connect", "Let's Connect") */
   .btn {
-    @apply inline-flex items-center justify-center rounded-full px-7 py-3 font-heading uppercase tracking-wide transition;
+    @apply inline-flex items-center justify-center px-7 py-3 font-heading uppercase tracking-wide transition;
   }
   .btn-gold {
     @apply btn bg-gold text-navy hover:bg-gold-bright;
@@ -247,11 +432,164 @@
    .wordfill-armed once its effect is live and toggles [data-lit] per word as
    the block travels up the viewport — without JS the text stays fully lit. */
 .wordfill-armed [data-word] {
+  display: inline-block;
   opacity: 0.15;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.45s ease, transform var(--spring-soft-ms) var(--spring-soft);
 }
 .wordfill-armed [data-word][data-lit] {
   opacity: 1;
+  transform: none;
+}
+/* Kinetic: an unlit word is also still on its way in, rising into place as the
+   fill reaches it. No blur — at manifesto display sizes it smeared the
+   letterforms and cost a filter pass on every word in the block. */
+:root[data-gp-motion="kinetic"] .wordfill-armed [data-word] {
+  transform: translate3d(0, 0.18em, 0);
+  transition-timing-function: ease, var(--spring-bounce);
+  transition-duration: 0.45s, var(--spring-bounce-ms);
+}
+
+/* ---------------------------------------------------------------------------
+   Hero entrance.
+
+   One choreographed arrival for the homepage hero, played once — when the page
+   veil lifts, not when the hero mounts (it would otherwise run behind the veil
+   and be finished before the page was ever seen). HomeHero flips
+   [data-gp-hero] to "in" on that signal and each part carries its own --d
+   delay, so the picture wipes up, the headline and sub climb out from behind
+   their own edges, and the cards settle in after them.
+
+   Curves are the generated spring tokens (see motion-curves.css), so this is
+   real spring motion rather than a bezier impression of it. Everything is
+   `both`-filled and only armed once the attribute exists, so a no-JS visitor
+   gets the finished hero and nothing else.
+   --------------------------------------------------------------------------- */
+@keyframes gp-hero-wipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: scale(1.06);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+/* The line climbs out from behind the bottom edge of its own (clipped) box. */
+@keyframes gp-hero-line {
+  from {
+    transform: translate3d(0, 110%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes gp-hero-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gp-hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* A button opening outward from its own middle. The window is what expands —
+   the label is revealed at its final size rather than being scaled up out of a
+   blur, which is what scaling the element itself would do to the type. The
+   slight scale underneath gives the edges something to arrive with. */
+@keyframes gp-hero-open {
+  from {
+    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Held at the start of the sequence between hydration and the veil lifting.
+   Both states are client-only — the server sends no attribute at all. */
+[data-gp-hero="wait"] [data-hero-wipe] {
+  clip-path: inset(0 0 100% 0);
+}
+[data-gp-hero="wait"] [data-hero-line] > *,
+[data-gp-hero="wait"] [data-hero-rise],
+[data-gp-hero="wait"] [data-hero-open] {
+  opacity: 0;
+}
+[data-gp-hero="wait"] [data-hero-open] {
+  clip-path: inset(0 50% 0 50%);
+}
+
+[data-gp-hero="in"] [data-hero-wipe] {
+  animation: gp-hero-wipe 1100ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-line] > * {
+  animation: gp-hero-line var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+[data-gp-hero="in"] [data-hero-rise] {
+  animation: gp-hero-rise var(--spring-soft-ms) var(--spring-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+/* `backwards`, not `both`: once it has played, the clip is released entirely
+   rather than being held at inset(0) — which would clip the focus ring off the
+   button it just opened. */
+[data-gp-hero="in"] [data-hero-open] {
+  animation: gp-hero-open var(--spring-soft-ms) var(--spring-soft) backwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Kinetic: the same choreography with more travel and a curve that overshoots
+   and settles. */
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="kinetic"] [data-gp-hero="in"] [data-hero-open] {
+  animation-duration: var(--spring-bounce-ms);
+  animation-timing-function: var(--spring-bounce);
+}
+
+/* Minimal: everything simply resolves. No wipe, no climb. */
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-line] > *,
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-rise],
+:root[data-gp-motion="minimal"] [data-gp-hero="in"] [data-hero-open] {
+  animation: gp-hero-fade 620ms var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+  clip-path: none;
+}
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-wipe],
+:root[data-gp-motion="minimal"] [data-gp-hero="wait"] [data-hero-open] {
+  clip-path: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gp-hero] [data-hero-wipe],
+  [data-gp-hero] [data-hero-line] > *,
+  [data-gp-hero] [data-hero-rise],
+  [data-gp-hero] [data-hero-open] {
+    animation: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Full-viewport height with a vh fallback for browsers without svh
@@ -259,6 +597,367 @@
 .h-viewport {
   height: 100vh;
   height: 100svh;
+}
+/* Same, as a floor — the block still grows past the viewport when its content
+   (a stacked card column on a short/narrow screen) needs more room. */
+.min-h-viewport {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+/* Accented word in the Our Works heading ("speaks"): gold type with a soft
+   glow, plus two staggered square halo frames that pulse outward from the word.
+   Insets are in em so the halo scales with the fitted heading size. */
+.halo-word {
+  position: relative;
+  display: inline-block;
+  color: rgb(var(--c-gold));
+  text-shadow: 0 0 0.4em rgb(var(--c-gold) / 0.35);
+}
+@keyframes halo-pulse {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  80%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+/* The halo beats at 3s for two pulses, then draws out over the next three (4s,
+   5s, 6s) until a pulse takes twice as long as it did at the start, and holds
+   there — the word announces itself, then settles. CSS can't ramp a duration,
+   so the five ramping pulses are laid out along one pass (percentages below are
+   each pulse's start, its 1.6 scale, and the invisible hold that carries it to
+   the next); the steady 6s loop starts as that pass ends, and being later in the
+   animation list it takes over the moment it does. The second ring's pulses fall
+   midway between the first's throughout, so the pair ends up staggered by half
+   the steady period exactly as it began. */
+@keyframes halo-pulse-ramp {
+  0%,
+  14.2857%,
+  28.5714%,
+  47.619%,
+  71.4286% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  11.4286%,
+  14.2%,
+  25.7143%,
+  28.5%,
+  43.8095%,
+  47.5%,
+  66.6667%,
+  71.3%,
+  94.2857%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes halo-pulse-ramp-late {
+  6.25%,
+  18.75%,
+  33.3333%,
+  52.0833%,
+  75% {
+    transform: scale(0.55);
+    opacity: 0.65;
+  }
+  0%,
+  6.2%,
+  16.25%,
+  18.7%,
+  30.4167%,
+  33.28%,
+  48.3333%,
+  52%,
+  70.4167%,
+  74.9%,
+  95%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.halo-ring {
+  position: absolute;
+  inset: -0.18em -0.35em;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgb(var(--c-gold) / 0.55);
+  background: radial-gradient(closest-side, rgb(var(--c-gold) / 0.14), transparent 78%);
+  animation:
+    halo-pulse-ramp 21s ease-out forwards,
+    halo-pulse 6s ease-out 21s infinite;
+}
+.halo-ring-late {
+  animation:
+    halo-pulse-ramp-late 24s ease-out forwards,
+    halo-pulse 6s ease-out 24s infinite;
+}
+
+/* Page-load veil (PageReveal in the layout): covers the page until the images
+   in the first viewport have loaded, then fades away. The mark fades in on a
+   delay so instant (cached) loads never flash it, then breathes (scale +
+   opacity) — both are pure CSS, so the veil animates even before hydration. */
+.gp-veil-spinner {
+  opacity: 0;
+  animation: gp-veil-spinner-in 400ms ease 250ms forwards;
+}
+@keyframes gp-veil-spinner-in {
+  to {
+    opacity: 1;
+  }
+}
+.gp-veil-breathe {
+  animation: gp-veil-breathe 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes gp-veil-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* Case-study page: the hero and the gallery wall are gentle scroll-snap stops
+   (proximity — never mandatory — so free scrolling deep inside the gallery is
+   not hijacked). Scoped to the attribute CaseStudyHero sets on <html> while
+   mounted, so no other route is touched. */
+html[data-gp-case-snap] {
+  scroll-snap-type: y proximity;
+}
+
+/* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
+   frames, each drifting (Ken Burns) in an alternating direction while the
+   active one crossfades in. Stilled under reduced motion below — the first
+   frame then simply holds.
+
+   The slideshow band adapts per breakpoint: on phones it spans the top 60% of
+   the hero with its top/bottom edges mask-faded into the navy; on sm+ it docks
+   to the right at full hero height (about three fifths wide) and fades out
+   toward the LEFT, so the left-anchored copy sits on clean navy. */
+.cs-band {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 60%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+}
+@media (min-width: 751px) {
+  .cs-band {
+    left: auto;
+    bottom: 0;
+    height: 100%;
+    width: 62%;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+  }
+}
+/* Our Team lander: the frames fill the section, and from sm+ the band's top
+   edge is masked away so the picture dissolves into the header sitting directly
+   above it instead of meeting it on a hard line. */
+.team-band {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+@media (min-width: 751px) {
+  .team-band {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+  }
+}
+
+/* Ken Burns drift. INVARIANT: at every keyframe the translation must stay
+   within the overhang the scale creates, i.e. |translate%| <= (scale - 1) / 2
+   * 100 on each axis — otherwise the drift pulls an edge of the (object-fit:
+   cover) frame into view and paints the box behind it. */
+.cs-kenburns {
+  animation: cs-kenburns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.cs-kenburns-alt {
+  animation: cs-kenburns-alt 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes cs-kenburns {
+  from {
+    transform: scale(1.06) translate(1.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.22) translate(-3%, -2%);
+  }
+}
+@keyframes cs-kenburns-alt {
+  from {
+    transform: scale(1.2) translate(-2.5%, 2%);
+  }
+  to {
+    /* 1.12, not 1.05: at 1.05 the 2.5% translation sits exactly on the overhang
+       the scale allows, so a rounded pixel could expose the frame's edge. */
+    transform: scale(1.12) translate(2%, -2.5%);
+  }
+}
+.cs-scroll-cue {
+  animation: cs-scroll-cue 1.8s ease-in-out infinite;
+}
+@keyframes cs-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
+/* Team profile pop-up: the backdrop fades in, then each piece is dealt onto
+   the surface — it comes in from off-screen past the bottom edge of the
+   viewport, skims up with a spin, slides a touch past its mark and settles,
+   the way a dealt card skids on a table. Each element sets where it comes in
+   from (--deal-x / --deal-y / --deal-spin), the angle it lands at
+   (--deal-rot) and an animation-delay, so the pieces are dealt in turn.
+   Nothing between these elements and the viewport may clip (see the modal's
+   scroll container), so the travel reads as entering through the screen edge.
+   All run once on mount — closing unmounts the modal, so there is no exit
+   animation. */
+.gp-fade-in {
+  animation: gp-fade-in 250ms ease-out both;
+}
+@keyframes gp-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.gp-emerge {
+  /* Resting state, so a piece keeps its angle once the animation ends (and
+     when animation is suppressed for reduced motion). */
+  transform: rotate(var(--rot, 0deg));
+  /* Each piece starts stacked on the bottom centre of the viewport —
+     --from-x/--from-y are measured per piece at mount — and flows up and
+     outward to its place, so the whole spread reads as rising from one
+     source. A single decelerating move with no keyframe between the start
+     and the rest: wherever it slows to a stop is where it stays, since
+     anything pulling it back onto a mark would read as a snap. */
+  animation: gp-emerge 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform;
+}
+@keyframes gp-emerge {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--from-x, 0px), var(--from-y, 0px), 0)
+      rotate(var(--spin, 0deg)) scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+}
+
+/* Exit: an arm sweeps across the table and wipes everything off to the left.
+   The pieces accelerate away (rather than easing to a halt) and tumble as
+   they go, clearing the viewport before the card unmounts. */
+.gp-sweep {
+  animation: gp-sweep 460ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  will-change: transform;
+}
+@keyframes gp-sweep {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)) scale(1);
+  }
+  100% {
+    /* --sweep-x / --sweep-rot carry the direction: the pieces leave toward the
+       side the arm is travelling, and tumble the way that shove would turn
+       them. Defaults are the leftward sweep. */
+    transform: translate3d(var(--sweep-x, -130vw), 0, 0)
+      rotate(calc(var(--rot, 0deg) + var(--sweep-rot, -16deg))) scale(0.92);
+  }
+}
+/* Profile-card stickers. The reflective finishes lay a gradient over the sticker and
+   mask it to the sticker's own artwork (--sticker-mask is set to the image
+   URL), so the sheen follows the cut-out shape rather than its bounding box.
+   Emoji stickers carry no mask image and so stay plain.
+
+   This CSS pass is the placeholder for the real treatment: swapping in a
+   shader means replacing the backgrounds below (or rendering into a canvas
+   behind the same mask) and leaving everything else — the CMS fields, the
+   placement, the class names — as is. */
+.gp-sticker {
+  /* The die-cut white border every printed sticker has, drawn as a chain of
+     hard drop-shadows: each one applies to the result of the last, so four
+     axis-aligned offsets dilate the artwork's own alpha outward into a ring —
+     corners included — with no second copy of the image and no knowledge of its
+     shape. It works the same on an emoji glyph as on a cut-out PNG.
+
+     Thickness follows the sticker's own width (--sticker-w, set where it is
+     placed), so a small one isn't ringed as heavily as a big one; the last
+     shadow is the sticker's lift off the surface. */
+  --sticker-edge: clamp(2px, calc(var(--sticker-w, 4.5rem) * 0.055), 7px);
+  filter: drop-shadow(var(--sticker-edge) 0 0 #fff)
+    drop-shadow(calc(var(--sticker-edge) * -1) 0 0 #fff)
+    drop-shadow(0 var(--sticker-edge) 0 #fff)
+    drop-shadow(0 calc(var(--sticker-edge) * -1) 0 #fff)
+    drop-shadow(0 3px 5px rgb(0 0 0 / 0.35));
+}
+.gp-sticker-holo::after,
+.gp-sticker-foil::after,
+.gp-sticker-polychrome::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* The finish is masked by the artwork's own alpha, so it paints only where
+     the sticker has opaque pixels — never across the transparent parts of a
+     PNG or SVG, and never as a rectangle around a cut-out shape. The default
+     is a fully transparent mask, so a sticker with no artwork (an emoji, which
+     has no image to mask against) shows no finish at all rather than a block. */
+  -webkit-mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  mask-image: var(--sticker-mask, linear-gradient(#0000, #0000));
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+}
+.gp-sticker-holo::after {
+  background: linear-gradient(115deg, transparent 20%, #22d3ee 35%, #d946ef 50%, #facc15 65%, transparent 82%);
+}
+.gp-sticker-foil::after {
+  background: linear-gradient(135deg, transparent 25%, #fff 42%, #cbd5e1 50%, #fff 58%, transparent 78%);
+}
+.gp-sticker-polychrome::after {
+  background: conic-gradient(from 210deg, #f43f5e, #facc15, #4ade80, #22d3ee, #a855f7, #f43f5e);
+  opacity: 0.4;
+}
+
+.gp-fade-out {
+  animation: gp-fade-out 420ms ease-in both;
+}
+@keyframes gp-fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 /* Horizontal gallery gutters: match Container's px-5 (sm:px-8) padding until
@@ -282,6 +981,32 @@
 }
 
 /* Respect reduced-motion globally for our scroll-reveal utility */
+/* Changing language (see LocaleProvider). The browser cross-fades a picture of
+   the page before the swap with one after it; the two are identical everywhere
+   except the copy that changed, so only that copy is seen to move. Slower than
+   the 250ms default — a language change is a deliberate act and reads better
+   unhurried — and the page is held still for that long, which is why it isn't
+   slower still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The two pictures are taken a moment apart, so anything still moving is in a
+   different place in each and ghosts against itself as they cross-fade — the
+   drifting letterforms behind the mobile menu especially, being a repeating
+   pattern. Everything holds still from before the first picture until after the
+   last, then carries on from where it was (paused, not reset). Scoped to the
+   body so the transition's own animations, which hang off the document root,
+   are left to run. */
+html[data-gp-swapping] body,
+html[data-gp-swapping] body *,
+html[data-gp-swapping] body *::before,
+html[data-gp-swapping] body *::after {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-in {
     transition: none !important;
@@ -291,9 +1016,48 @@
   .hero-breathe {
     animation: none !important;
   }
+  .photocard-fall {
+    animation: none !important;
+  }
+  /* The loader mark settles to a static, fully-visible icon. */
+  .gp-veil-breathe {
+    animation: none !important;
+    transform: none;
+    opacity: 1;
+  }
+  /* Case-study masthead: freeze the slideshow drift (the first frame holds;
+     auto-advance is already suppressed in the component) and the scroll cue. */
+  .cs-kenburns,
+  .cs-kenburns-alt,
+  .cs-scroll-cue {
+    animation: none !important;
+  }
+  .cs-scroll-cue {
+    transform: none;
+    opacity: 1;
+  }
+  .cs-scroll-cue {
+    transform: none;
+    opacity: 1;
+  }
   .wordfill-armed [data-word] {
     opacity: 1 !important;
     transition: none;
+  }
+  /* The halo settles into a static, faint ring instead of pulsing. */
+  .halo-ring {
+    animation: none !important;
+    transform: none;
+    opacity: 0.25;
+  }
+  /* Team profile cards: the pieces are simply already on the table (they keep
+     their resting angle, which is layout rather than motion), and the card
+     closes outright rather than being swept off. */
+  .gp-fade-in,
+  .gp-fade-out,
+  .gp-emerge,
+  .gp-sweep {
+    animation: none !important;
   }
 }
 
@@ -308,7 +1072,6 @@ body[data-gp-edit-mode] [data-gp-editable] {
   cursor: pointer;
   outline: 1px dashed rgba(230, 179, 103, 0.35);
   outline-offset: 3px;
-  border-radius: 2px;
   transition: outline-color 150ms ease, background-color 150ms ease;
 }
 body[data-gp-edit-mode] [data-gp-editable]:hover {
@@ -338,7 +1101,6 @@ body[data-gp-edit-mode] [data-gp-editing]:focus {
   right: 0;
   z-index: 30;
   white-space: nowrap;
-  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #232a3d;
   padding: 4px 10px;

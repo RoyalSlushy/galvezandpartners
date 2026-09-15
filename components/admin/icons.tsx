@@ -77,6 +77,17 @@ export function SlidersIcon({ className }: IconProps) {
   );
 }
 
+/** The everything-else control: the conventional "more" ellipsis. */
+export function DotsIcon({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ className }: IconProps) {
   return (
     <svg {...base(className)}>
@@ -178,6 +189,20 @@ export function GlyphsIcon({ className }: IconProps) {
       <path d="M4.5 14h7" />
       <path d="M16 18c3 0 5-1.5 5-4s-2-3.5-4-3.5c-1.6 0-2.6.7-3 1.4" />
       <path d="M21 10.5V18" />
+    </svg>
+  );
+}
+
+/** Two scripts side by side — the standard "translate" mark. */
+export function LanguagesIcon({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <path d="M3 5h9" />
+      <path d="M7.5 5V3.5" />
+      <path d="M10 5c0 4-3 7-7 7" />
+      <path d="M5.5 8.5c1 1.8 2.7 3 4.5 3.5" />
+      <path d="M12.5 20.5 17 10l4.5 10.5" />
+      <path d="M14 17h6" />
     </svg>
   );
 }
