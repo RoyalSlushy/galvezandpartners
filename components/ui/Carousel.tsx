@@ -283,7 +283,11 @@ export default function Carousel({
                 // which make a stacking context and cut its blend off from the
                 // surface it is standing on, so the clip lands rather than
                 // arrives. Whichever slide is showing is shown outright.
-                className="col-start-1 row-start-1"
+                // min-w-0: a grid item will not shrink below its content's own
+                // width by default, which lets a wide slide push the track past
+                // whatever box the carousel was given. The slide's contents
+                // decide what gives (the hero strip shrinks its title to fit).
+                className="col-start-1 row-start-1 min-w-0"
                 style={{
                   opacity: isActive ? 1 : 0,
                   // The resting slide is left without a transform or a z-index

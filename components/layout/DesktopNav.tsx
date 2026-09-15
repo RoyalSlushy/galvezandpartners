@@ -140,7 +140,11 @@ export default function DesktopNav({
             condenseMore={condenseMore}
             caseStudies={caseStudies}
           />
-          <div ref={rowRef} className="flex min-w-0 items-center gap-5">
+          {/* The strip's span, the social icons and (over in the next column)
+              the language control all read as one line across the masthead, so
+              this row hangs its contents from its bottom edge rather than
+              centring them against the strip's taller box. */}
+          <div ref={rowRef} className="flex min-w-0 items-end gap-5">
             {/* The tagline is off for visitors — the homepage hero portals its
                 services strip into this spot instead (see HeroSlots). It stays
                 in edit mode so the field is still editable in place, and it is
@@ -163,7 +167,7 @@ export default function DesktopNav({
             <div
               ref={setSocket}
               style={{ maxWidth: `${stripMax}px` }}
-              className="flex h-14 items-center overflow-hidden empty:hidden"
+              className="flex h-14 items-end overflow-hidden empty:hidden"
             />
             <SocialIcons socials={socials} iconClassName="h-6 w-6" editPathBase="site.socials" />
           </div>
@@ -173,7 +177,10 @@ export default function DesktopNav({
             spread to the column height. */}
         <div className="flex h-16 flex-col items-end justify-between sm:h-24">
           <Button href="/contact-us" className="text-lg">{t("Connect")}</Button>
-          <div className="flex items-center gap-5">
+          {/* Hung from the bottom edge like the strip's row beside it, so the
+              language control lands on the same line as the strip's span and
+              the social icons rather than a few pixels above them. */}
+          <div className="flex items-end gap-5">
             <MotionSwitcher />
             <LanguageSwitcher />
           </div>

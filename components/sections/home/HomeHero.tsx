@@ -141,14 +141,6 @@ export default function HomeHero({
         />
       </div>
 
-      {/* Legibility scrim: the copy and bars sit in the lower half, so the
-          footage is darkened toward the bottom and left largely clear up top. */}
-      <div
-        aria-hidden
-        className={`absolute inset-0 z-[2] bg-gradient-to-t from-navy/85 via-navy/35 to-navy/10${
-          editMode ? " pointer-events-none" : ""
-        }`}
-      />
       {/* Lower slice of the masthead scrim (see .masthead-scrim in globals.css):
           a multiply shadow that continues down from the header and fades out
           toward the bottom of the hero. */}
@@ -165,7 +157,16 @@ export default function HomeHero({
           mobile stack flat inside the shell's own gap. */}
       <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
       <div className="contents sm:flex sm:items-stretch sm:gap-3">
-        <div className="min-w-0 sm:flex-1">
+        <div className="relative min-w-0 sm:flex-1">
+          {/* The legibility wash, and only here: it pools behind the copy so
+              the words hold against whatever the footage is doing under them,
+              and leaves the rest of the film alone. -z-10 puts it at the back
+              of the shell's own stacking context — behind the copy, still over
+              the film. */}
+          <div
+            aria-hidden
+            className="hero-copy-scrim pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10"
+          />
           <FitLine
             path="home.hero.headline"
             value={tv(hero.headline)}

@@ -132,6 +132,20 @@
   background-position: 0 calc(-1 * var(--header-h));
 }
 
+/* The hero copy's legibility wash. It used to be a scrim over the whole frame,
+   which dimmed the film to hold up two lines of type; this pools behind the
+   copy instead and leaves the footage alone. Anchored at the block's
+   bottom-left, where the copy sits, and faded out well before its own edges so
+   there is nothing to read as a panel behind the words. */
+.hero-copy-scrim {
+  background: radial-gradient(
+    115% 145% at 12% 88%,
+    rgb(var(--c-navy) / 0.88) 0%,
+    rgb(var(--c-navy) / 0.55) 38%,
+    rgb(var(--c-navy) / 0) 72%
+  );
+}
+
 /* Inner-page header accent: a thin bottom stroke whose colors are the hero
    gradient stops (the mobile header image's color picker, via
    --header-border-grad). The gradient paints at full strength (no dimming blend)
