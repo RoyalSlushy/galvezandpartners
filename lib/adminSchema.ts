@@ -138,6 +138,7 @@ const FIELD_LABELS: Record<string, string> = {
   "partners.heading": "heading",
   "partners.body": "body",
   "partners.ctaLabel": "button label",
+  "partners.background": "lander backdrop",
   "contact.heading": "heading",
   "contact.intro": "intro",
 };

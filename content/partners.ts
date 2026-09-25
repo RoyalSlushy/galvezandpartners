@@ -9,6 +9,9 @@ export type PartnersContent = {
   body: string;
   ctaLabel: string;
   ctaHref: string;
+  /** Full-bleed still behind the lander, like the Our Team office backdrop.
+   * Empty by default — the page still reads as designed over plain navy. */
+  background: string;
 };
 
 export const PARTNERS: PartnersContent = {
@@ -17,4 +20,5 @@ export const PARTNERS: PartnersContent = {
   body: "We partner with ambitious brands to tell stories that move people and drive results.",
   ctaLabel: "Connect With Us",
   ctaHref: "/contact-us",
+  background: "",
 };
