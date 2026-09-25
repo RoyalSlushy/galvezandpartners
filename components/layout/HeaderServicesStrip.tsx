@@ -56,6 +56,15 @@ const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
  * move for a second reason — the clip is painted and decoding whether its
  * slide is up or not (see ServiceClip).
  */
+/**
+ * How far up the clip comes on mobile, where it stands behind its title rather
+ * than beside it: enough to read as the surface the words are set on, not so
+ * much that it competes with them. It rides on the clip itself, never on a
+ * wrapper — an ancestor at less than full opacity would make a stacking
+ * context and cut the clip's blend off from the masthead it stands on.
+ */
+const BACKDROP_OPACITY = 0.2;
+
 const ARRIVAL = "transition-transform duration-700 ease-out";
 const ARRIVED = "translate-x-0 scale-100";
 const ARRIVING = "translate-x-[6%] scale-[1.06]";
@@ -326,6 +335,10 @@ function ServiceSlide({
   // applied to nothing (see ServiceClip).
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(false), [media]);
+  // Below sm the clip stands behind the title as its backdrop; from sm up it is
+  // an icon at the title's right.
+  const desktop = useMinWidth(751);
+  const backdrop = !desktop && !clipOnly;
   // Mobile: shrink the title to the (small) masthead cell the strip rides in.
   const { ref } = useFitText<HTMLDivElement>({
     max: 15,
@@ -344,10 +357,11 @@ function ServiceSlide({
 
   return (
     <div
-      // Title then clip, in a row at every width, both sitting on the slide's
-      // bottom edge. On mobile that edge is the logo's own bottom, from the gap
-      // the header row measures under it (see MobileMenu).
-      className="hero-slide relative flex h-full items-end gap-2 px-3 pb-[var(--gp-logo-gap,0.5rem)] pt-2 sm:gap-2.5 sm:px-0 sm:py-0"
+      // From sm up: title then clip, in a row, both on the slide's bottom edge.
+      // On mobile the title sits on that edge alone, with the clip standing
+      // behind it — and the edge is the logo's own bottom, from the gap the
+      // header row measures under it (see MobileMenu).
+      className="hero-slide relative flex h-full gap-2 px-3 pb-[var(--gp-logo-gap,0.5rem)] pt-2 max-sm:flex-col max-sm:items-start max-sm:justify-end max-sm:gap-1.5 sm:items-end sm:gap-2.5 sm:px-0 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -414,7 +428,29 @@ function ServiceSlide({
           and square, so the title's line is all that varies slide to slide.
           Where the nav has taken the room for a title (clipOnly), the icon is
           the only thing left in the strip. */}
-      {media ? (
+      {media && backdrop ? (
+        <div
+          aria-hidden
+          // Unclipped: the oversized, tilted clip is meant to run past the
+          // slide it backs (the masthead cell it sits in lets it out).
+          className="pointer-events-none absolute inset-0"
+        >
+          {/* A quarter larger than the box and turned off square, so the tilt
+              still covers the corners. Size and turn ride on the clip itself,
+              never the wrapper (see BACKDROP_OPACITY). max-w-none: preflight
+              caps media at max-width:100%. */}
+          <ServiceClip
+            index={index}
+            media={media}
+            ready={ready}
+            active={isActive}
+            clipRef={clipRef}
+            onReady={() => setReady(true)}
+            className="absolute -left-[12.5%] -top-[12.5%] h-[125%] w-[125%] max-w-none rotate-[-15deg] object-cover"
+            style={{ opacity: BACKDROP_OPACITY }}
+          />
+        </div>
+      ) : media ? (
         <div
           aria-hidden
           className="h-8 w-8 shrink-0 overflow-hidden sm:h-10 sm:w-10"
@@ -455,6 +491,7 @@ function ServiceClip({
   ready,
   active,
   className,
+  style,
   clipRef,
   onReady,
 }: {
@@ -465,6 +502,7 @@ function ServiceClip({
   /** Whether this clip's service is the one the strip is showing. */
   active: boolean;
   className: string;
+  style?: React.CSSProperties;
   clipRef: (el: HTMLVideoElement | null) => void;
   onReady: () => void;
 }) {
@@ -477,6 +515,7 @@ function ServiceClip({
       src={resolveImage(media, 240, 160)}
       alt=""
       className={`${ready ? "mix-blend-screen" : "mix-blend-multiply"} ${MEDIA_MAP} ${arrival} ${className}`}
+      style={style}
       playbackRate={0.75}
       autoPlayVideo={false}
       loopVideo={false}
