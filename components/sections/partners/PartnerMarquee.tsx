@@ -11,24 +11,12 @@ import type { PartnerLogo } from "@/content/partners";
 /** Drift speed of a lane, in px/s, along its own axis. */
 const SPEED = { horizontal: 42, vertical: 28 };
 
-/** Below this many logos both lanes carry the full set (the second in reverse
- * order) rather than splitting it, so neither lane is left with one or two
- * logos repeated back to back. */
-const SPLIT_AT = 6;
-
 type Tile = { key: string; node: ReactNode };
 
 /** Logos are shown whole, never cropped: bare Wix ids are asked for a fit, and
  * uploaded URLs (SVG, PNG) are used as they are. */
 function logoSrc(raw: string): string {
   return /^(https?:|data:|\/)/.test(raw) ? resolveImage(raw) : wixImageFit(raw, 400, 200);
-}
-
-/** Deal a list into two lanes: alternately when there are enough to go round,
- * otherwise the whole list in both (reversed in the second). */
-function intoLanes<T>(items: T[]): [T[], T[]] {
-  if (items.length < SPLIT_AT) return [items, [...items].reverse()];
-  return [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)];
 }
 
 /**
@@ -45,6 +33,15 @@ function intoLanes<T>(items: T[]): [T[], T[]] {
  * and the cycle time is set from the run's length so the drift speed stays
  * the same however many logos there are.
  *
+ * Both lanes carry the whole list rather than half each, so a lane's set is as
+ * long as it can be: once there are enough logos for one set to outrun the
+ * lane, the run is that set alone and its only repeat is the loop's own copy a
+ * full set behind, so no logo is ever on screen twice in the same lane. With
+ * too few to span the lane, the set repeats as it must. The second lane is
+ * started half a cycle ahead (a negative delay of half its duration), so at any
+ * moment it is showing the other half of the list rather than mirroring the
+ * first.
+ *
  * With no logos in the CMS the lanes run the site's glyphs instead: the
  * uploaded letterforms where there are any, and otherwise the glyph set's
  * characters in the display face (the same fallback the glyphs use elsewhere).
@@ -58,9 +55,9 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
   // `named` is rebuilt every render, so the tiles key off its contents.
   const logoKey = named.map((l) => l.img).join("|");
 
-  const lanes = useMemo<[Tile[], Tile[]]>(() => {
+  const tiles = useMemo<Tile[]>(() => {
     if (named.length > 0) {
-      const tiles = named.map((l, i) => ({
+      return named.map((l, i) => ({
         key: `l${i}:${l.img}`,
         node: (
           // eslint-disable-next-line @next/next/no-img-element
@@ -72,13 +69,12 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
           />
         ),
       }));
-      return intoLanes(tiles);
     }
     // No logos yet — the glyphs stand in. Only the uploaded letterforms if
     // there are any; the whole set in the display face if there are none.
     const uploaded = GLYPHS.map((g) => g.char).filter((c) => glyphs.has(c));
     const chars = uploaded.length > 0 ? uploaded : GLYPHS.map((g) => g.char);
-    const tiles = chars.map((c) => ({
+    return chars.map((c) => ({
       key: `g${c}`,
       node: glyphs.has(c) ? (
         <GlyphMark char={c} tintClassName="bg-white/45" className="block h-9 w-9 md:h-10 md:w-10" />
@@ -86,7 +82,6 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
         <span className="font-display text-4xl uppercase leading-none text-white/45">{c}</span>
       ),
     }));
-    return intoLanes(tiles);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [glyphs, logoKey]);
 
@@ -101,13 +96,22 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
           ))}
         </ul>
       )}
-      <Lane tiles={lanes[0]} />
-      <Lane tiles={lanes[1]} reverse />
+      <Lane tiles={tiles} />
+      <Lane tiles={tiles} reverse staggered />
     </div>
   );
 }
 
-function Lane({ tiles, reverse = false }: { tiles: Tile[]; reverse?: boolean }) {
+function Lane({
+  tiles,
+  reverse = false,
+  staggered = false,
+}: {
+  tiles: Tile[];
+  reverse?: boolean;
+  /** Start half a cycle in, so this lane runs 50% ahead of the other. */
+  staggered?: boolean;
+}) {
   const still = useMotionOff();
   const laneRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<HTMLDivElement>(null);
@@ -163,7 +167,14 @@ function Lane({ tiles, reverse = false }: { tiles: Tile[]; reverse?: boolean }) 
         className="pm-track"
         data-reverse={reverse || undefined}
         data-still={still || undefined}
-        style={dur ? { ["--pm-dur" as string]: `${dur.toFixed(2)}s` } : undefined}
+        style={
+          dur
+            ? {
+                ["--pm-dur" as string]: `${dur.toFixed(2)}s`,
+                animationDelay: staggered ? `${(-dur / 2).toFixed(2)}s` : undefined,
+              }
+            : undefined
+        }
       >
         {run(false)}
         {!still && run(true)}
