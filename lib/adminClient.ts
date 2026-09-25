@@ -239,6 +239,11 @@ export function collectImages(sections: Partial<Record<ContentKey, unknown>>): I
   for (const w of work?.items ?? []) if (w?.img) raws.push(w.img);
   const cs = sections.case_studies as { studies?: { gallery?: string[] }[] } | undefined;
   for (const s of cs?.studies ?? []) for (const g of s?.gallery ?? []) if (g) raws.push(g);
+  const partners = sections.partners as
+    | { background?: string; logos?: { img?: string }[] }
+    | undefined;
+  if (partners?.background) raws.push(partners.background);
+  for (const l of partners?.logos ?? []) if (l?.img) raws.push(l.img);
   const site = sections.site as { glyphs?: { svg?: string }[] } | undefined;
   for (const g of site?.glyphs ?? []) if (g?.svg) raws.push(g.svg);
 

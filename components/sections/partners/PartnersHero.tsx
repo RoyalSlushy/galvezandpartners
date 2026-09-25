@@ -8,6 +8,8 @@ import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
+import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import PartnerMarquee from "./PartnerMarquee";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
@@ -21,13 +23,21 @@ import { useRevealPhase } from "@/components/motion/useRevealPhase";
  * so it dissolves into the header above it. With no backdrop uploaded it still
  * reads as designed over plain navy.
  *
+ * The space above the copy belongs to the partner logos: two lanes drifting in
+ * opposite directions — rows across the full bleed on sm+, columns side by side
+ * on a phone (see PartnerMarquee) — standing in the site's glyphs until logos
+ * are added.
+ *
  * It makes the page's entrance, timed to the load veil like every other landing
  * section (see useRevealPhase): the heading climbs out from behind its own edge,
  * the rule draws outward from its middle, then the body and the CTA arrive.
  *
  * Edit mode swaps the masthead for a plain editable block, as the team lander
- * does, so the backdrop can be picked without fighting the veil.
+ * does, so the backdrop and the logos can be managed without chasing them
+ * through a moving marquee.
  */
+
+const LOGOS_PATH = "partners.logos";
 export default function PartnersHero({ partners: serverPartners }: { partners: PartnersContent }) {
   const partners = useCmsValue("partners", serverPartners);
   const editMode = useEditMode();
@@ -35,6 +45,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
   const tv = useEditableT();
   const phase = useRevealPhase();
   const background = partners.background ?? "";
+  const logos = partners.logos ?? [];
 
   if (editMode) {
     return (
@@ -78,6 +89,31 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
             alt=""
             className="mt-3 h-32 w-48 border border-white/15 object-cover"
           />
+
+          <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
+            Partner logos — the marquee runs the site&rsquo;s glyphs until there are some
+          </p>
+          <div className="mt-3 flex flex-wrap items-start gap-3">
+            {logos.map((logo, i) => (
+              <div key={i} className="relative w-40">
+                <ListControls listPath={LOGOS_PATH} index={i} count={logos.length} label="partner logo" />
+                <EditableImage
+                  path={`${LOGOS_PATH}.${i}.img`}
+                  raw={logo.img}
+                  src={resolveImage(logo.img, 320, 160)}
+                  alt={logo.name}
+                  className="h-20 w-40 border border-white/15 bg-white/[0.03] object-contain p-3"
+                />
+                <EditableText
+                  path={`${LOGOS_PATH}.${i}.name`}
+                  value={logo.name}
+                  as="p"
+                  className="mt-1.5 block truncate font-body text-xs text-white/70"
+                />
+              </div>
+            ))}
+            <AddChip listPath={LOGOS_PATH} label="partner logo" />
+          </div>
         </Container>
       </section>
     );
@@ -112,7 +148,8 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
         className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-navy via-navy/55 to-transparent"
       />
 
-      <div className="relative z-10 flex h-full items-end pb-12 sm:pb-16">
+      <div className="relative z-10 flex h-full flex-col pb-12 sm:pb-16">
+        <PartnerMarquee logos={logos} />
         <Container>
           <div className="relative">
             {/* Big low-opacity letterform, anchored to the copy as on the team

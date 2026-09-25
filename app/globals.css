@@ -779,6 +779,122 @@ html[data-gp-case-snap] {
   }
 }
 
+/* Our Partners logo marquee (PartnerMarquee). Two lanes drifting in opposite
+   directions: columns running up/down on a phone, rows running sideways from
+   sm (751px) up. Each track holds its run twice and slides exactly -50% per
+   cycle, so the loop has no seam — which only holds while every cell carries
+   the same trailing space (margin, never a flex gap, which would leave one gap
+   short at the join). --pm-dur is set per lane from its measured length. */
+.pm-lanes {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: var(--site-max, 1200px);
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+}
+.pm-lane {
+  position: relative;
+  flex: 1 1 0%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+}
+.pm-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  animation: pm-up var(--pm-dur, 40s) linear infinite;
+  will-change: transform;
+}
+.pm-track[data-reverse] {
+  animation-direction: reverse;
+}
+.pm-track[data-still] {
+  animation: none;
+}
+.pm-lane:hover .pm-track {
+  animation-play-state: paused;
+}
+.pm-run {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.pm-cell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 6rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+@media (min-width: 751px) {
+  .pm-lanes {
+    flex-direction: column;
+    justify-content: center;
+    max-width: none;
+    padding: 1.5rem 0;
+  }
+  .pm-lane {
+    flex: none;
+    height: 4.5rem;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  }
+  .pm-track {
+    right: auto;
+    bottom: 0;
+    flex-direction: row;
+    animation-name: pm-left;
+  }
+  .pm-run {
+    flex-direction: row;
+  }
+  .pm-cell {
+    height: 100%;
+    width: 11rem;
+    margin-bottom: 0;
+    margin-right: 0.75rem;
+  }
+}
+@media (min-width: 1001px) {
+  .pm-lane {
+    height: 5.25rem;
+  }
+  .pm-cell {
+    width: 13rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pm-track {
+    animation: none;
+  }
+}
+@keyframes pm-up {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+@keyframes pm-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 /* Ken Burns drift. INVARIANT: at every keyframe the translation must stay
    within the overhang the scale creates, i.e. |translate%| <= (scale - 1) / 2
    * 100 on each axis — otherwise the drift pulls an edge of the (object-fit:
