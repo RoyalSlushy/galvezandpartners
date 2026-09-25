@@ -148,7 +148,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
         className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-navy via-navy/55 to-transparent"
       />
 
-      <div className="relative z-10 flex h-full flex-col pb-12 sm:pb-16">
+      <div className="relative z-10 flex h-full flex-col pb-20 sm:pb-16">
         <PartnerMarquee logos={logos} />
         <Container>
           <div className="relative">
@@ -195,7 +195,9 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
             <span
               data-hero-open
               style={{ ["--d" as string]: "560ms" }}
-              className="relative mt-8 inline-block"
+              // Desktop only: on a phone the lander is left to the logos and
+              // the copy.
+              className="relative mt-8 hidden sm:inline-block"
             >
               <Button href={partners.ctaHref}>{t(partners.ctaLabel)}</Button>
             </span>

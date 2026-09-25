@@ -60,14 +60,21 @@ const BACKDROP_OPACITY = 0.2;
  * (see Carousel) — fading them would dip the light between two services and,
  * for the length of the fade, cut the arriving clip's blend off from the
  * surface it stands on. So the clip does the moving instead: it drifts and
- * settles under its title, on its own transform, while the title is simply
- * there. Opacity is left out of it — the clip rests at BACKDROP_OPACITY whether
+ * settles under its title, on its own transform, while the title fades up in
+ * its own box (a sibling of the clip, never its ancestor, so the fade costs the
+ * blend nothing — see TITLE_ARRIVAL). The move is kept small and long, on an
+ * ease that lands softly, so a change of service reads as a shift in the light
+ * rather than a jump. Opacity is left out of it — the clip rests at BACKDROP_OPACITY whether
  * its slide is up or not, so it is painted and decoding either way (see
  * ServiceClip).
  */
-const ARRIVAL = "transition-transform duration-700 ease-out";
+const ARRIVAL = "transition-transform duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]";
 const ARRIVED = "translate-x-0 scale-100";
-const ARRIVING = "translate-x-[6%] scale-[1.06]";
+const ARRIVING = "translate-x-[2%] scale-[1.02]";
+
+/** The title's own arrival: a slow fade up, so it no longer snaps in on the
+ * cut. Opacity on the title's box only — it is the clip's sibling. */
+const TITLE_ARRIVAL = "transition-opacity duration-[900ms] ease-out";
 
 /**
  * Shortened forms for the service titles, used only where the strip is standing
@@ -323,6 +330,8 @@ function ServiceSlide({
   // once it is already on screen.
   const { current } = useContext(CarouselContext);
   const isActive = index === current;
+  const motionOff = useMotionOff();
+  const titleArrival = motionOff ? "" : `${TITLE_ARRIVAL} ${isActive ? "opacity-100" : "opacity-0"}`;
   const isNext = count > 1 && index === (current + 1) % count;
   // Through a ref so a fresh callback identity on every render doesn't re-fire
   // the fetch — only actually becoming the next slide should.
@@ -394,7 +403,7 @@ function ServiceSlide({
           mid-strip instead of ending against the icons beside it. */}
       <div
         ref={ref}
-        className={`relative z-[1] min-w-0 overflow-hidden ${
+        className={`relative z-[1] min-w-0 overflow-hidden ${titleArrival} ${
           clipOnly && media ? "hidden" : ""
         }`}
       >
