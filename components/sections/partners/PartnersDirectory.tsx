@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Container from "@/components/ui/Container";
+import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import GutterRail, { GUTTER_LEFT } from "@/components/ui/GutterRail";
 import { useInView } from "@/components/ui/useInView";
@@ -244,6 +245,17 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
             <GridRow key={`${filter ?? ""}:${cols}:${r}`} row={row} nextDelay={nextDelay} />
           ))}
         </div>
+        {/* With an industry in force, a way back to everyone at the grid's
+            foot, where a reader who has gone through the filtered list ends
+            up. It clears the filter and brings the grid's top back into view
+            (see pick). Above the letterform grid, which paints after this. */}
+        {filter && (
+          <div className="relative z-[1] mt-10 flex justify-center sm:mt-14">
+            <Button variant="outline" onClick={() => pick(null)}>
+              {tv(dir.seeAllLabel)}
+            </Button>
+          </div>
+        )}
       </Container>
 
       {/* Drifting letterform grid gathered into the bottom-right corner, as on

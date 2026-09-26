@@ -262,6 +262,9 @@ function Lane({ tiles }: { tiles: Tile[] }) {
       ref={laneRef}
       className="pm-lane"
       data-dragging={dragging || undefined}
+      // Marks the lane as a sideways drag of its own, so the mobile menu's
+      // edge swipe leaves it alone (see MobileMenu).
+      data-x-swipe
       // Vertical swipes still scroll the page; sideways ones drag the lane.
       style={{ touchAction: "pan-y" }}
     >

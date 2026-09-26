@@ -461,7 +461,10 @@ export default function MobileMenu({
           (see HeroSlots). */}
       <div
         ref={setHeaderMedia}
-        className="ml-3 flex w-[40%] items-stretch overflow-hidden"
+        // Visitors: unclipped, so the services strip's oversized, tilted clip
+        // can run out past the cell. Edit mode keeps the cell's own bounds for
+        // the header picture it shows there.
+        className={`ml-3 flex w-[40%] items-stretch ${editMode ? "overflow-hidden" : "overflow-visible"}`}
         style={editMode ? { paddingTop: logoTop } : undefined}
       >
         {editMode && (

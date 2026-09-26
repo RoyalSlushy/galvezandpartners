@@ -19,6 +19,8 @@ export type PartnersDirectory = {
   filterLabel: string;
   /** The filter tag that shows every industry at once. */
   allLabel: string;
+  /** The button under a filtered grid that clears the filter. */
+  seeAllLabel: string;
 };
 
 export type PartnersContent = {
@@ -49,5 +51,6 @@ export const PARTNERS: PartnersContent = {
     heading: "Every partner we work with",
     filterLabel: "by industry",
     allLabel: "All",
+    seeAllLabel: "See all",
   },
 };

@@ -148,6 +148,7 @@ const FIELD_LABELS: Record<string, string> = {
   "partners.directory.heading": "heading",
   "partners.directory.filterLabel": "industry button label",
   "partners.directory.allLabel": "all-industries label",
+  "partners.directory.seeAllLabel": "see-all button label",
   "contact.heading": "heading",
   "contact.intro": "intro",
 };
