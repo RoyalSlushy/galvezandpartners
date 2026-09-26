@@ -13,6 +13,7 @@ import PartnerMarquee from "./PartnerMarquee";
 import { resolveImage } from "@/lib/adminClient";
 import { focusPosition } from "@/lib/wix";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 
 /**
  * The Our Partners lander (also used by /o) — the whole page, built on the same
@@ -77,6 +78,9 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
   }, [editMode]);
   const background = partners.background ?? "";
   const logos = partners.logos ?? [];
+  // The roster renders only with partners in it (see PartnersDirectory).
+  const hasRoster = logos.some((p) => p && (p.img || p.name?.trim()));
+  const motionOff = useMotionOff();
 
   if (editMode) {
     return (
@@ -233,6 +237,39 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
         </Container>
         <PartnerMarquee logos={logos} />
       </div>
+
+      {/* A way on to the roster from the empty foot of the lander: a chevron
+          centred in the padding under the marquee, bobbing gently (still with
+          motion off). Pressing it glides to the roster, which is also where
+          the page's snap lands. Only when there is a roster to go to. */}
+      {hasRoster && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-20 items-center justify-center sm:h-16">
+          <a
+            href="#partners-roster"
+            aria-label={tv("See all partners")}
+            onClick={(e) => {
+              const roster = document.getElementById("partners-roster");
+              if (!roster) return;
+              e.preventDefault();
+              roster.scrollIntoView({ behavior: motionOff ? "auto" : "smooth", block: "start" });
+            }}
+            className="pointer-events-auto flex h-11 w-11 items-center justify-center text-white/50 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className={`h-6 w-6 ${motionOff ? "" : "pr-chevron"}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </a>
+        </div>
+      )}
     </section>
   );
 }

@@ -461,10 +461,9 @@ export default function MobileMenu({
           (see HeroSlots). */}
       <div
         ref={setHeaderMedia}
-        // Visitors: unclipped, so the services strip's oversized, tilted clip
-        // can run out past the cell. Edit mode keeps the cell's own bounds for
-        // the header picture it shows there.
-        className={`ml-3 flex w-[40%] items-stretch ${editMode ? "overflow-hidden" : "overflow-visible"}`}
+        // Clipped to the cell: the services strip's oversized, tilted clip is
+        // cropped by it rather than spilling over the logo or down the page.
+        className="ml-3 flex w-[40%] items-stretch overflow-hidden"
         style={editMode ? { paddingTop: logoTop } : undefined}
       >
         {editMode && (

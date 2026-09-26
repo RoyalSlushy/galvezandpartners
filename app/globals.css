@@ -225,6 +225,25 @@
   }
 }
 
+/* Mobile: the service title stands on the header logo's bottom edge (the
+   slide's bottom padding is the gap under the logo — see MobileMenu). A line
+   box ends below the baseline by the font's descent plus half-leading, so a
+   title whose box sat on that edge had its letters float a few pixels above
+   it. Trimming the box's foot to the alphabetic baseline puts the letters
+   themselves on the edge, whatever the font's metrics. The titles are set in
+   capitals, so nothing hangs below the baseline to lose. Where text-box is not
+   supported, a nudge of about a descent does the same job closely. */
+@media (max-width: 750px) {
+  .hero-slide-heading h3 {
+    text-box: trim-end cap alphabetic;
+  }
+  @supports not (text-box: trim-end cap alphabetic) {
+    .hero-slide-heading {
+      margin-bottom: -0.24em;
+    }
+  }
+}
+
 /* Slowly "breathe" the hero background gradient in and out by drifting an
    oversized gradient up and down. */
 @keyframes hero-breathe {
@@ -849,6 +868,28 @@ html[data-gp-partners-snap] {
   .pm-cell {
     width: 13rem;
     padding: 0.875rem 1.25rem;
+  }
+}
+
+/* Our Partners lander: the chevron down to the roster bobs gently — a short
+   drop and a slight brightening, then back. */
+.pr-chevron {
+  animation: pr-chevron 2.4s ease-in-out infinite;
+}
+@keyframes pr-chevron {
+  0%,
+  100% {
+    transform: translate3d(0, -2px, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate3d(0, 3px, 0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pr-chevron {
+    animation: none;
   }
 }
 
