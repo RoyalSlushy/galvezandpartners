@@ -42,6 +42,10 @@ const GutterRail = forwardRef<
     labelAbove?: boolean;
     /** Show (true) or hide (false) the label; always shown when omitted. */
     labelShown?: boolean;
+    /** Show the label on phones too (by default it is sm+ only, the gutter
+     * being too thin for it there). It then carries a navy backing, as it may
+     * stand over the content rather than in the gutter. */
+    labelOnPhones?: boolean;
     /** Vertical label under the icon (hidden on phones, where the gutter is thin). */
     label: string;
     /** Accessible name for the link. */
@@ -58,6 +62,7 @@ const GutterRail = forwardRef<
     expanded,
     labelAbove = false,
     labelShown,
+    labelOnPhones = false,
     label,
     title,
     icon,
@@ -76,7 +81,11 @@ const GutterRail = forwardRef<
       </span>
       <span
         aria-hidden
-        className={`hidden font-heading text-[11px] uppercase tracking-[0.3em] transition duration-500 group-hover:text-gold sm:block ${
+        className={`font-heading text-[11px] uppercase tracking-[0.3em] transition duration-500 group-hover:text-gold ${
+          labelOnPhones
+            ? "block bg-navy/80 px-1 py-2 backdrop-blur sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none"
+            : "hidden sm:block"
+        } ${
           expanded ? "text-gold" : "text-white/50"
         } ${
           labelShown === undefined || labelShown || expanded

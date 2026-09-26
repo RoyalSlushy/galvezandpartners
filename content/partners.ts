@@ -6,8 +6,10 @@
 /** One partner: shown in the lander's logo marquee and in the directory under
  * it. `img` is the uploaded logo (SVG or a transparent PNG reads best over
  * navy); `name` is the partner's name (and the logo's alt text); `industry`
- * files it under a filter in the roster's industry panel. */
-export type PartnerLogo = { img: string; name: string; industry: string };
+ * files it under a filter in the roster's industry panel; `href` is where its
+ * roster card goes when pressed (its site, say) — optional, and a card without
+ * one is not a link. */
+export type PartnerLogo = { img: string; name: string; industry: string; href?: string };
 
 /** Copy for the roster section under the lander. */
 export type PartnersDirectory = {

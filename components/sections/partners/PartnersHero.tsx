@@ -44,13 +44,36 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
   const tv = useEditableT();
   const phase = useRevealPhase();
 
-  // The lander and the roster under it are gentle scroll-snap stops while this
-  // page is mounted (see html[data-gp-partners-snap] in globals.css). Not in
-  // edit mode, where the page is a form to work down rather than two screens.
+  // The lander and the roster under it are gentle scroll-snap stops (see
+  // html[data-gp-partners-snap] in globals.css) — but only on the way between
+  // the two. Once the roster's top has been scrolled past, snapping is switched
+  // off, so heading on down through the grid to the footer is never pulled back
+  // up to the roster's top; scrolling back above it switches it on again. With
+  // no roster (no partners) there is nothing to snap between. Not in edit mode,
+  // where the page is a form to work down rather than two screens.
   useEffect(() => {
     if (editMode) return;
-    document.documentElement.setAttribute("data-gp-partners-snap", "");
-    return () => document.documentElement.removeAttribute("data-gp-partners-snap");
+    const root = document.documentElement;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const roster = document.getElementById("partners-roster");
+      const on = !!roster && roster.getBoundingClientRect().top >= -2;
+      if (on) root.setAttribute("data-gp-partners-snap", "");
+      else root.removeAttribute("data-gp-partners-snap");
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      root.removeAttribute("data-gp-partners-snap");
+    };
   }, [editMode]);
   const background = partners.background ?? "";
   const logos = partners.logos ?? [];
@@ -90,7 +113,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
           />
 
           <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
-            Partners — logo, name and industry. The marquee runs the site&rsquo;s glyphs until
+            Partners — logo, name, industry and link (where the roster card goes). The marquee runs the site&rsquo;s glyphs until
             there are logos
           </p>
           <div className="mt-3 flex flex-wrap items-start gap-3">
@@ -116,6 +139,13 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
                   as="p"
                   label="industry"
                   className="mt-0.5 block truncate font-din text-[10px] uppercase tracking-[0.2em] text-gold/80"
+                />
+                <EditableText
+                  path={`${LOGOS_PATH}.${i}.href`}
+                  value={logo.href || "Add link"}
+                  as="p"
+                  label="partner link"
+                  className="mt-0.5 block truncate font-body text-[11px] text-sky-300/80"
                 />
               </div>
             ))}

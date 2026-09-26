@@ -27,6 +27,18 @@ const LABEL_MS = 2600;
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
+/** Where a partner's card goes, or null for a card that is not a link. Site
+ * paths and full URLs pass through; a bare domain ("acme.com") is taken to be a
+ * website and given https://; anything else (a blank, the editor's
+ * placeholder) is no link at all. */
+export function partnerHref(raw: string | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^(https?:|mailto:|tel:)/i.test(v) || v.startsWith("/") || v.startsWith("#")) return v;
+  if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(v)) return `https://${v}`;
+  return null;
+}
+
 /**
  * The roster under the Our Partners lander (and /o): every partner in the
  * `partners.logos` list as a logo tile in a grid — the logo alone, no name or
@@ -181,6 +193,7 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
   return (
     <section
       ref={sectionRef}
+      id="partners-roster"
       className="relative w-full snap-start border-t border-white/5 bg-navy py-20 sm:py-28"
     >
       <Container>
@@ -244,6 +257,7 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
               expanded={open}
               labelAbove
               labelShown={labelShown}
+              labelOnPhones
               title={tv("Filter partners by industry")}
               label={activeLabel ? tv(activeLabel) : tv(dir.filterLabel)}
               icon={<TagsIcon className="h-5 w-5" />}
@@ -292,7 +306,7 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
     <ul ref={ref} className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
       {row.map((p, c) => (
         <RevealOnScroll key={c} as="li" shown={shown} delay={delay + c * CELL_STAGGER}>
-          <div className="flex aspect-[4/3] items-center justify-center border border-white/10 bg-white/[0.03]">
+          <PartnerCard href={partnerHref(p.href)} name={p.name}>
             {p.img ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -307,10 +321,40 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
                 {p.name}
               </span>
             )}
-          </div>
+          </PartnerCard>
         </RevealOnScroll>
       ))}
     </ul>
+  );
+}
+
+/**
+ * A roster tile, as a link when the partner has one: another site opens in a
+ * new tab, a path on this one in place. A linked tile lifts its border to gold
+ * and brightens on hover or focus, so it reads as pressable.
+ */
+function PartnerCard({
+  href,
+  name,
+  children,
+}: {
+  href: string | null;
+  name: string;
+  children: React.ReactNode;
+}) {
+  const box =
+    "flex aspect-[4/3] items-center justify-center border border-white/10 bg-white/[0.03]";
+  if (!href) return <div className={box}>{children}</div>;
+  const external = /^(https?:)?\/\//i.test(href);
+  return (
+    <a
+      href={href}
+      aria-label={name}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className={`${box} transition-colors duration-300 hover:border-gold/60 hover:bg-white/[0.06] focus-visible:border-gold focus-visible:outline-none`}
+    >
+      {children}
+    </a>
   );
 }
 

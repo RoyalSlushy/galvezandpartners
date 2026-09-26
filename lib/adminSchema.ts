@@ -64,7 +64,7 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
   "case_studies.studies.*.gallery": () => "",
   // The Our Team lander's own frames — bare media values, like a case gallery.
   "team.lander.images": () => "",
-  "partners.logos": () => ({ img: "", name: "Partner", industry: "Industry" }),
+  "partners.logos": () => ({ img: "", name: "Partner", industry: "Industry", href: "" }),
 };
 
 export function templateFor(listPath: string): unknown {
@@ -143,6 +143,7 @@ const FIELD_LABELS: Record<string, string> = {
   "partners.logos.*.img": "partner logo",
   "partners.logos.*.name": "partner name",
   "partners.logos.*.industry": "industry",
+  "partners.logos.*.href": "partner link",
   "partners.directory.eyebrow": "eyebrow",
   "partners.directory.heading": "heading",
   "partners.directory.filterLabel": "industry button label",
