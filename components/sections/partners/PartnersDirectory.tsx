@@ -11,6 +11,7 @@ import { useCmsValue } from "@/components/admin/AdminProvider";
 import { useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import { PARTNERS, type PartnerLogo, type PartnersContent } from "@/content/partners";
+import CtaGrid from "@/components/sections/home/CtaGrid";
 import { logoSrc } from "./PartnerMarquee";
 
 /** Seconds between one grid row's reveal and the next, when several rows come
@@ -21,6 +22,8 @@ const CELL_STAGGER = 0.06;
 /** Rows that enter within this long of each other (ms) count as arriving
  * together and are staggered; a row entering later starts straight away. */
 const TOGETHER_MS = 250;
+/** How long the rail's label stays up after the roster comes into view (ms). */
+const LABEL_MS = 2600;
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 
@@ -32,12 +35,20 @@ const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
  * one another across the row, and rows that arrive together following one
  * another down the grid.
  *
+ * Rows are revealed afresh each time: a row that leaves the viewport drops back
+ * to hidden, and plays its reveal again when it comes back.
+ *
  * The industry filter is a rail in the gutter left of the grid, built like the
- * Our Works page's rail to the gallery (see GutterRail) and held level with the
- * grid the same way — but a button rather than a link: it opens a panel of
- * industry tags beside it, and picking one filters the grid (and closes the
- * panel; Escape or a click elsewhere closes it too). The rail's label shows the
- * industry in force. Industries are grouped regardless of case or stray spaces,
+ * Our Works page's rail to the gallery (see GutterRail) — but held at the foot
+ * of the screen for as long as the roster is in view, its label stacked above
+ * the icon and shown only briefly each time the roster comes into view (hover,
+ * focus or an open panel bring it back). It is a button rather than a link: it
+ * opens a panel of industry tags beside it, and picking one filters the grid
+ * (and closes the panel; Escape or a click elsewhere closes it too). The
+ * rail's label shows the industry in force.
+ *
+ * The drifting letterform grid from the Our Team section closes the roster,
+ * gathered into its bottom-right corner the same way. Industries are grouped regardless of case or stray spaces,
  * keeping the first spelling met; a partner with no industry is shown under the
  * all tag only. With no industries set there is no rail, and with no partners
  * the section does not render.
@@ -71,6 +82,27 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
   }, [filter, industries]);
   const visible = filter ? list.filter((p) => norm(p.industry) === filter) : list;
   const activeLabel = industries.find((i) => i.key === filter)?.label;
+
+  // Each time the roster comes into view the rail's label is shown for a
+  // moment, then left to hover and focus.
+  const { ref: sectionRef, inView: sectionInView } = useInView<HTMLElement>({
+    // A fifth of the way up the screen, not merely touching its bottom edge:
+    // the roster's top sits right on the fold at load, which would spend the
+    // label's moment before anyone has scrolled to it.
+    threshold: 0,
+    rootMargin: "0px 0px -20% 0px",
+    once: false,
+  });
+  const [labelShown, setLabelShown] = useState(false);
+  useEffect(() => {
+    if (!sectionInView) {
+      setLabelShown(false);
+      return;
+    }
+    setLabelShown(true);
+    const id = window.setTimeout(() => setLabelShown(false), LABEL_MS);
+    return () => window.clearTimeout(id);
+  }, [sectionInView]);
 
   // Rows are laid out here rather than left to the grid to wrap, so each can be
   // observed and revealed as a unit. The counts match the grid-cols classes.
@@ -147,7 +179,10 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
   };
 
   return (
-    <section className="w-full snap-start border-t border-white/5 bg-navy py-20 sm:py-28">
+    <section
+      ref={sectionRef}
+      className="relative w-full snap-start border-t border-white/5 bg-navy py-20 sm:py-28"
+    >
       <Container>
         <RevealOnScroll>
           <EditableText
@@ -165,31 +200,62 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
         </RevealOnScroll>
       </Container>
 
+      <Container>
+        <div
+          ref={gridRef}
+          aria-live="polite"
+          className="mt-10 flex flex-col gap-3 sm:mt-14 sm:gap-4"
+        >
+          {rows.map((row, r) => (
+            <GridRow key={`${filter ?? ""}:${cols}:${r}`} row={row} nextDelay={nextDelay} />
+          ))}
+        </div>
+      </Container>
+
+      {/* Drifting letterform grid gathered into the bottom-right corner, as on
+          the Our Team section (same size tiers, same .team-glyph-grid fade).
+          CtaGrid contains its own paint, so the letters can't spill out. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 right-0 h-[22rem] w-[34rem] max-w-full wide:h-[32rem] wide:w-[min(58vw,72rem)] ultra:h-[40rem] ultra:w-[min(64vw,90rem)]"
+      >
+        <CtaGrid
+          className="team-glyph-grid"
+          glyphClassName="bg-white"
+          fontClassName="text-white"
+          scale={1.5}
+        />
+      </div>
+
       {/* The industry rail, just left of the body column as on the Our Works
-          gallery: it starts level with the top of the grid and then sticks a
-          little below the viewport's top edge for the grid's length. The
-          zero-height wrapper keeps it out of the flow; the section (not the site
-          column) is its containing block, so the rail's left offset — measured
-          from the viewport — lands in the gutter. */}
+          gallery, but held at the foot of the screen: the zero-height wrapper
+          sits at the end of the grid and sticks a little above the viewport's
+          bottom edge, so from the moment the roster comes up until its end
+          scrolls past, the rail stands in the bottom-left corner. The section
+          (not the site column) is its containing block, so the rail's left
+          offset — measured from the viewport — lands in the gutter. */}
       {industries.length > 0 && (
-        <div className="pointer-events-none sticky top-6 z-20 mt-10 h-0 sm:mt-14">
+        // On a phone it clears the floating bar along the screen's foot.
+        <div className="pointer-events-none sticky bottom-[5.5rem] z-20 h-0 sm:bottom-6">
           <div ref={railBoxRef} className="pointer-events-auto">
             <GutterRail
               ref={railRef}
               onClick={() => setOpen((o) => !o)}
               expanded={open}
+              labelAbove
+              labelShown={labelShown}
               title={tv("Filter partners by industry")}
               label={activeLabel ? tv(activeLabel) : tv(dir.filterLabel)}
               icon={<TagsIcon className="h-5 w-5" />}
               align="body"
-              className="absolute top-0"
+              className="absolute bottom-0"
             />
             {open && (
               <div
                 role="group"
                 aria-label={tv("Filter partners by industry")}
                 style={{ left: `calc(${GUTTER_LEFT.body} + 3.5rem)` }}
-                className={`absolute top-0 flex max-h-[70vh] w-56 flex-col gap-2 overflow-y-auto border border-white/10 bg-navy/95 p-3 shadow-2xl backdrop-blur ${
+                className={`absolute bottom-0 flex max-h-[70vh] w-56 flex-col gap-2 overflow-y-auto border border-white/10 bg-navy/95 p-3 shadow-2xl backdrop-blur ${
                   motionOff ? "" : "pd-pop"
                 }`}
               >
@@ -200,32 +266,26 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
           </div>
         </div>
       )}
-
-      <Container>
-        <div
-          ref={gridRef}
-          aria-live="polite"
-          className={`flex flex-col gap-3 sm:gap-4 ${industries.length > 0 ? "" : "mt-10 sm:mt-14"}`}
-        >
-          {rows.map((row, r) => (
-            <GridRow key={`${filter ?? ""}:${cols}:${r}`} row={row} nextDelay={nextDelay} />
-          ))}
-        </div>
-      </Container>
     </section>
   );
 }
 
 function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => number }) {
-  const { ref, inView } = useInView<HTMLUListElement>();
+  const { ref, inView } = useInView<HTMLUListElement>({ once: false });
   const [shown, setShown] = useState(false);
   const [delay, setDelay] = useState(0);
   // The delay and the reveal land in the same render, so the tiles never start
-  // moving on a delay of 0 before their real one arrives.
+  // moving on a delay of 0 before their real one arrives. Leaving the viewport
+  // drops the row straight back to hidden (no stagger on the way out), ready
+  // to play its reveal again on the way back in.
   useEffect(() => {
-    if (!inView || shown) return;
-    setDelay(nextDelay());
-    setShown(true);
+    if (inView && !shown) {
+      setDelay(nextDelay());
+      setShown(true);
+    } else if (!inView && shown) {
+      setDelay(0);
+      setShown(false);
+    }
   }, [inView, shown, nextDelay]);
 
   return (

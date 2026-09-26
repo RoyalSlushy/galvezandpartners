@@ -17,7 +17,10 @@ export const GUTTER_LEFT = {
  * carry one down to the gallery wall, the wall carries one back up to them.
  * Given `onClick` instead of `href` it is a button rather than a link (the
  * partners roster uses one to open its industry filter), with `expanded`
- * reported as aria-expanded and shown by holding the hover look.
+ * reported as aria-expanded and shown by holding the hover look. `labelAbove`
+ * stacks the label over the icon (for a rail held at the foot of the screen),
+ * and `labelShown`, when given, shows or hides the label (hover, focus and an
+ * open panel still bring it up) rather than leaving it always on.
  * Sits in the space between the viewport edge and the body's left edge, either
  * centred in it or hugging the body (see `align`).
  *
@@ -35,6 +38,10 @@ const GutterRail = forwardRef<
     onClick?: () => void;
     /** For a button that opens something: whether it is open. */
     expanded?: boolean;
+    /** Stack the label above the icon rather than below it. */
+    labelAbove?: boolean;
+    /** Show (true) or hide (false) the label; always shown when omitted. */
+    labelShown?: boolean;
     /** Vertical label under the icon (hidden on phones, where the gutter is thin). */
     label: string;
     /** Accessible name for the link. */
@@ -45,7 +52,18 @@ const GutterRail = forwardRef<
     className?: string;
   }
 >(function GutterRail(
-  { href, onClick, expanded, label, title, icon, align = "handle", className = "" },
+  {
+    href,
+    onClick,
+    expanded,
+    labelAbove = false,
+    labelShown,
+    label,
+    title,
+    icon,
+    align = "handle",
+    className = "",
+  },
   ref,
 ) {
   const on = expanded ? "border-gold bg-gold text-navy" : "border-gold/30 bg-navy/75 text-gold";
@@ -58,8 +76,12 @@ const GutterRail = forwardRef<
       </span>
       <span
         aria-hidden
-        className={`hidden font-heading text-[11px] uppercase tracking-[0.3em] transition group-hover:text-gold sm:block ${
+        className={`hidden font-heading text-[11px] uppercase tracking-[0.3em] transition duration-500 group-hover:text-gold sm:block ${
           expanded ? "text-gold" : "text-white/50"
+        } ${
+          labelShown === undefined || labelShown || expanded
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
         }`}
         style={{ writingMode: "vertical-rl" }}
       >
@@ -67,7 +89,7 @@ const GutterRail = forwardRef<
       </span>
     </>
   );
-  const cls = `group z-20 flex flex-col items-center gap-3 ${className}`;
+  const cls = `group z-20 flex ${labelAbove ? "flex-col-reverse" : "flex-col"} items-center gap-3 ${className}`;
   const style = { left: GUTTER_LEFT[align] };
   if (href === undefined) {
     return (
