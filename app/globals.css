@@ -225,25 +225,6 @@
   }
 }
 
-/* Mobile: the service title stands on the header logo's bottom edge (the
-   slide's bottom padding is the gap under the logo — see MobileMenu). A line
-   box ends below the baseline by the font's descent plus half-leading, so a
-   title whose box sat on that edge had its letters float a few pixels above
-   it. Trimming the box's foot to the alphabetic baseline puts the letters
-   themselves on the edge, whatever the font's metrics. The titles are set in
-   capitals, so nothing hangs below the baseline to lose. Where text-box is not
-   supported, a nudge of about a descent does the same job closely. */
-@media (max-width: 750px) {
-  .hero-slide-heading h3 {
-    text-box: trim-end cap alphabetic;
-  }
-  @supports not (text-box: trim-end cap alphabetic) {
-    .hero-slide-heading {
-      margin-bottom: -0.24em;
-    }
-  }
-}
-
 /* Slowly "breathe" the hero background gradient in and out by drifting an
    oversized gradient up and down. */
 @keyframes hero-breathe {

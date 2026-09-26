@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Carousel, { CarouselContext } from "@/components/ui/Carousel";
@@ -368,12 +368,32 @@ function ServiceSlide({
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(false), [media]);
   // Mobile: shrink the title to the (small) masthead cell the strip rides in.
-  const { ref } = useFitText<HTMLDivElement>({
+  const { ref, fontSize: mobileSize } = useFitText<HTMLDivElement>({
     max: 15,
     min: 7,
     query: MOBILE,
     deps: [service.title, short],
   });
+  // Mobile: the slide's bottom padding puts the title's box on the logo's
+  // bottom edge, but a line box ends a descent (plus half-leading) below the
+  // baseline, so the letters would float that far above the logo's foot. Measure
+  // that gap in the font actually rendered and drop the title by it — with
+  // `top`, which moves it without touching the box the fit above measures.
+  // The titles are capitals, so nothing below the baseline is lost.
+  useLayoutEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    box.style.top = "";
+    if (!window.matchMedia(MOBILE).matches) return;
+    const h = box.querySelector("h3");
+    if (!h) return;
+    const probe = document.createElement("span");
+    probe.style.cssText = "display:inline-block;width:0;height:0";
+    h.appendChild(probe);
+    const gap = h.getBoundingClientRect().bottom - probe.getBoundingClientRect().bottom;
+    probe.remove();
+    if (gap > 0) box.style.top = `${gap}px`;
+  }, [mobileSize, service.title, short, ref]);
   // Desktop: shrink the title (only if needed) so it never exceeds two lines in
   // its box — no clamp/ellipsis, so no text is ever hidden.
   const { ref: headingRef } = useFitText<HTMLDivElement>({
