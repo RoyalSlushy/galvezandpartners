@@ -160,7 +160,11 @@ export const DEFAULT_CASE_STUDIES: CaseStudiesContent = {
   studies: CASE_STUDIES.map((c) => ({ ...c, gallery: [...c.gallery] })),
 };
 
-export const DEFAULT_PARTNERS: PartnersContent = { ...PARTNERS, logos: [...PARTNERS.logos] };
+export const DEFAULT_PARTNERS: PartnersContent = {
+  ...PARTNERS,
+  logos: [...PARTNERS.logos],
+  directory: { ...PARTNERS.directory },
+};
 
 export const DEFAULT_CONTACT: ContactPageContent = { ...CONTACT_PAGE };
 

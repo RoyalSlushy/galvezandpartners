@@ -15,7 +15,7 @@ type Tile = { key: string; node: ReactNode };
 
 /** Logos are shown whole, never cropped: bare Wix ids are asked for a fit, and
  * uploaded URLs (SVG, PNG) are used as they are. */
-function logoSrc(raw: string): string {
+export function logoSrc(raw: string): string {
   return /^(https?:|data:|\/)/.test(raw) ? resolveImage(raw) : wixImageFit(raw, 400, 200);
 }
 

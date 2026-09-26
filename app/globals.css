@@ -859,6 +859,27 @@ html[data-gp-case-snap] {
   }
 }
 
+/* Our Partners by-industry row (PartnersDirectory): the row is re-keyed on
+   each filter change, so its cards arrive with this short fade and rise. */
+.pd-fade {
+  animation: pd-fade 520ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+@keyframes pd-fade {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-fade {
+    animation: none;
+  }
+}
+
 /* Ken Burns drift. INVARIANT: at every keyframe the translation must stay
    within the overhang the scale creates, i.e. |translate%| <= (scale - 1) / 2
    * 100 on each axis — otherwise the drift pulls an edge of the (object-fit:

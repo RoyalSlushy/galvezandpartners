@@ -80,12 +80,13 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
           />
 
           <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
-            Partner logos — the marquee runs the site&rsquo;s glyphs until there are some
+            Partners — logo, name and industry. The marquee runs the site&rsquo;s glyphs until
+            there are logos
           </p>
           <div className="mt-3 flex flex-wrap items-start gap-3">
             {logos.map((logo, i) => (
               <div key={i} className="relative w-40">
-                <ListControls listPath={LOGOS_PATH} index={i} count={logos.length} label="partner logo" />
+                <ListControls listPath={LOGOS_PATH} index={i} count={logos.length} label="partner" />
                 <EditableImage
                   path={`${LOGOS_PATH}.${i}.img`}
                   raw={logo.img}
@@ -99,9 +100,16 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
                   as="p"
                   className="mt-1.5 block truncate font-body text-xs text-white/70"
                 />
+                <EditableText
+                  path={`${LOGOS_PATH}.${i}.industry`}
+                  value={logo.industry || "Add industry"}
+                  as="p"
+                  label="industry"
+                  className="mt-0.5 block truncate font-din text-[10px] uppercase tracking-[0.2em] text-gold/80"
+                />
               </div>
             ))}
-            <AddChip listPath={LOGOS_PATH} label="partner logo" />
+            <AddChip listPath={LOGOS_PATH} label="partner" />
           </div>
         </Container>
       </section>

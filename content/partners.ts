@@ -3,9 +3,21 @@
  * Extracted from the original PartnersHero markup so the CMS can manage it.
  */
 
-/** One partner in the lander's logo marquee. `img` is the uploaded logo
- * (SVG or a transparent PNG reads best over navy); `name` is its alt text. */
-export type PartnerLogo = { img: string; name: string };
+/** One partner: shown in the lander's logo marquee and in the directory under
+ * it. `img` is the uploaded logo (SVG or a transparent PNG reads best over
+ * navy); `name` is the partner's name (and the logo's alt text); `industry`
+ * files it under a filter in the directory's by-industry list. */
+export type PartnerLogo = { img: string; name: string; industry: string };
+
+/** Headings for the directory sections under the lander. */
+export type PartnersDirectory = {
+  eyebrow: string;
+  heading: string;
+  filterEyebrow: string;
+  filterHeading: string;
+  /** The filter chip that shows every industry at once. */
+  allLabel: string;
+};
 
 export type PartnersContent = {
   eyebrow: string;
@@ -19,6 +31,7 @@ export type PartnersContent = {
   /** Partner logos for the two-lane marquee. Empty by default, in which case
    * the marquee runs the site's glyphs instead (see PartnerMarquee). */
   logos: PartnerLogo[];
+  directory: PartnersDirectory;
 };
 
 export const PARTNERS: PartnersContent = {
@@ -29,4 +42,11 @@ export const PARTNERS: PartnersContent = {
   ctaHref: "/contact-us",
   background: "",
   logos: [],
+  directory: {
+    eyebrow: "the roster",
+    heading: "Every partner we work with",
+    filterEyebrow: "by industry",
+    filterHeading: "Find partners in your field",
+    allLabel: "All",
+  },
 };
