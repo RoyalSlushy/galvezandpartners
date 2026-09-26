@@ -1,11 +1,10 @@
 "use client";
 
 import Container from "@/components/ui/Container";
-import Button from "@/components/ui/Button";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { PartnersContent } from "@/lib/cms";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
-import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
+import { useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -23,14 +22,14 @@ import { useRevealPhase } from "@/components/motion/useRevealPhase";
  * so it dissolves into the header above it. With no backdrop uploaded it still
  * reads as designed over plain navy.
  *
- * The space above the copy belongs to the partner logos: two lanes drifting in
- * opposite directions — rows across the full bleed on sm+, columns side by side
- * on a phone (see PartnerMarquee) — standing in the site's glyphs until logos
- * are added.
+ * Under the copy runs the partner logos: one full-bleed lane drifting sideways
+ * — leftward on sm+, rightward on a phone (see PartnerMarquee) — standing in
+ * the site's glyphs until logos are added. There is no CTA; the logos close the
+ * lander.
  *
  * It makes the page's entrance, timed to the load veil like every other landing
  * section (see useRevealPhase): the heading climbs out from behind its own edge,
- * the rule draws outward from its middle, then the body and the CTA arrive.
+ * the rule draws outward from its middle, then the body arrives.
  *
  * Edit mode swaps the masthead for a plain editable block, as the team lander
  * does, so the backdrop and the logos can be managed without chasing them
@@ -41,7 +40,6 @@ const LOGOS_PATH = "partners.logos";
 export default function PartnersHero({ partners: serverPartners }: { partners: PartnersContent }) {
   const partners = useCmsValue("partners", serverPartners);
   const editMode = useEditMode();
-  const t = useT();
   const tv = useEditableT();
   const phase = useRevealPhase();
   const background = partners.background ?? "";
@@ -70,15 +68,6 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
             multiline
             className="mt-4 max-w-2xl whitespace-pre-line font-body text-lg text-white/70"
           />
-          <span className="mt-6 inline-block">
-            <Button href={partners.ctaHref}>
-              <EditableText
-                path="partners.ctaLabel"
-                value={partners.ctaLabel}
-                link={{ path: "partners.ctaHref", value: partners.ctaHref }}
-              />
-            </Button>
-          </span>
           <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
             Backdrop
           </p>
@@ -148,8 +137,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
         className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-navy via-navy/55 to-transparent"
       />
 
-      <div className="relative z-10 flex h-full flex-col pb-20 sm:pb-16">
-        <PartnerMarquee logos={logos} />
+      <div className="relative z-10 flex h-full flex-col justify-end pb-20 sm:pb-16">
         <Container>
           <div className="relative">
             {/* Big low-opacity letterform, anchored to the copy as on the team
@@ -192,17 +180,9 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
                 {tv(partners.body)}
               </p>
             )}
-            <span
-              data-hero-open
-              style={{ ["--d" as string]: "560ms" }}
-              // Desktop only: on a phone the lander is left to the logos and
-              // the copy.
-              className="relative mt-8 hidden sm:inline-block"
-            >
-              <Button href={partners.ctaHref}>{t(partners.ctaLabel)}</Button>
-            </span>
           </div>
         </Container>
+        <PartnerMarquee logos={logos} />
       </div>
     </section>
   );

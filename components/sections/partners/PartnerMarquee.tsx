@@ -8,8 +8,8 @@ import { wixImageFit } from "@/lib/wix";
 import { GLYPHS } from "@/content/site";
 import type { PartnerLogo } from "@/content/partners";
 
-/** Drift speed of a lane, in px/s, along its own axis. */
-const SPEED = { horizontal: 42, vertical: 28 };
+/** Drift speed of the lane, in px/s. */
+const SPEED = 42;
 
 type Tile = { key: string; node: ReactNode };
 
@@ -20,34 +20,26 @@ function logoSrc(raw: string): string {
 }
 
 /**
- * The Our Partners marquee: two lanes of partner logos drifting in opposite
- * directions, looping without a seam. On sm+ the lanes are rows running
- * sideways across the full bleed; on a phone they are columns side by side,
- * running up and down (the orientation is all CSS, see .pm-* in globals.css,
- * so the server render already matches the screen).
+ * The Our Partners marquee: one lane of partner logos under the lander's copy,
+ * running sideways at every width — leftward on sm+, rightward on a phone (the
+ * direction is CSS, see .pm-* in globals.css, so the server render already
+ * matches the screen) — and looping without a seam.
  *
- * Each lane's track holds its run twice and slides exactly one run's length
- * (-50%) per cycle, so the end of the animation is pixel-identical to its
- * start. The run repeats its tiles as many times as it takes to more than
- * cover the lane, re-measured whenever the lane or a loading logo changes size,
- * and the cycle time is set from the run's length so the drift speed stays
- * the same however many logos there are.
+ * The track holds its run twice and slides exactly one run's length (-50%) per
+ * cycle, so the end of the animation is pixel-identical to its start. The run
+ * is the whole logo list, repeated only as many times as it takes to more than
+ * cover the lane (re-measured whenever the lane or a loading logo changes
+ * size), and the cycle time is set from the run's length so the drift speed
+ * stays the same however many logos there are. Once there are enough logos for
+ * one set to outrun the lane, the run is that set alone and its only repeat is
+ * the loop's own copy a full set behind, so no logo is ever on screen twice.
  *
- * Both lanes carry the whole list rather than half each, so a lane's set is as
- * long as it can be: once there are enough logos for one set to outrun the
- * lane, the run is that set alone and its only repeat is the loop's own copy a
- * full set behind, so no logo is ever on screen twice in the same lane. With
- * too few to span the lane, the set repeats as it must. The second lane is
- * started half a cycle ahead (a negative delay of half its duration), so at any
- * moment it is showing the other half of the list rather than mirroring the
- * first.
- *
- * With no logos in the CMS the lanes run the site's glyphs instead: the
+ * With no logos in the CMS the lane runs the site's glyphs instead: the
  * uploaded letterforms where there are any, and otherwise the glyph set's
  * characters in the display face (the same fallback the glyphs use elsewhere).
  *
- * Hovering a lane pauses it; with motion off (site setting or OS preference)
- * the lanes stand still.
+ * Hovering the lane pauses it; with motion off (site setting or OS preference)
+ * it stands still.
  */
 export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
   const glyphs = useGlyphMap();
@@ -86,8 +78,8 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
   }, [glyphs, logoKey]);
 
   return (
-    <div className="pm-lanes">
-      {/* The lanes repeat themselves for effect; the partners are listed once
+    <>
+      {/* The lane repeats themselves for effect; the partners are listed once
           here for assistive tech. */}
       {named.length > 0 && (
         <ul className="sr-only">
@@ -97,21 +89,11 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
         </ul>
       )}
       <Lane tiles={tiles} />
-      <Lane tiles={tiles} reverse staggered />
-    </div>
+    </>
   );
 }
 
-function Lane({
-  tiles,
-  reverse = false,
-  staggered = false,
-}: {
-  tiles: Tile[];
-  reverse?: boolean;
-  /** Start half a cycle in, so this lane runs 50% ahead of the other. */
-  staggered?: boolean;
-}) {
+function Lane({ tiles }: { tiles: Tile[] }) {
   const still = useMotionOff();
   const laneRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<HTMLDivElement>(null);
@@ -123,26 +105,20 @@ function Lane({
     const lane = laneRef.current;
     const run = runRef.current;
     if (!lane || !run) return;
-    const mq = window.matchMedia("(min-width: 751px)");
     const measure = () => {
-      const across = mq.matches;
-      const laneLen = across ? lane.clientWidth : lane.clientHeight;
-      const runLen = across ? run.offsetWidth : run.offsetHeight;
+      const laneLen = lane.clientWidth;
+      const runLen = run.offsetWidth;
       if (!laneLen || !runLen) return;
       const setLen = runLen / reps;
       const need = Math.max(1, Math.ceil(laneLen / setLen));
       if (need !== reps) setReps(need);
-      setDur((setLen * need) / (across ? SPEED.horizontal : SPEED.vertical));
+      setDur((setLen * need) / SPEED);
     };
     const ro = new ResizeObserver(measure);
     ro.observe(lane);
     ro.observe(run);
-    mq.addEventListener("change", measure);
     measure();
-    return () => {
-      ro.disconnect();
-      mq.removeEventListener("change", measure);
-    };
+    return () => ro.disconnect();
   }, [reps, signature]);
 
   const run = (clone: boolean) => (
@@ -165,16 +141,8 @@ function Lane({
     <div ref={laneRef} className="pm-lane">
       <div
         className="pm-track"
-        data-reverse={reverse || undefined}
         data-still={still || undefined}
-        style={
-          dur
-            ? {
-                ["--pm-dur" as string]: `${dur.toFixed(2)}s`,
-                animationDelay: staggered ? `${(-dur / 2).toFixed(2)}s` : undefined,
-              }
-            : undefined
-        }
+        style={dur ? { ["--pm-dur" as string]: `${dur.toFixed(2)}s` } : undefined}
       >
         {run(false)}
         {!still && run(true)}
