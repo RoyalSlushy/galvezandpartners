@@ -22,7 +22,7 @@ const CELL_STAGGER = 0.06;
 /** Rows that enter within this long of each other (ms) count as arriving
  * together and are staggered; a row entering later starts straight away. */
 const TOGETHER_MS = 250;
-/** How long the rail's label stays up after the roster comes into view (ms). */
+/** How long the rail's label stays up after the roster arrives (ms). */
 const LABEL_MS = 2600;
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
@@ -95,26 +95,46 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
   const visible = filter ? list.filter((p) => norm(p.industry) === filter) : list;
   const activeLabel = industries.find((i) => i.key === filter)?.label;
 
-  // Each time the roster comes into view the rail's label is shown for a
-  // moment, then left to hover and focus.
-  const { ref: sectionRef, inView: sectionInView } = useInView<HTMLElement>({
-    // A fifth of the way up the screen, not merely touching its bottom edge:
-    // the roster's top sits right on the fold at load, which would spend the
-    // label's moment before anyone has scrolled to it.
-    threshold: 0,
-    rootMargin: "0px 0px -20% 0px",
-    once: false,
-  });
+  // The rail turns up once the roster has arrived at its snap point — its top
+  // at the top of the screen — rather than as soon as the roster peeks in, and
+  // then stays for as long as the roster is being read. Scrolling back up to
+  // the lander (the roster's top back below the middle of the screen) puts it
+  // away again, so the next arrival brings it in afresh. Each arrival shows
+  // the rail's label for a moment, then leaves it to hover and focus.
+  const sectionRef = useRef<HTMLElement>(null);
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = sectionRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setArrived((was) => (was ? top < window.innerHeight / 2 : top <= 2));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
   const [labelShown, setLabelShown] = useState(false);
   useEffect(() => {
-    if (!sectionInView) {
+    if (!arrived) {
       setLabelShown(false);
+      setOpen(false);
       return;
     }
     setLabelShown(true);
     const id = window.setTimeout(() => setLabelShown(false), LABEL_MS);
     return () => window.clearTimeout(id);
-  }, [sectionInView]);
+  }, [arrived]);
 
   // Rows are laid out here rather than left to the grid to wrap, so each can be
   // observed and revealed as a unit. The counts match the grid-cols classes.
@@ -250,14 +270,23 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
       {industries.length > 0 && (
         // On a phone it clears the floating bar along the screen's foot.
         <div className="pointer-events-none sticky bottom-[5.5rem] z-20 h-0 sm:bottom-6">
-          <div ref={railBoxRef} className="pointer-events-auto">
+          <div
+            ref={railBoxRef}
+            aria-hidden={!arrived || undefined}
+            // Held out of sight (and out of reach) until the roster arrives.
+            className={`transition-[opacity,transform] duration-500 ease-out ${
+              arrived ? "pointer-events-auto opacity-100" : "pointer-events-none translate-y-3 opacity-0"
+            }`}
+          >
             <GutterRail
               ref={railRef}
+              tabIndex={arrived ? undefined : -1}
               onClick={() => setOpen((o) => !o)}
               expanded={open}
               labelAbove
               labelShown={labelShown}
               labelOnPhones
+              labelFlipped
               title={tv("Filter partners by industry")}
               label={activeLabel ? tv(activeLabel) : tv(dir.filterLabel)}
               icon={<TagsIcon className="h-5 w-5" />}
@@ -314,7 +343,10 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
                 alt={p.name}
                 loading="lazy"
                 draggable={false}
-                className="max-h-[52%] max-w-[70%] object-contain"
+                // A box of its own, not just a cap: a logo scales up to meet the
+                // tile's padding, however small the file, and object-contain
+                // keeps it whole within it.
+                className="h-[52%] w-[70%] object-contain"
               />
             ) : (
               <span className="px-4 text-center font-display text-xl leading-tight text-white/70 sm:text-2xl">

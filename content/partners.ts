@@ -47,7 +47,7 @@ export const PARTNERS: PartnersContent = {
   directory: {
     eyebrow: "the roster",
     heading: "Every partner we work with",
-    filterLabel: "industries",
+    filterLabel: "by industry",
     allLabel: "All",
   },
 };

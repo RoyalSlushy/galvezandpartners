@@ -57,7 +57,10 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
             src={logoSrc(l.img)}
             alt=""
             draggable={false}
-            className="max-h-[55%] max-w-[72%] object-contain opacity-85"
+            // A box of its own, not just a cap: a logo scales up to meet the
+            // cell's padding, however small the file, and object-contain keeps
+            // it whole within it.
+            className="h-[55%] w-[72%] object-contain opacity-85"
           />
         ),
       }));

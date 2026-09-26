@@ -46,6 +46,9 @@ const GutterRail = forwardRef<
      * being too thin for it there). It then carries a navy backing, as it may
      * stand over the content rather than in the gutter. */
     labelOnPhones?: boolean;
+    /** Turn the vertical label 180°, so it reads bottom to top. */
+    labelFlipped?: boolean;
+    tabIndex?: number;
     /** Vertical label under the icon (hidden on phones, where the gutter is thin). */
     label: string;
     /** Accessible name for the link. */
@@ -63,6 +66,8 @@ const GutterRail = forwardRef<
     labelAbove = false,
     labelShown,
     labelOnPhones = false,
+    labelFlipped = false,
+    tabIndex,
     label,
     title,
     icon,
@@ -92,7 +97,7 @@ const GutterRail = forwardRef<
             ? "opacity-100"
             : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
         }`}
-        style={{ writingMode: "vertical-rl" }}
+        style={{ writingMode: "vertical-rl", transform: labelFlipped ? "rotate(180deg)" : undefined }}
       >
         {label}
       </span>
@@ -105,6 +110,7 @@ const GutterRail = forwardRef<
       <button
         ref={ref as React.Ref<HTMLButtonElement>}
         type="button"
+        tabIndex={tabIndex}
         onClick={onClick}
         aria-label={title}
         aria-expanded={expanded}
