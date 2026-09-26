@@ -735,6 +735,12 @@ html[data-gp-case-snap] {
   scroll-snap-type: y proximity;
 }
 
+/* Our Partners: the lander and the roster are gentle snap stops the same way,
+   scoped to the attribute PartnersHero sets on <html> while mounted. */
+html[data-gp-partners-snap] {
+  scroll-snap-type: y proximity;
+}
+
 /* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
    frames, each drifting (Ken Burns) in an alternating direction while the
    active one crossfades in. Stilled under reduced motion below — the first
@@ -776,6 +782,116 @@ html[data-gp-case-snap] {
   .team-band {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
     mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+  }
+}
+
+/* Our Partners logo marquee (PartnerMarquee). One lane under the lander's
+   copy. Its drift (leftward from sm up, rightward on a phone) and its drag are
+   driven by PartnerMarquee, which moves .pm-track within one run's length —
+   so the loop has no seam only while every cell carries the same trailing
+   space (margin, never a flex gap, which would leave one gap short at the
+   join). Cells carry an even padding; a logo fills the box inside it. */
+.pm-lane {
+  position: relative;
+  height: 4rem;
+  margin-top: 2.5rem;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.pm-lane[data-dragging] {
+  cursor: grabbing;
+}
+.pm-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  will-change: transform;
+}
+.pm-run {
+  display: flex;
+  flex-shrink: 0;
+}
+.pm-cell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 8.5rem;
+  margin-right: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.pm-logo {
+  pointer-events: none;
+}
+@media (min-width: 751px) {
+  .pm-lane {
+    height: 4.5rem;
+    margin-top: 3rem;
+  }
+  .pm-cell {
+    width: 11rem;
+    margin-right: 0.75rem;
+    padding: 0.75rem 1.125rem;
+  }
+}
+@media (min-width: 1001px) {
+  .pm-lane {
+    height: 5.25rem;
+  }
+  .pm-cell {
+    width: 13rem;
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+/* Our Partners lander: the chevron down to the roster bobs gently — a short
+   drop and a slight brightening, then back. */
+.pr-chevron {
+  animation: pr-chevron 2.4s ease-in-out infinite;
+}
+@keyframes pr-chevron {
+  0%,
+  100% {
+    transform: translate3d(0, -2px, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate3d(0, 3px, 0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pr-chevron {
+    animation: none;
+  }
+}
+
+/* Our Partners roster (PartnersDirectory): the industry panel eases out of
+   the rail beside it when opened. */
+.pd-pop {
+  animation: pd-pop 280ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+@keyframes pd-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(-8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-pop {
+    animation: none;
   }
 }
 

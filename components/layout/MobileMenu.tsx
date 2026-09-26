@@ -461,6 +461,8 @@ export default function MobileMenu({
           (see HeroSlots). */}
       <div
         ref={setHeaderMedia}
+        // Clipped to the cell: the services strip's oversized, tilted clip is
+        // cropped by it rather than spilling over the logo or down the page.
         className="ml-3 flex w-[40%] items-stretch overflow-hidden"
         style={editMode ? { paddingTop: logoTop } : undefined}
       >
