@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Container from "@/components/ui/Container";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import GutterRail, { GUTTER_LEFT } from "@/components/ui/GutterRail";
 import { useInView } from "@/components/ui/useInView";
 import { useMinWidth } from "@/components/ui/useMinWidth";
 import { useMotionOff } from "@/components/motion/MotionProvider";
@@ -13,7 +14,7 @@ import { PARTNERS, type PartnerLogo, type PartnersContent } from "@/content/part
 import { logoSrc } from "./PartnerMarquee";
 
 /** Seconds between one grid row's reveal and the next, when several rows come
- * into view together (the first screenful, or a fast scroll). */
+ * into view together (the first screenful, a fast scroll, a new filter). */
 const ROW_STAGGER = 0.14;
 /** Seconds between neighbouring tiles within a row. */
 const CELL_STAGGER = 0.06;
@@ -21,97 +22,63 @@ const CELL_STAGGER = 0.06;
  * together and are staggered; a row entering later starts straight away. */
 const TOGETHER_MS = 250;
 
+const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
+
 /**
- * The directory under the Our Partners lander, in two sections, drawn from the
- * same `partners.logos` list the marquee runs (logo, name, industry):
+ * The roster under the Our Partners lander (and /o): every partner in the
+ * `partners.logos` list as a logo tile in a grid — the logo alone, no name or
+ * industry under it (a partner without a logo has its name set in the tile in
+ * its place). Each row is revealed as it comes into view, its tiles following
+ * one another across the row, and rows that arrive together following one
+ * another down the grid.
  *
- * - the roster: every partner as a tile in a grid, each row revealed as it
- *   comes into view, its tiles following one another across the row, and rows
- *   that arrive together following one another down the grid;
- * - by industry: a horizontally scrolling row of cards with a chip per
- *   industry above it to filter the row down to one field.
+ * The industry filter is a rail in the gutter left of the grid, built like the
+ * Our Works page's rail to the gallery (see GutterRail) and held level with the
+ * grid the same way — but a button rather than a link: it opens a panel of
+ * industry tags beside it, and picking one filters the grid (and closes the
+ * panel; Escape or a click elsewhere closes it too). The rail's label shows the
+ * industry in force. Industries are grouped regardless of case or stray spaces,
+ * keeping the first spelling met; a partner with no industry is shown under the
+ * all tag only. With no industries set there is no rail, and with no partners
+ * the section does not render.
  *
- * Industries are grouped regardless of case or stray spaces, keeping the first
- * spelling met. A partner with no industry is listed under "All" only. A
- * partner without a logo still gets a tile, with its name set in its place.
- * With no partners in the CMS neither section renders.
+ * The section is a gentle scroll-snap stop, as is the lander (see
+ * html[data-gp-partners-snap], set by PartnersHero).
  */
 export default function PartnersDirectory({ partners: serverPartners }: { partners: PartnersContent }) {
   const partners = useCmsValue("partners", serverPartners);
+  const tv = useEditableT();
+  const motionOff = useMotionOff();
   const dir = { ...PARTNERS.directory, ...(partners.directory ?? {}) };
   const list = (partners.logos ?? []).filter((p) => p && (p.img || p.name?.trim()));
-  if (list.length === 0) return null;
-  return (
-    <>
-      <PartnersGrid list={list} dir={dir} />
-      <PartnersByIndustry list={list} dir={dir} />
-    </>
-  );
-}
 
-type Dir = PartnersContent["directory"];
+  // One tag per industry, first spelling kept, in the order partners list them.
+  const industries = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of list) {
+      const key = norm(p.industry);
+      if (key && !seen.has(key)) seen.set(key, p.industry.trim());
+    }
+    return [...seen.entries()].map(([key, label]) => ({ key, label }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.map((p) => norm(p.industry)).join("|")]);
 
-function SectionHeader({
-  eyebrowPath,
-  eyebrow,
-  headingPath,
-  heading,
-}: {
-  eyebrowPath: string;
-  eyebrow: string;
-  headingPath: string;
-  heading: string;
-}) {
-  const tv = useEditableT();
-  return (
-    <RevealOnScroll>
-      <EditableText
-        path={eyebrowPath}
-        value={tv(eyebrow)}
-        as="p"
-        className="font-display text-f6 lowercase text-gold"
-      />
-      <EditableText
-        path={headingPath}
-        value={tv(heading)}
-        as="h2"
-        className="mt-2 max-w-3xl font-heading text-f3 leading-none text-white [text-wrap:balance]"
-      />
-    </RevealOnScroll>
-  );
-}
+  const [filter, setFilter] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  // A filter whose last partner was removed (or re-filed) falls back to all.
+  useEffect(() => {
+    if (filter && !industries.some((i) => i.key === filter)) setFilter(null);
+  }, [filter, industries]);
+  const visible = filter ? list.filter((p) => norm(p.industry) === filter) : list;
+  const activeLabel = industries.find((i) => i.key === filter)?.label;
 
-/** A partner's mark: the logo, whole, or its name set in its place. */
-function PartnerMark({ partner, nameClassName }: { partner: PartnerLogo; nameClassName: string }) {
-  return partner.img ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoSrc(partner.img)}
-      alt={partner.name}
-      loading="lazy"
-      draggable={false}
-      className="max-h-[52%] max-w-[70%] object-contain"
-    />
-  ) : (
-    <span className={`px-4 text-center font-display leading-tight text-white/70 ${nameClassName}`}>
-      {partner.name}
-    </span>
-  );
-}
-
-/* ------------------------------ the roster ------------------------------ */
-
-function PartnersGrid({ list, dir }: { list: PartnerLogo[]; dir: Dir }) {
   // Rows are laid out here rather than left to the grid to wrap, so each can be
   // observed and revealed as a unit. The counts match the grid-cols classes.
   const sm = useMinWidth(751);
   const md = useMinWidth(1001);
   const cols = md ? 4 : sm ? 3 : 2;
-  const rows = useMemo(() => {
-    const out: PartnerLogo[][] = [];
-    for (let i = 0; i < list.length; i += cols) out.push(list.slice(i, i + cols));
-    return out;
-  }, [list, cols]);
+  const rows: PartnerLogo[][] = [];
+  for (let i = 0; i < visible.length; i += cols) rows.push(visible.slice(i, i + cols));
 
   // Rows that come into view together are handed increasing delays, so the
   // first screenful arrives row by row rather than all at once.
@@ -123,18 +90,125 @@ function PartnersGrid({ list, dir }: { list: PartnerLogo[]; dir: Dir }) {
     return chain.current.n++ * ROW_STAGGER;
   }, []);
 
+  // The panel closes on Escape (handing focus back to the rail) and on a press
+  // anywhere outside the rail and panel.
+  const railBoxRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        railRef.current?.focus();
+      }
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!railBoxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+
+  // Picking a tag brings the top of the grid back into view if it has been
+  // scrolled past, so the filtered grid is seen from its first row.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pick = (key: string | null) => {
+    setFilter(key);
+    setOpen(false);
+    const grid = gridRef.current;
+    if (grid && grid.getBoundingClientRect().top < 0) {
+      grid.scrollIntoView({ block: "start", behavior: motionOff ? "auto" : "smooth" });
+    }
+  };
+
+  if (list.length === 0) return null;
+
+  const tag = (key: string | null, label: string) => {
+    const active = filter === key;
+    return (
+      <button
+        key={key ?? "__all"}
+        type="button"
+        aria-pressed={active}
+        onClick={() => pick(key)}
+        className={`w-full border px-4 py-2 text-left font-din text-xs uppercase tracking-[0.2em] transition-colors duration-300 ${
+          active
+            ? "border-gold bg-gold text-navy"
+            : "border-white/15 text-white/70 hover:border-gold/60 hover:text-gold"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <section className="w-full border-t border-white/5 bg-navy py-20 sm:py-28">
+    <section className="w-full snap-start border-t border-white/5 bg-navy py-20 sm:py-28">
       <Container>
-        <SectionHeader
-          eyebrowPath="partners.directory.eyebrow"
-          eyebrow={dir.eyebrow}
-          headingPath="partners.directory.heading"
-          heading={dir.heading}
-        />
-        <div className="mt-10 flex flex-col gap-3 sm:mt-14 sm:gap-4">
+        <RevealOnScroll>
+          <EditableText
+            path="partners.directory.eyebrow"
+            value={tv(dir.eyebrow)}
+            as="p"
+            className="font-display text-f6 lowercase text-gold"
+          />
+          <EditableText
+            path="partners.directory.heading"
+            value={tv(dir.heading)}
+            as="h2"
+            className="mt-2 max-w-3xl font-heading text-f3 leading-none text-white [text-wrap:balance]"
+          />
+        </RevealOnScroll>
+      </Container>
+
+      {/* The industry rail, just left of the body column as on the Our Works
+          gallery: it starts level with the top of the grid and then sticks a
+          little below the viewport's top edge for the grid's length. The
+          zero-height wrapper keeps it out of the flow; the section (not the site
+          column) is its containing block, so the rail's left offset — measured
+          from the viewport — lands in the gutter. */}
+      {industries.length > 0 && (
+        <div className="pointer-events-none sticky top-6 z-20 mt-10 h-0 sm:mt-14">
+          <div ref={railBoxRef} className="pointer-events-auto">
+            <GutterRail
+              ref={railRef}
+              onClick={() => setOpen((o) => !o)}
+              expanded={open}
+              title={tv("Filter partners by industry")}
+              label={activeLabel ? tv(activeLabel) : tv(dir.filterLabel)}
+              icon={<TagsIcon className="h-5 w-5" />}
+              align="body"
+              className="absolute top-0"
+            />
+            {open && (
+              <div
+                role="group"
+                aria-label={tv("Filter partners by industry")}
+                style={{ left: `calc(${GUTTER_LEFT.body} + 3.5rem)` }}
+                className={`absolute top-0 flex max-h-[70vh] w-56 flex-col gap-2 overflow-y-auto border border-white/10 bg-navy/95 p-3 shadow-2xl backdrop-blur ${
+                  motionOff ? "" : "pd-pop"
+                }`}
+              >
+                {tag(null, tv(dir.allLabel))}
+                {industries.map((i) => tag(i.key, tv(i.label)))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Container>
+        <div
+          ref={gridRef}
+          aria-live="polite"
+          className={`flex flex-col gap-3 sm:gap-4 ${industries.length > 0 ? "" : "mt-10 sm:mt-14"}`}
+        >
           {rows.map((row, r) => (
-            <GridRow key={`${cols}:${r}`} row={row} nextDelay={nextDelay} />
+            <GridRow key={`${filter ?? ""}:${cols}:${r}`} row={row} nextDelay={nextDelay} />
           ))}
         </div>
       </Container>
@@ -143,7 +217,6 @@ function PartnersGrid({ list, dir }: { list: PartnerLogo[]; dir: Dir }) {
 }
 
 function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => number }) {
-  const tv = useEditableT();
   const { ref, inView } = useInView<HTMLUListElement>();
   const [shown, setShown] = useState(false);
   const [delay, setDelay] = useState(0);
@@ -160,114 +233,41 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
       {row.map((p, c) => (
         <RevealOnScroll key={c} as="li" shown={shown} delay={delay + c * CELL_STAGGER}>
           <div className="flex aspect-[4/3] items-center justify-center border border-white/10 bg-white/[0.03]">
-            <PartnerMark partner={p} nameClassName="text-xl sm:text-2xl" />
+            {p.img ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoSrc(p.img)}
+                alt={p.name}
+                loading="lazy"
+                draggable={false}
+                className="max-h-[52%] max-w-[70%] object-contain"
+              />
+            ) : (
+              <span className="px-4 text-center font-display text-xl leading-tight text-white/70 sm:text-2xl">
+                {p.name}
+              </span>
+            )}
           </div>
-          <p className="mt-3 truncate font-heading text-base text-white sm:text-lg">{p.name}</p>
-          {p.industry?.trim() && (
-            <p className="mt-0.5 truncate font-din text-[10px] uppercase tracking-[0.25em] text-gold/80 sm:text-xs">
-              {tv(p.industry.trim())}
-            </p>
-          )}
         </RevealOnScroll>
       ))}
     </ul>
   );
 }
 
-/* ----------------------------- by industry ------------------------------ */
-
-const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
-
-function PartnersByIndustry({ list, dir }: { list: PartnerLogo[]; dir: Dir }) {
-  const tv = useEditableT();
-  const motionOff = useMotionOff();
-  const [filter, setFilter] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // One chip per industry, first spelling kept, in the order partners list them.
-  const industries = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const p of list) {
-      const key = norm(p.industry);
-      if (key && !seen.has(key)) seen.set(key, p.industry.trim());
-    }
-    return [...seen.entries()].map(([key, label]) => ({ key, label }));
-  }, [list]);
-
-  // A filter whose last partner was removed (or renamed) falls back to All.
-  useEffect(() => {
-    if (filter && !industries.some((i) => i.key === filter)) setFilter(null);
-  }, [filter, industries]);
-
-  const shown = filter ? list.filter((p) => norm(p.industry) === filter) : list;
-
-  // A new filter starts the row from its beginning.
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [filter]);
-
-  const chip = (key: string | null, label: string) => {
-    const active = filter === key;
-    return (
-      <button
-        key={key ?? "__all"}
-        type="button"
-        aria-pressed={active}
-        onClick={() => setFilter(key)}
-        className={`border px-4 py-2 font-din text-xs uppercase tracking-[0.2em] transition-colors duration-300 ${
-          active
-            ? "border-gold bg-gold text-navy"
-            : "border-white/15 text-white/70 hover:border-gold/60 hover:text-gold"
-        }`}
-      >
-        {label}
-      </button>
-    );
-  };
-
+function TagsIcon({ className }: { className?: string }) {
   return (
-    <section className="w-full overflow-hidden border-t border-white/5 bg-navy py-20 sm:py-28">
-      <Container>
-        <SectionHeader
-          eyebrowPath="partners.directory.filterEyebrow"
-          eyebrow={dir.filterEyebrow}
-          headingPath="partners.directory.filterHeading"
-          heading={dir.filterHeading}
-        />
-        {industries.length > 0 && (
-          <RevealOnScroll delay={0.1}>
-            <div role="group" aria-label={tv(dir.filterEyebrow)} className="mt-8 flex flex-wrap gap-2">
-              {chip(null, tv(dir.allLabel))}
-              {industries.map((i) => chip(i.key, tv(i.label)))}
-            </div>
-          </RevealOnScroll>
-        )}
-      </Container>
-      <div
-        ref={scrollRef}
-        className="gallery-scroll mt-8 snap-x snap-mandatory overflow-x-auto pb-4"
-      >
-        {/* Keyed on the filter so each change plays the row's short fade-in. */}
-        <ul
-          key={filter ?? "__all"}
-          aria-live="polite"
-          className={`gallery-pad flex w-max gap-4 sm:gap-6 ${motionOff ? "" : "pd-fade"}`}
-        >
-          {shown.map((p, i) => (
-            <li key={`${i}:${p.name}`} className="w-60 shrink-0 snap-start sm:w-72">
-              <div className="flex aspect-[16/10] items-center justify-center border border-white/10 bg-white/[0.03]">
-                <PartnerMark partner={p} nameClassName="text-2xl" />
-              </div>
-              <p className="mt-4 truncate font-heading text-lg text-white sm:text-xl">{p.name}</p>
-              {p.industry?.trim() && (
-                <p className="mt-1 truncate font-din text-xs uppercase tracking-[0.25em] text-gold/80">
-                  {tv(p.industry.trim())}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </svg>
   );
 }

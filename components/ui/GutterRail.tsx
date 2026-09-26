@@ -6,7 +6,7 @@ import { forwardRef, type ReactNode } from "react";
 // small gap. Both clamp to the viewport edge on narrow screens
 // where the handle runs out.
 const BODY_LEFT = "((100vw - min(100vw, var(--site-max, 1200px))) / 2 + 2rem)";
-const LEFT = {
+export const GUTTER_LEFT = {
   handle: `max(0.25rem, calc(${BODY_LEFT} / 2 - 1.5rem))`,
   body: `max(0.25rem, calc(${BODY_LEFT} - 4.25rem))`,
 };
@@ -15,6 +15,9 @@ const LEFT = {
  * Rail in the "handle" — the gutter to the left of the site column. An icon
  * over a vertical label, linking to another section of the page: the cases
  * carry one down to the gallery wall, the wall carries one back up to them.
+ * Given `onClick` instead of `href` it is a button rather than a link (the
+ * partners roster uses one to open its industry filter), with `expanded`
+ * reported as aria-expanded and shown by holding the hover look.
  * Sits in the space between the viewport edge and the body's left edge, either
  * centred in it or hugging the body (see `align`).
  *
@@ -25,9 +28,13 @@ const LEFT = {
  * the viewport's — the `left` below is measured from there.
  */
 const GutterRail = forwardRef<
-  HTMLAnchorElement,
+  HTMLElement,
   {
-    href: string;
+    /** Where the rail links to. Omit and pass `onClick` for a button. */
+    href?: string;
+    onClick?: () => void;
+    /** For a button that opens something: whether it is open. */
+    expanded?: boolean;
     /** Vertical label under the icon (hidden on phones, where the gutter is thin). */
     label: string;
     /** Accessible name for the link. */
@@ -37,25 +44,49 @@ const GutterRail = forwardRef<
     align?: "handle" | "body";
     className?: string;
   }
->(function GutterRail({ href, label, title, icon, align = "handle", className = "" }, ref) {
-  return (
-    <a
-      ref={ref}
-      href={href}
-      aria-label={title}
-      style={{ left: LEFT[align] }}
-      className={`group z-20 flex flex-col items-center gap-3 ${className}`}
-    >
-      <span className="flex h-11 w-11 items-center justify-center border border-gold/30 bg-navy/75 text-gold shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12">
+>(function GutterRail(
+  { href, onClick, expanded, label, title, icon, align = "handle", className = "" },
+  ref,
+) {
+  const on = expanded ? "border-gold bg-gold text-navy" : "border-gold/30 bg-navy/75 text-gold";
+  const inner = (
+    <>
+      <span
+        className={`flex h-11 w-11 items-center justify-center border shadow-lg backdrop-blur transition group-hover:border-gold group-hover:bg-gold group-hover:text-navy sm:h-12 sm:w-12 ${on}`}
+      >
         {icon}
       </span>
       <span
         aria-hidden
-        className="hidden font-heading text-[11px] uppercase tracking-[0.3em] text-white/50 transition group-hover:text-gold sm:block"
+        className={`hidden font-heading text-[11px] uppercase tracking-[0.3em] transition group-hover:text-gold sm:block ${
+          expanded ? "text-gold" : "text-white/50"
+        }`}
         style={{ writingMode: "vertical-rl" }}
       >
         {label}
       </span>
+    </>
+  );
+  const cls = `group z-20 flex flex-col items-center gap-3 ${className}`;
+  const style = { left: GUTTER_LEFT[align] };
+  if (href === undefined) {
+    return (
+      <button
+        ref={ref as React.Ref<HTMLButtonElement>}
+        type="button"
+        onClick={onClick}
+        aria-label={title}
+        aria-expanded={expanded}
+        style={style}
+        className={cls}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <a ref={ref as React.Ref<HTMLAnchorElement>} href={href} aria-label={title} style={style} className={cls}>
+      {inner}
     </a>
   );
 });

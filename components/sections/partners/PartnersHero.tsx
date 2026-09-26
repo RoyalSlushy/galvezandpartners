@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Container from "@/components/ui/Container";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { PartnersContent } from "@/lib/cms";
@@ -42,6 +43,15 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
   const editMode = useEditMode();
   const tv = useEditableT();
   const phase = useRevealPhase();
+
+  // The lander and the roster under it are gentle scroll-snap stops while this
+  // page is mounted (see html[data-gp-partners-snap] in globals.css). Not in
+  // edit mode, where the page is a form to work down rather than two screens.
+  useEffect(() => {
+    if (editMode) return;
+    document.documentElement.setAttribute("data-gp-partners-snap", "");
+    return () => document.documentElement.removeAttribute("data-gp-partners-snap");
+  }, [editMode]);
   const background = partners.background ?? "";
   const logos = partners.logos ?? [];
 
@@ -124,7 +134,8 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
       aria-label={heading}
       data-gp-hero={phase ?? undefined}
       style={{ height: "calc(100svh - var(--header-h))" }}
-      className="relative w-full overflow-hidden bg-navy"
+      // Snaps with the header still showing above it, as the case-study hero.
+      className="relative w-full snap-start scroll-mt-[var(--header-h)] overflow-hidden bg-navy"
     >
       {background && (
         <div aria-hidden className="team-band">

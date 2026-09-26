@@ -6,16 +6,16 @@
 /** One partner: shown in the lander's logo marquee and in the directory under
  * it. `img` is the uploaded logo (SVG or a transparent PNG reads best over
  * navy); `name` is the partner's name (and the logo's alt text); `industry`
- * files it under a filter in the directory's by-industry list. */
+ * files it under a filter in the roster's industry panel. */
 export type PartnerLogo = { img: string; name: string; industry: string };
 
-/** Headings for the directory sections under the lander. */
+/** Copy for the roster section under the lander. */
 export type PartnersDirectory = {
   eyebrow: string;
   heading: string;
-  filterEyebrow: string;
-  filterHeading: string;
-  /** The filter chip that shows every industry at once. */
+  /** The side button's vertical label, which opens the industry filter. */
+  filterLabel: string;
+  /** The filter tag that shows every industry at once. */
   allLabel: string;
 };
 
@@ -45,8 +45,7 @@ export const PARTNERS: PartnersContent = {
   directory: {
     eyebrow: "the roster",
     heading: "Every partner we work with",
-    filterEyebrow: "by industry",
-    filterHeading: "Find partners in your field",
+    filterLabel: "industries",
     allLabel: "All",
   },
 };

@@ -735,6 +735,12 @@ html[data-gp-case-snap] {
   scroll-snap-type: y proximity;
 }
 
+/* Our Partners: the lander and the roster are gentle snap stops the same way,
+   scoped to the attribute PartnersHero sets on <html> while mounted. */
+html[data-gp-partners-snap] {
+  scroll-snap-type: y proximity;
+}
+
 /* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
    frames, each drifting (Ken Burns) in an alternating direction while the
    active one crossfades in. Stilled under reduced motion below — the first
@@ -859,15 +865,15 @@ html[data-gp-case-snap] {
   }
 }
 
-/* Our Partners by-industry row (PartnersDirectory): the row is re-keyed on
-   each filter change, so its cards arrive with this short fade and rise. */
-.pd-fade {
-  animation: pd-fade 520ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+/* Our Partners roster (PartnersDirectory): the industry panel eases out of
+   the rail beside it when opened. */
+.pd-pop {
+  animation: pd-pop 280ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
 }
-@keyframes pd-fade {
+@keyframes pd-pop {
   from {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    transform: translate3d(-8px, 0, 0);
   }
   to {
     opacity: 1;
@@ -875,7 +881,7 @@ html[data-gp-case-snap] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pd-fade {
+  .pd-pop {
     animation: none;
   }
 }
