@@ -786,18 +786,23 @@ html[data-gp-partners-snap] {
 }
 
 /* Our Partners logo marquee (PartnerMarquee). One lane under the lander's
-   copy, running sideways at every width: leftward from sm (751px) up,
-   rightward on a phone. The track holds its run twice and slides exactly -50%
-   per cycle, so the loop has no seam — which only holds while every cell
-   carries the same trailing space (margin, never a flex gap, which would leave
-   one gap short at the join). --pm-dur is set from the measured run length. */
+   copy. Its drift (leftward from sm up, rightward on a phone) and its drag are
+   driven by PartnerMarquee, which moves .pm-track within one run's length —
+   so the loop has no seam only while every cell carries the same trailing
+   space (margin, never a flex gap, which would leave one gap short at the
+   join). Cells carry an even padding; a logo fills the box inside it. */
 .pm-lane {
   position: relative;
   height: 4rem;
   margin-top: 2.5rem;
   overflow: hidden;
+  cursor: grab;
+  user-select: none;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.pm-lane[data-dragging] {
+  cursor: grabbing;
 }
 .pm-track {
   position: absolute;
@@ -805,15 +810,7 @@ html[data-gp-partners-snap] {
   bottom: 0;
   left: 0;
   display: flex;
-  animation: pm-left var(--pm-dur, 40s) linear infinite;
-  animation-direction: reverse;
   will-change: transform;
-}
-.pm-track[data-still] {
-  animation: none;
-}
-.pm-lane:hover .pm-track {
-  animation-play-state: paused;
 }
 .pm-run {
   display: flex;
@@ -827,20 +824,22 @@ html[data-gp-partners-snap] {
   height: 100%;
   width: 8.5rem;
   margin-right: 0.625rem;
+  padding: 0.625rem 0.875rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
+}
+.pm-logo {
+  pointer-events: none;
 }
 @media (min-width: 751px) {
   .pm-lane {
     height: 4.5rem;
     margin-top: 3rem;
   }
-  .pm-track {
-    animation-direction: normal;
-  }
   .pm-cell {
     width: 11rem;
     margin-right: 0.75rem;
+    padding: 0.75rem 1.125rem;
   }
 }
 @media (min-width: 1001px) {
@@ -849,19 +848,7 @@ html[data-gp-partners-snap] {
   }
   .pm-cell {
     width: 13rem;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pm-track {
-    animation: none;
-  }
-}
-@keyframes pm-left {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
+    padding: 0.875rem 1.25rem;
   }
 }
 

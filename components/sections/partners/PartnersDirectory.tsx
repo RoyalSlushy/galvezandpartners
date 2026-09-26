@@ -13,6 +13,7 @@ import EditableText from "@/components/admin/editable/EditableText";
 import { PARTNERS, type PartnerLogo, type PartnersContent } from "@/content/partners";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { logoSrc } from "./PartnerMarquee";
+import { useTrimmedLogo } from "./useTrimmedLogo";
 
 /** Seconds between one grid row's reveal and the next, when several rows come
  * into view together (the first screenful, a fast scroll, a new filter). */
@@ -337,17 +338,7 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
         <RevealOnScroll key={c} as="li" shown={shown} delay={delay + c * CELL_STAGGER}>
           <PartnerCard href={partnerHref(p.href)} name={p.name}>
             {p.img ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoSrc(p.img)}
-                alt={p.name}
-                loading="lazy"
-                draggable={false}
-                // A box of its own, not just a cap: a logo scales up to meet the
-                // tile's padding, however small the file, and object-contain
-                // keeps it whole within it.
-                className="h-[52%] w-[70%] object-contain"
-              />
+              <RosterLogo src={logoSrc(p.img)} alt={p.name} />
             ) : (
               <span className="px-4 text-center font-display text-xl leading-tight text-white/70 sm:text-2xl">
                 {p.name}
@@ -357,6 +348,23 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
         </RevealOnScroll>
       ))}
     </ul>
+  );
+}
+
+/** A roster logo, trimmed of any empty margin in its file (see useTrimmedLogo)
+ * and given a box of its own inside the tile's padding: it scales up to meet
+ * that padding however small the file, and object-contain keeps it whole. */
+function RosterLogo({ src, alt }: { src: string; alt: string }) {
+  const trimmed = useTrimmedLogo(src);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={trimmed}
+      alt={alt}
+      loading="lazy"
+      draggable={false}
+      className="h-[52%] w-[70%] object-contain"
+    />
   );
 }
 

@@ -55,6 +55,10 @@ const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
  */
 const BACKDROP_OPACITY = 0.2;
 
+/** How long a mobile backdrop takes to fade in or out as the service changes
+ * (see BackdropClips). */
+const CLIP_FADE_MS = 900;
+
 /**
  * How the clip arrives when its service comes up. The slides themselves cut
  * (see Carousel) — fading them would dip the light between two services and,
@@ -197,6 +201,7 @@ export default function HeaderServicesStrip({
       tv={tv}
       short={short}
       clipOnly={clipOnly}
+      clipBehind={!desktop}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
       onPreload={() => preload(i)}
@@ -224,6 +229,16 @@ export default function HeaderServicesStrip({
       ariaLabel={t("Our services")}
       editMode={editMode}
       slides={slides}
+      underlay={
+        desktop ? undefined : (
+          <BackdropClips
+            services={services}
+            clipRef={(i, el) => {
+              clipRefs.current[i] = el;
+            }}
+          />
+        )
+      }
     />,
     stripSocket,
   );
@@ -242,11 +257,13 @@ function StripShell({
   ariaLabel,
   editMode,
   slides,
+  underlay,
 }: {
   className: string;
   ariaLabel: string;
   editMode: boolean;
   slides: React.ReactNode[];
+  underlay?: React.ReactNode;
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const carousel = (
@@ -255,6 +272,7 @@ function StripShell({
       ariaLabel={ariaLabel}
       className="flex w-full flex-col justify-center"
       chrome={false}
+      underlay={underlay}
     />
   );
   // Whether the strip keeps its clip inside its own bounds is the caller's to
@@ -299,6 +317,7 @@ function ServiceSlide({
   tv,
   short,
   clipOnly,
+  clipBehind,
   onHoverStart,
   onHoverEnd,
   onPreload,
@@ -315,6 +334,9 @@ function ServiceSlide({
    * step before the mobile layout, where the nav has taken the room the title
    * needs. A service with no clip keeps its title regardless. */
   clipOnly: boolean;
+  /** Whether the backdrop clip is drawn by the strip's underlay (BackdropClips,
+   * on mobile) rather than in this slide. */
+  clipBehind: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
   /** Called when this slide becomes the one up next, so its clip can be fetched
@@ -436,7 +458,7 @@ function ServiceSlide({
           the only thing in the strip: there it keeps a box of its own, contained
           rather than cropped and at full strength, since it is the subject and
           not a backdrop to anything. */}
-      {media ? (
+      {media && !(clipBehind && !clipOnly) ? (
         clipOnly ? (
           <div
             aria-hidden
@@ -481,6 +503,62 @@ function ServiceSlide({
         )
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The mobile strip's backdrops, drawn under the carousel's track instead of in
+ * the slides, so they can fade: a slide is shown outright (fading one would put
+ * an opacity on the clip's ancestor and cut its blend off from the masthead —
+ * see Carousel), so a clip inside one can only cut. Here every service's clip
+ * stands in the same box, and each fades its own opacity — an element's own
+ * opacity is no obstacle to its own blend — up to BACKDROP_OPACITY as its
+ * service comes up and back down to nothing as it goes, so one clip dissolves
+ * into the next. The drift (ARRIVAL) rides along as before. With motion off
+ * the change is a cut.
+ *
+ * The wrappers carry no opacity, z-index or transform, for the blend's sake,
+ * and they paint before the track, so the titles stand over them.
+ */
+function BackdropClips({
+  services,
+  clipRef,
+}: {
+  services: Service[];
+  clipRef: (index: number, el: HTMLVideoElement | null) => void;
+}) {
+  const { current } = useContext(CarouselContext);
+  const motionOff = useMotionOff();
+  const [ready, setReady] = useState<Record<number, boolean>>({});
+  const mediaKey = services.map((s) => s.media ?? "").join("|");
+  useEffect(() => setReady({}), [mediaKey]);
+  return (
+    <>
+      {services.map((s, i) => {
+        const media = s.media ?? "";
+        if (!media) return null;
+        const active = i === current;
+        return (
+          <div key={i} aria-hidden className="pointer-events-none absolute inset-0">
+            <ServiceClip
+              index={i}
+              media={media}
+              ready={!!ready[i]}
+              active={active}
+              clipRef={(el) => clipRef(i, el)}
+              onReady={() => setReady((r) => (r[i] ? r : { ...r, [i]: true }))}
+              className="absolute -left-[12.5%] -top-[12.5%] h-[125%] w-[125%] max-w-none rotate-[-15deg] object-cover"
+              style={{
+                opacity: active ? BACKDROP_OPACITY : 0,
+                transition: motionOff
+                  ? undefined
+                  : `opacity ${CLIP_FADE_MS}ms ease-in-out, transform 1400ms cubic-bezier(0.22,1,0.36,1)`,
+              }}
+            />
+          </div>
+        );
+      })}
+    </>
   );
 }
 

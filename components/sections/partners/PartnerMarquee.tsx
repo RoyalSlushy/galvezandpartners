@@ -7,9 +7,14 @@ import { resolveImage } from "@/lib/adminClient";
 import { wixImageFit } from "@/lib/wix";
 import { GLYPHS } from "@/content/site";
 import type { PartnerLogo } from "@/content/partners";
+import { useTrimmedLogo } from "./useTrimmedLogo";
 
 /** Drift speed of the lane, in px/s. */
 const SPEED = 42;
+/** How quickly a fling's leftover speed dies away (per second, exponential). */
+const FLING_DECAY = 3.2;
+/** A press has to travel this far (px) sideways before it counts as a drag. */
+const DRAG_SLOP = 6;
 
 type Tile = { key: string; node: ReactNode };
 
@@ -21,25 +26,30 @@ export function logoSrc(raw: string): string {
 
 /**
  * The Our Partners marquee: one lane of partner logos under the lander's copy,
- * running sideways at every width — leftward on sm+, rightward on a phone (the
- * direction is CSS, see .pm-* in globals.css, so the server render already
- * matches the screen) — and looping without a seam.
+ * drifting sideways at every width — leftward on sm+, rightward on a phone —
+ * looping without a seam, and draggable.
  *
- * The track holds its run twice and slides exactly one run's length (-50%) per
- * cycle, so the end of the animation is pixel-identical to its start. The run
- * is the whole logo list, repeated only as many times as it takes to more than
- * cover the lane (re-measured whenever the lane or a loading logo changes
- * size), and the cycle time is set from the run's length so the drift speed
- * stays the same however many logos there are. Once there are enough logos for
- * one set to outrun the lane, the run is that set alone and its only repeat is
- * the loop's own copy a full set behind, so no logo is ever on screen twice.
+ * The track holds its run twice, and its offset is kept within one run's
+ * length (wrapping modulo it), so wherever it stands the picture is seamless.
+ * The run is the whole logo list, repeated only as many times as it takes to
+ * more than cover the lane (re-measured whenever the lane or a loading logo
+ * changes size). Once there are enough logos for one set to outrun the lane,
+ * the run is that set alone, so no logo is ever on screen twice.
+ *
+ * The drift is driven frame by frame rather than by a CSS animation, so a drag
+ * can take hold of it: pressing and pulling sideways moves the lane with the
+ * pointer (a vertical pull is left to the page), and letting go flings it on at
+ * the speed it was thrown, easing back into the drift. Hovering eases the drift
+ * to a stop. With motion off (site setting or OS preference) there is no drift,
+ * but the lane can still be dragged.
+ *
+ * Each logo is trimmed of any empty margin in its file (see useTrimmedLogo) and
+ * then drawn to fill its cell inside an even padding, so every mark reaches the
+ * padding however it was exported.
  *
  * With no logos in the CMS the lane runs the site's glyphs instead: the
  * uploaded letterforms where there are any, and otherwise the glyph set's
  * characters in the display face (the same fallback the glyphs use elsewhere).
- *
- * Hovering the lane pauses it; with motion off (site setting or OS preference)
- * it stands still.
  */
 export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
   const glyphs = useGlyphMap();
@@ -51,18 +61,7 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
     if (named.length > 0) {
       return named.map((l, i) => ({
         key: `l${i}:${l.img}`,
-        node: (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoSrc(l.img)}
-            alt=""
-            draggable={false}
-            // A box of its own, not just a cap: a logo scales up to meet the
-            // cell's padding, however small the file, and object-contain keeps
-            // it whole within it.
-            className="h-[55%] w-[72%] object-contain opacity-85"
-          />
-        ),
+        node: <MarqueeLogo src={logoSrc(l.img)} />,
       }));
     }
     // No logos yet — the glyphs stand in. Only the uploaded letterforms if
@@ -96,14 +95,31 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
   );
 }
 
+/** A logo trimmed of its empty margin and filling its cell's content box (the
+ * cell supplies the padding); object-contain keeps it whole. */
+function MarqueeLogo({ src }: { src: string }) {
+  const trimmed = useTrimmedLogo(src);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={trimmed}
+      alt=""
+      draggable={false}
+      className="pm-logo h-full w-full min-h-0 min-w-0 object-contain opacity-85"
+    />
+  );
+}
+
 function Lane({ tiles }: { tiles: Tile[] }) {
   const still = useMotionOff();
   const laneRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<HTMLDivElement>(null);
   const [reps, setReps] = useState(1);
-  const [dur, setDur] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
   const signature = tiles.map((t) => t.key).join("|");
 
+  // Enough copies of the set in one run to more than cover the lane.
   useEffect(() => {
     const lane = laneRef.current;
     const run = runRef.current;
@@ -115,7 +131,6 @@ function Lane({ tiles }: { tiles: Tile[] }) {
       const setLen = runLen / reps;
       const need = Math.max(1, Math.ceil(laneLen / setLen));
       if (need !== reps) setReps(need);
-      setDur((setLen * need) / SPEED);
     };
     const ro = new ResizeObserver(measure);
     ro.observe(lane);
@@ -124,12 +139,114 @@ function Lane({ tiles }: { tiles: Tile[] }) {
     return () => ro.disconnect();
   }, [reps, signature]);
 
+  // The drift and the drag, frame by frame. The offset wraps within one run's
+  // length, so the track's two runs always cover the lane.
+  useEffect(() => {
+    const lane = laneRef.current;
+    const track = trackRef.current;
+    const run = runRef.current;
+    if (!lane || !track || !run) return;
+    const across = window.matchMedia("(min-width: 751px)");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    let offset = 0;
+    let fling = 0; // leftover px/s from a throw
+    let pace = 1; // eased 1 = drifting, 0 = held (hover or drag)
+    let hovered = false;
+    let press: { id: number; x: number; y: number; at: number; dragging: boolean } | null = null;
+    let lastX = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let last: number | null = null;
+    let raf = 0;
+
+    const place = () => {
+      const len = run.offsetWidth;
+      if (len > 0) offset = ((offset % len) - len) % len; // (-len, 0]
+      track.style.transform = `translate3d(${offset}px,0,0)`;
+    };
+
+    const tick = (t: number) => {
+      if (last == null) last = t;
+      const dt = Math.min(0.05, (t - last) / 1000);
+      last = t;
+      const held = hovered || !!press?.dragging;
+      pace += ((held ? 0 : 1) - pace) * Math.min(1, dt * 5);
+      if (!press?.dragging) {
+        const drift = still || reduce.matches ? 0 : SPEED * (across.matches ? -1 : 1);
+        offset += (drift * pace + fling) * dt;
+        fling *= Math.exp(-FLING_DECAY * dt);
+        if (Math.abs(fling) < 1) fling = 0;
+      }
+      place();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      press = { id: e.pointerId, x: e.clientX, y: e.clientY, at: offset, dragging: false };
+      lastX = e.clientX;
+      lastT = e.timeStamp;
+      velocity = 0;
+      fling = 0;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!press || e.pointerId !== press.id) return;
+      const dx = e.clientX - press.x;
+      if (!press.dragging) {
+        const dy = e.clientY - press.y;
+        // A mostly vertical pull is the page's to scroll.
+        if (Math.abs(dy) > DRAG_SLOP && Math.abs(dy) > Math.abs(dx)) {
+          press = null;
+          return;
+        }
+        if (Math.abs(dx) < DRAG_SLOP) return;
+        press.dragging = true;
+        setDragging(true);
+        lane.setPointerCapture(e.pointerId);
+      }
+      offset = press.at + dx;
+      const dt = (e.timeStamp - lastT) / 1000;
+      if (dt > 0) velocity = velocity * 0.6 + ((e.clientX - lastX) / dt) * 0.4;
+      lastX = e.clientX;
+      lastT = e.timeStamp;
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!press || e.pointerId !== press.id) return;
+      if (press.dragging) {
+        // A pause before letting go is not a throw.
+        fling = e.timeStamp - lastT > 80 ? 0 : Math.max(-2400, Math.min(2400, velocity));
+        setDragging(false);
+      }
+      press = null;
+    };
+    const onEnter = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") hovered = true;
+    };
+    const onLeave = () => {
+      hovered = false;
+    };
+
+    lane.addEventListener("pointerdown", onDown);
+    lane.addEventListener("pointermove", onMove);
+    lane.addEventListener("pointerup", onUp);
+    lane.addEventListener("pointercancel", onUp);
+    lane.addEventListener("pointerenter", onEnter);
+    lane.addEventListener("pointerleave", onLeave);
+    return () => {
+      cancelAnimationFrame(raf);
+      lane.removeEventListener("pointerdown", onDown);
+      lane.removeEventListener("pointermove", onMove);
+      lane.removeEventListener("pointerup", onUp);
+      lane.removeEventListener("pointercancel", onUp);
+      lane.removeEventListener("pointerenter", onEnter);
+      lane.removeEventListener("pointerleave", onLeave);
+    };
+  }, [still, signature]);
+
   const run = (clone: boolean) => (
-    <div
-      ref={clone ? undefined : runRef}
-      aria-hidden
-      className="pm-run"
-    >
+    <div ref={clone ? undefined : runRef} aria-hidden className="pm-run">
       {Array.from({ length: reps }, (_, r) =>
         tiles.map((t) => (
           <div key={`${r}:${t.key}`} className="pm-cell">
@@ -141,14 +258,16 @@ function Lane({ tiles }: { tiles: Tile[] }) {
   );
 
   return (
-    <div ref={laneRef} className="pm-lane">
-      <div
-        className="pm-track"
-        data-still={still || undefined}
-        style={dur ? { ["--pm-dur" as string]: `${dur.toFixed(2)}s` } : undefined}
-      >
+    <div
+      ref={laneRef}
+      className="pm-lane"
+      data-dragging={dragging || undefined}
+      // Vertical swipes still scroll the page; sideways ones drag the lane.
+      style={{ touchAction: "pan-y" }}
+    >
+      <div ref={trackRef} className="pm-track">
         {run(false)}
-        {!still && run(true)}
+        {run(true)}
       </div>
     </div>
   );
