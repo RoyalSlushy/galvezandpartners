@@ -146,6 +146,18 @@
   );
 }
 
+/* Mobile: the film's foot fades out into the section's own gradient, so the
+   footage melts into the bottom band the skyline stands in instead of stopping
+   on a hard edge above it. A mask rather than a painted overlay, so what shows
+   through is the real backdrop — whatever gradient the admin has set — and the
+   blend follows it. Desktop frames the film and keeps its edge. */
+@media (max-width: 750px) {
+  .hero-film-fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+  }
+}
+
 /* Inner-page header accent: a thin bottom stroke whose colors are the hero
    gradient stops (the mobile header image's color picker, via
    --header-border-grad). The gradient paints at full strength (no dimming blend)

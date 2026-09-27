@@ -88,6 +88,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.hero.sub": "hero subtitle",
   "home.hero.image": "hero image",
   "home.hero.ctaLabel": "button label",
+  "home.cityscape.image": "skyline artwork",
   "home.worksEyebrow": "eyebrow",
   "home.servicesHeading": "services heading",
   "home.services.*.title": "service title",

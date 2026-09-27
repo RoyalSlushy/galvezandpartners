@@ -22,6 +22,8 @@ import {
   INSTAGRAM,
   WORKS_EYEBROW,
   SERVICES_HEADING,
+  CITYSCAPE,
+  type CityscapeContent,
   type Service,
   type InstagramPost,
   type HeroGradient,
@@ -71,6 +73,7 @@ export type HomeContent = {
     ctaHref: string;
     gradient: HeroGradient;
   };
+  cityscape: CityscapeContent;
   services: Service[];
   worksEyebrow: string;
   servicesHeading: string;
@@ -121,6 +124,7 @@ export const DEFAULT_SITE: SiteContent = {
 
 export const DEFAULT_HOME: HomeContent = {
   hero: { ...HERO },
+  cityscape: { ...CITYSCAPE },
   services: SERVICES.map((s) => ({ ...s })),
   worksEyebrow: WORKS_EYEBROW,
   servicesHeading: SERVICES_HEADING,

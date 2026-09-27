@@ -122,11 +122,13 @@ export default function HomeHero({
       <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
       {/* The hero film, full-bleed across the frame. The wipe needs a box of its
           own: EditableImage owns the media element's class list, and clipping it
-          directly would fight it. */}
+          directly would fight it. On mobile the same box fades the film's foot
+          out into the section gradient (.hero-film-fade), so the footage melts
+          into the band the skyline stands in rather than ending on an edge. */}
       <div
         data-hero-wipe
         style={{ ["--d" as string]: `${BEAT.image}ms` }}
-        className="absolute inset-0 z-0 will-change-[clip-path,transform]"
+        className="hero-film-fade absolute inset-0 z-0 will-change-[clip-path,transform]"
       >
         <EditableImage
           path="home.hero.image"
@@ -158,14 +160,15 @@ export default function HomeHero({
       <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
       <div className="contents sm:flex sm:items-stretch sm:gap-3">
         <div className="relative min-w-0 sm:flex-1">
-          {/* The legibility wash, and only here: it pools behind the copy so
+          {/* The legibility wash, desktop only: it pools behind the copy so
               the words hold against whatever the footage is doing under them,
-              and leaves the rest of the film alone. -z-10 puts it at the back
-              of the shell's own stacking context — behind the copy, still over
-              the film. */}
+              and leaves the rest of the film alone. On mobile the copy stands in
+              the film's faded foot instead, so it needs no wash of its own.
+              -z-10 puts it at the back of the shell's own stacking context —
+              behind the copy, still over the film. */}
           <div
             aria-hidden
-            className="hero-copy-scrim pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10"
+            className="hero-copy-scrim pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10 hidden sm:block"
           />
           <FitLine
             path="home.hero.headline"

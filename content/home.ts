@@ -33,6 +33,25 @@ export const HERO = {
   gradient: DEFAULT_HERO_GRADIENT,
 };
 
+/** The skyline that caps the content rising over the hero (see Cityscape).
+ * Empty colors follow the theme — the back row takes the panel tint and the
+ * front row the content's base color, so its bases fuse with the panel below.
+ * `image` swaps the drawn skyline for uploaded artwork (a silhouette with a
+ * transparent sky reads best); empty keeps the built-in one. */
+export type CityscapeContent = {
+  show: boolean;
+  backColor: string;
+  frontColor: string;
+  image: string;
+};
+
+export const CITYSCAPE: CityscapeContent = {
+  show: true,
+  backColor: "",
+  frontColor: "",
+  image: "",
+};
+
 /** `media` is an optional decorative backdrop for the service's carousel card
  * (gif / mp4 / svg — a full URL or bare Wix media id), rendered tilted behind
  * the card text. Empty/absent means no backdrop; set from the admin editor. */
