@@ -51,9 +51,19 @@ export function logoSrc(raw: string): string {
  * uploaded letterforms where there are any, and otherwise the glyph set's
  * characters in the display face (the same fallback the glyphs use elsewhere).
  */
-export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
+export default function PartnerMarquee({
+  logos,
+  reverse = false,
+}: {
+  logos: PartnerLogo[];
+  /** Run the partners (or the stand-in glyphs) in reverse order — the
+   * homepage's copy of the lane lists them back to front, so it doesn't open
+   * on the same logos as the Our Partners page. */
+  reverse?: boolean;
+}) {
   const glyphs = useGlyphMap();
-  const named = (logos ?? []).filter((l) => l?.img);
+  const listed = (logos ?? []).filter((l) => l?.img);
+  const named = reverse ? [...listed].reverse() : listed;
   // `named` is rebuilt every render, so the tiles key off its contents.
   const logoKey = named.map((l) => l.img).join("|");
 
@@ -67,7 +77,8 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
     // No logos yet — the glyphs stand in. Only the uploaded letterforms if
     // there are any; the whole set in the display face if there are none.
     const uploaded = GLYPHS.map((g) => g.char).filter((c) => glyphs.has(c));
-    const chars = uploaded.length > 0 ? uploaded : GLYPHS.map((g) => g.char);
+    const set = uploaded.length > 0 ? uploaded : GLYPHS.map((g) => g.char);
+    const chars = reverse ? [...set].reverse() : set;
     return chars.map((c) => ({
       key: `g${c}`,
       node: glyphs.has(c) ? (
@@ -77,7 +88,7 @@ export default function PartnerMarquee({ logos }: { logos: PartnerLogo[] }) {
       ),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [glyphs, logoKey]);
+  }, [glyphs, logoKey, reverse]);
 
   return (
     <>

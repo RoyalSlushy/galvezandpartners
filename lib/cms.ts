@@ -23,6 +23,7 @@ import {
   WORKS_EYEBROW,
   SERVICES_HEADING,
   CITYSCAPE,
+  HOME_PARTNERS,
   type CityscapeContent,
   type Service,
   type InstagramPost,
@@ -90,6 +91,12 @@ export type HomeContent = {
     ctaLabel: string;
     ctaHref: string;
   };
+  partners: {
+    eyebrow: string;
+    heading: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
   instagram: {
     eyebrow: string;
     heading: string;
@@ -135,6 +142,7 @@ export const DEFAULT_HOME: HomeContent = {
   },
   marqueeWords: [...MARQUEE_WORDS],
   featuredWork: { ...FEATURED_WORK },
+  partners: { ...HOME_PARTNERS },
   instagram: {
     ...INSTAGRAM,
     posts: INSTAGRAM.posts.map((p) => ({ ...p })),

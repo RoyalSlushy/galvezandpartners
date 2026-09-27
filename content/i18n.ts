@@ -85,6 +85,8 @@ const ES: Record<string, string> = {
   // --- Instagram ---
   "on the gram": "en el gram",
   "Follow the Story.": "Sigue la Historia.",
+  "In Good Company.": "En Buena Compañía.",
+  "Meet Our Partners": "Conoce a Nuestros Socios",
   "Behind the scenes": "Detrás de cámaras",
   "On set with the crew": "En el set con el equipo",
   "ELG Accident Attorneys — campaign day": "ELG Accident Attorneys — día de campaña",

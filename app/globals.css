@@ -132,29 +132,28 @@
   background-position: 0 calc(-1 * var(--header-h));
 }
 
-/* The hero copy's legibility wash. It used to be a scrim over the whole frame,
-   which dimmed the film to hold up two lines of type; this pools behind the
-   copy instead and leaves the footage alone. Anchored at the block's
-   bottom-left, where the copy sits, and faded out well before its own edges so
-   there is nothing to read as a panel behind the words. */
-.hero-copy-scrim {
-  background: radial-gradient(
-    115% 145% at 12% 88%,
-    rgb(var(--c-navy) / 0.88) 0%,
-    rgb(var(--c-navy) / 0.55) 38%,
-    rgb(var(--c-navy) / 0) 72%
-  );
-}
-
-/* Mobile: the film's foot fades out into the section's own gradient, so the
-   footage melts into the bottom band the skyline stands in instead of stopping
-   on a hard edge above it. A mask rather than a painted overlay, so what shows
-   through is the real backdrop — whatever gradient the admin has set — and the
-   blend follows it. Desktop frames the film and keeps its edge. */
+/* Mobile: the film runs on down behind the CTA bar and the skyline band, and
+   fades out there into the section's own gradient — so the footage melts into
+   the band the buildings stand in instead of stopping on a hard edge, and the
+   fade never reaches up behind the copy (which would read as a panel behind
+   the words). The fade starts about where the CTA bar does (its height plus
+   the shell's padding, ~5.5rem) and ends at the section's foot. A mask rather
+   than a painted overlay, so what shows through is the real backdrop, and the
+   blend follows whatever gradient the admin has set. Desktop frames the film
+   and keeps its edge. */
 @media (max-width: 750px) {
-  .hero-film-fade {
-    -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+  .hero-frame .hero-film-fade {
+    bottom: calc(-1 * var(--cityscape-h));
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--cityscape-h) - 5.5rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--cityscape-h) - 5.5rem),
+      transparent 100%
+    );
   }
 }
 

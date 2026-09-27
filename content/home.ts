@@ -113,6 +113,16 @@ export const FEATURED_WORK = {
   ctaHref: "/our-works",
 };
 
+/** Copy for the homepage's partners band. The logos themselves are the Our
+ * Partners page's list (partners.logos), so a partner added there shows here
+ * too; this is only the band's own heading and its link on to that page. */
+export const HOME_PARTNERS = {
+  eyebrow: "our partners",
+  heading: "In Good Company.",
+  ctaLabel: "Meet Our Partners",
+  ctaHref: "/our-partners",
+};
+
 export type InstagramPost = { img: string; href: string; caption: string };
 
 /** Instagram preview strip. Posts are CMS-managed (image + link + caption);

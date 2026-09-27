@@ -5,15 +5,17 @@ import ServicesGrid from "@/components/sections/home/ServicesGrid";
 import MulticulturalReveal from "@/components/sections/home/MulticulturalReveal";
 import FeaturedWork from "@/components/sections/home/FeaturedWork";
 import InstagramFeed from "@/components/sections/home/InstagramFeed";
-import { getHome, getWork } from "@/lib/cms";
+import HomePartners from "@/components/sections/home/HomePartners";
+import { getHome, getPartners, getWork } from "@/lib/cms";
 import { getInstagramFeed } from "@/lib/instagram";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [home, work, instagramPosts] = await Promise.all([
+  const [home, work, partners, instagramPosts] = await Promise.all([
     getHome(),
     getWork(),
+    getPartners(),
     getInstagramFeed(),
   ]);
   return (
@@ -32,6 +34,7 @@ export default async function Home() {
           <WordMarquee words={home.marqueeWords} />
           <MulticulturalReveal multicultural={home.multicultural} />
           <FeaturedWork featured={home.featuredWork} items={work.items} />
+          <HomePartners copy={home.partners} logos={partners.logos} />
           <ServicesGrid
             services={home.services}
             heading={home.servicesHeading}
