@@ -81,6 +81,7 @@ export type HomeContent = {
   multicultural: {
     titleLines: string[];
     intro: string;
+    image: string;
     cards: { title: string; body: string }[];
   };
   marqueeWords: string[];
@@ -138,6 +139,7 @@ export const DEFAULT_HOME: HomeContent = {
   multicultural: {
     titleLines: [...MULTICULTURAL.titleLines],
     intro: MULTICULTURAL.intro,
+    image: MULTICULTURAL.image,
     cards: MULTICULTURAL.cards.map((c) => ({ ...c })),
   },
   marqueeWords: [...MARQUEE_WORDS],

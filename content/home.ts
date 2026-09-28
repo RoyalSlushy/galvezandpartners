@@ -181,6 +181,9 @@ export const MULTICULTURAL = {
   titleLines: ["the multi-cultural", "Agency doing", "big things"],
   intro:
     "Welcome to G+P Advertising, your go-to destination for all things marketing and advertising.",
+  /** The visual beside the manifesto on desktop, framed 4:3 (an image, or an
+   * uploaded video). Empty leaves the frame's space open. */
+  image: "",
   cards: [
     {
       title: "reach new Heights",

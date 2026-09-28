@@ -96,6 +96,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.services.*.media": "card backdrop",
   "home.multicultural.titleLines": "title lines",
   "home.multicultural.intro": "intro",
+  "home.multicultural.image": "manifesto visual",
   "home.multicultural.cards.*.title": "card title",
   "home.multicultural.cards.*.body": "card body",
   "home.marqueeWords": "marquee words",
