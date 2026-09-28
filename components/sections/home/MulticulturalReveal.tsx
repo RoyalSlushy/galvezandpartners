@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Container from "@/components/ui/Container";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
@@ -19,7 +18,7 @@ type Multicultural = {
 };
 
 /** The gap between one intro word lighting and the next (ms). */
-const INTRO_WORD_MS = 90;
+const INTRO_WORD_MS = 45;
 
 /**
  * "the multi-cultural / Agency doing / big things" manifesto.
@@ -31,8 +30,11 @@ const INTRO_WORD_MS = 90;
  * On desktop the copy takes the left half of the body column — the payoff line
  * ("big things") is fit to that half, its left edge flush with the white lines
  * above it — and the right half holds a CMS visual framed 4:3
- * (home.multicultural.image). With none set the frame's space is simply left
- * open. On a phone the copy has the width to itself and the visual stays out.
+ * (home.multicultural.image). With none set the frame's space is held
+ * open behind a quiet placeholder frame. On a phone the copy has the width to
+ * itself and the visual stays out. The section is centred at the full width of
+ * the screen up to a cap, wider than the site column, so the copy is not
+ * pressed into half of the narrower column.
  *
  * The title is split into words that ink-fill one by one as the block travels
  * up the viewport (scroll-linked, runs both directions). The intro fills the
@@ -122,7 +124,7 @@ export default function MulticulturalReveal({
   }, [editMode]);
 
   // The intro's fill, on a clock rather than the scroll: dimmed once armed,
-  // then lit word by word from the moment it is properly in view, once.
+  // then lit word by word from the moment the section comes into view, once.
   useEffect(() => {
     if (editMode || reduced || motion === "minimal") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -138,12 +140,15 @@ export default function MulticulturalReveal({
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
         words.forEach((w, i) => {
-          timers.push(setTimeout(() => w.setAttribute("data-lit", ""), 180 + i * INTRO_WORD_MS));
+          timers.push(setTimeout(() => w.setAttribute("data-lit", ""), i * INTRO_WORD_MS));
         });
       },
-      { threshold: 0.6 },
+      // Keyed to the section coming on screen rather than the intro itself:
+      // the snap carries the section up in a moment, and the intro has to be
+      // lit by the time it lands, not start lighting once it has.
+      { threshold: 0 },
     );
-    io.observe(root);
+    io.observe(sectionRef.current ?? root);
     return () => {
       io.disconnect();
       timers.forEach(clearTimeout);
@@ -153,8 +158,8 @@ export default function MulticulturalReveal({
     // `t`: re-split and re-run when the locale changes the words.
   }, [editMode, reduced, motion, multicultural.intro, t]);
 
-  // Scroll-linked word fill for the title: p=0 when the block's top enters at 90% of the
-  // viewport, p=1 once its bottom clears ~45%. Words toggle a data-lit
+  // Scroll-linked word fill for the title: p=0 when its top enters at 90% of
+  // the viewport, p=1 just before the section settles at the top of the screen. Words toggle a data-lit
   // attribute directly (no React re-render per frame).
   useEffect(() => {
     // "minimal" keeps the copy lit and lets the block's own arrival carry it —
@@ -178,7 +183,13 @@ export default function MulticulturalReveal({
       ticking = false;
       const rect = root.getBoundingClientRect();
       const vh = window.innerHeight;
-      const p = Math.max(0, Math.min(1, (vh * 0.9 - rect.top) / (vh * 0.45 + rect.height)));
+      // Where the title's top stands once the section has settled at the top
+      // of the screen (the desktop snap point), less a little: the fill
+      // completes just before it gets there, never after.
+      const sec = sectionRef.current?.getBoundingClientRect();
+      const settled = (sec ? rect.top - sec.top : 0) + vh * 0.05;
+      const span = Math.max(1, vh * 0.9 - settled);
+      const p = Math.max(0, Math.min(1, (vh * 0.9 - rect.top) / span));
       const next = Math.round(p * words.length);
       if (next === lit) return;
       const [from, to] = next > lit ? [lit, next] : [next, lit];
@@ -223,14 +234,16 @@ export default function MulticulturalReveal({
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy py-10 sm:py-16"
+      className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy pb-10 pt-24 sm:pb-16 sm:pt-32"
     >
       {/* Soft gold glow anchoring the manifesto */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-40 top-10 h-[480px] w-[480px] bg-gold/[0.07] blur-3xl"
       />
-      <Container className="relative w-full">
+      {/* Full width, centred, up to a cap — wider than the site column, so the
+          copy has room to breathe beside the visual. */}
+      <div className="relative mx-auto w-full max-w-[1680px] px-6 sm:px-12 lg:px-16">
         {/* Copy in the left half, the visual in the right (sm+); a phone
             stacks nothing beside the copy. */}
         <div className="sm:grid sm:grid-cols-2 sm:items-center sm:gap-x-12">
@@ -320,10 +333,27 @@ export default function MulticulturalReveal({
           </div>
 
           {/* The visual, desktop only: a 4:3 frame in the right half. Empty,
-              it is space held open for one — and in edit mode a placeholder to
-              click to add it. */}
+              it shows a quiet placeholder frame — in edit mode, the picker's
+              placeholder to click to add one. */}
           <div className="relative hidden aspect-[4/3] w-full overflow-hidden sm:block">
-            {multicultural.image || editMode ? (
+            {!multicultural.image && !editMode ? (
+              <div
+                aria-hidden
+                className="flex h-full w-full items-center justify-center border border-dashed border-white/15 bg-white/[0.03]"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.25}
+                  className="h-12 w-12 text-white/20"
+                >
+                  <rect x="3" y="4.5" width="18" height="15" rx="1" />
+                  <circle cx="8.5" cy="9.5" r="1.75" />
+                  <path d="m3.5 17.5 5-5 3.5 3.5 3-3 5.5 5.5" />
+                </svg>
+              </div>
+            ) : (
               <EditableImage
                 path="home.multicultural.image"
                 raw={multicultural.image}
@@ -335,10 +365,10 @@ export default function MulticulturalReveal({
                 alt={t("Galvez & Partners")}
                 className="h-full w-full object-cover"
               />
-            ) : null}
+            )}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

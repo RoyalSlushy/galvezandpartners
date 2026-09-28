@@ -31,8 +31,13 @@ export default async function Home() {
       <div className="relative z-10 mt-[calc(-1*var(--cityscape-h))] sm:mt-0">
         <Cityscape cityscape={home.cityscape} />
         <div className="bg-navy">
-          <WordMarquee words={home.marqueeWords} />
-          <MulticulturalReveal multicultural={home.multicultural} />
+          {/* The marquee sticks to the top of the screen for as long as the
+              manifesto is on it, compacting as it sticks (see WordMarquee);
+              this wrapper is what lets it go once the manifesto has passed. */}
+          <div className="relative">
+            <WordMarquee words={home.marqueeWords} />
+            <MulticulturalReveal multicultural={home.multicultural} />
+          </div>
           <FeaturedWork featured={home.featuredWork} items={work.items} />
           <HomePartners copy={home.partners} logos={partners.logos} />
           <ServicesGrid

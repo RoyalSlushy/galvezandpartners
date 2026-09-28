@@ -428,6 +428,41 @@
   }
 }
 
+/* Homepage word marquee (WordMarquee): sticky over the manifesto, and once
+   stuck ([data-compact]) the words shrink toward the band's left edge, the
+   surface folds up to their height, and the band drops back in opacity. Only
+   transforms and opacity change, so the band's layout box — and everything
+   under it — stays put. */
+.wm-band {
+  transition: opacity 500ms ease;
+}
+.wm-bg,
+.wm-body {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.wm-bg {
+  transform-origin: top;
+}
+.wm-body {
+  transform-origin: 0 0;
+}
+.wm-band[data-compact] {
+  opacity: 0.55;
+}
+.wm-band[data-compact] .wm-bg {
+  transform: scaleY(var(--wm-k));
+}
+.wm-band[data-compact] .wm-body {
+  transform: scale(var(--wm-k));
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-band,
+  .wm-bg,
+  .wm-body {
+    transition: none;
+  }
+}
+
 /* Outlined display type (marquee words, ghost index numerals). Layer opacity
    utilities on top to tune the stroke's strength per use. */
 .text-stroke-gold {
