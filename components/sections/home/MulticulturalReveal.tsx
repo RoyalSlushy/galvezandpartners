@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import EditableImage from "@/components/admin/editable/EditableImage";
-import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
@@ -14,11 +13,14 @@ type Multicultural = {
   titleLines: string[];
   intro: string;
   image: string;
-  cards: { title: string; body: string }[];
 };
 
 /** The gap between one intro word lighting and the next (ms). */
 const INTRO_WORD_MS = 45;
+
+/** How much of the visual has to be on screen, once a scroll comes to rest,
+ * for it to pop out (see .mc-visual). */
+const POP_VISIBLE = 0.6;
 
 /**
  * "the multi-cultural / Agency doing / big things" manifesto.
@@ -30,13 +32,13 @@ const INTRO_WORD_MS = 45;
  *
  * On desktop the copy takes the left half of the body column — the payoff line
  * ("big things") is fit to that half, its left edge flush with the white lines
- * above it — and the right half holds a CMS visual framed 4:3
- * (home.multicultural.image). With none set the frame's space is held
- * open behind a quiet placeholder frame. A phone gets the same section with
- * the visual stacked above the copy, at the column's full width, instead of
- * beside it. The section is
- * centred at the full width of the screen up to a cap, wider than the site
- * column, so the copy is not pressed into half of the narrower column.
+ * above it, and the intro set close under it — and the right half holds a CMS
+ * visual framed 4:3 (home.multicultural.image). With none set the frame's space
+ * is held open behind a quiet placeholder frame. A phone gets the same section
+ * with the visual stacked above the copy, at the column's full width, instead
+ * of beside it. The section is centred at the full width of the screen up to a
+ * cap, wider than the site column, so the copy is not pressed into half of the
+ * narrower column.
  *
  * The title is split into words that ink-fill one by one as the block travels
  * up the viewport (scroll-linked, runs both directions). The intro fills the
@@ -45,17 +47,12 @@ const INTRO_WORD_MS = 45;
  * style each word also rises as the fill reaches it (see .wordfill-armed in
  * globals.css); under minimal the copy is simply lit.
  *
- * The section is a snap point at every width: a scroll leaving the hero
- * carries on until the whole manifesto is on screen (see the snap effect
- * below).
+ * The section is a snap point at every width, between the hero above it and
+ * the featured work below it (see the snap effect). Landing on it, the visual
+ * springs out of its frame.
  *
- * What used to be three cards is now three points of interest: a dot and a
- * title each, with the body arriving only when one is asked for. The cards
- * were most of the section's height and were read in a glance and never
- * again; as points they cost nothing until wanted.
- *
- * Edit mode keeps the plain editable card list — the copy still has to be
- * editable, and a dot is a poor place to type.
+ * The three points of interest that used to close the section are gone; their
+ * copy is still in home.multicultural.cards, unused.
  */
 export default function MulticulturalReveal({
   multicultural: serverMulticultural,
@@ -73,15 +70,54 @@ export default function MulticulturalReveal({
   const fillRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLParagraphElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const visualRef = useRef<HTMLDivElement>(null);
 
-  // Snap between the hero and this section, at every width. The stretch between them
-  // (the skyline and the word marquee) is not a place to stop: a scroll that
-  // comes to rest in it is carried on the way it was going — on down to this
-  // section's top, or back up to the hero. Anywhere else the page scrolls
-  // freely. Done by hand rather than with CSS scroll-snap: the hero is sticky
-  // (a poor snap target), and a "proximity" snap only catches a scroll that
-  // already ends within a short reach of the section, while "mandatory" would
-  // hold the rest of the page to snap points too. Edit mode is left alone.
+  // The visual's pop. Armed (tucked in, see .mc-visual) only while this effect
+  // is live, so without JS, in edit mode or with motion off it simply shows.
+  // It pops once a scroll comes to rest with enough of it on screen — which is
+  // what landing on the snap point is — and tucks back in once the section has
+  // left the screen entirely, so it pops again on the next visit.
+  const popRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const el = visualRef.current;
+    const section = sectionRef.current;
+    popRef.current = () => {};
+    if (!el || !section || editMode || reduced) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    el.setAttribute("data-armed", "");
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.height <= 0) return;
+      const shown = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+      if (shown / r.height >= POP_VISIBLE) el.setAttribute("data-pop", "");
+    };
+    popRef.current = check;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.every((e) => !e.isIntersecting)) el.removeAttribute("data-pop");
+    });
+    io.observe(section);
+    check();
+    return () => {
+      io.disconnect();
+      popRef.current = () => {};
+      el.removeAttribute("data-armed");
+      el.removeAttribute("data-pop");
+    };
+  }, [editMode, reduced]);
+
+  // Snap stops, at every width: the hero (the top of the page), this section's
+  // top, and the top of the section after it (featured work). A scroll that
+  // comes to rest between two neighbouring stops is carried on the way it was
+  // going, to the next stop down or back to the one above. Past the last stop
+  // the page scrolls freely. Where this section is taller than the screen (a
+  // short phone) the stretch in which its foot is still coming up is left
+  // free as well, so all of it can be read.
+  //
+  // Done by hand rather than with CSS scroll-snap: the hero is sticky (a poor
+  // snap target), and a "proximity" snap only catches a scroll that already
+  // ends within a short reach of a stop, while "mandatory" would hold the rest
+  // of the page to snap points too. Edit mode is left alone.
   useEffect(() => {
     if (editMode) return;
     const section = sectionRef.current;
@@ -103,17 +139,33 @@ export default function MulticulturalReveal({
       if (gliding) {
         gliding = false;
         rest = y;
+        popRef.current();
         return;
       }
-      const top = Math.round(section.getBoundingClientRect().top + y);
-      if (y <= 1 || y >= top - 1) {
+      const rect = section.getBoundingClientRect();
+      const top = Math.round(rect.top + y);
+      const next = Math.round(rect.bottom + y);
+      // Where the section's foot meets the screen's; past `top` only when the
+      // section is taller than the screen.
+      const foot = next - window.innerHeight;
+      const stops = foot > top + 1 ? [0, top, foot, next] : [0, top, next];
+      let i = -1;
+      for (let k = 0; k < stops.length - 1; k++) {
+        if (y > stops[k] + 1 && y < stops[k + 1] - 1) i = k;
+      }
+      // At a stop, past the last one, or in the free stretch of a tall section.
+      if (i < 0 || (stops.length === 4 && i === 1)) {
         rest = y;
+        popRef.current();
         return;
       }
-      const target = y > rest ? top : 0;
+      const target = y > rest ? stops[i + 1] : stops[i];
       gliding = true;
       rest = target;
-      window.scrollTo({ top: target, behavior: reduce.matches || motionOffRef.current ? "auto" : "smooth" });
+      window.scrollTo({
+        top: target,
+        behavior: reduce.matches || motionOffRef.current ? "auto" : "smooth",
+      });
     };
     const onScroll = () => {
       lastScrollAt = performance.now();
@@ -186,8 +238,9 @@ export default function MulticulturalReveal({
   }, [editMode, reduced, motion, multicultural.intro, t]);
 
   // Scroll-linked word fill for the title: p=0 when its top enters at 90% of
-  // the viewport, p=1 just before the section settles at the top of the screen. Words toggle a data-lit
-  // attribute directly (no React re-render per frame).
+  // the viewport, p=1 just before the section settles at the top of the
+  // screen. Words toggle a data-lit attribute directly (no React re-render per
+  // frame).
   useEffect(() => {
     // "minimal" keeps the copy lit and lets the block's own arrival carry it —
     // the word-by-word fill is the section's signature move, not its baseline.
@@ -211,8 +264,8 @@ export default function MulticulturalReveal({
       const rect = root.getBoundingClientRect();
       const vh = window.innerHeight;
       // Where the title's top stands once the section has settled at the top
-      // of the screen (the snap point), less a little: the fill
-      // completes just before it gets there, never after.
+      // of the screen (the snap point), less a little: the fill completes just
+      // before it gets there, never after.
       const sec = sectionRef.current?.getBoundingClientRect();
       const settled = (sec ? rect.top - sec.top : 0) + vh * 0.05;
       const span = Math.max(1, vh * 0.9 - settled);
@@ -317,53 +370,36 @@ export default function MulticulturalReveal({
                 </h2>
               )}
             </div>
-            {/* mt-7 clears the payoff line's descenders, which the tighter
-                leading pulls up into whatever follows. */}
+            {/* Set close under the payoff line so the two read as one block:
+                the line's own padding already clears the descenders its tight
+                leading pulls down, so only a sliver is added here. */}
             {editMode ? (
               <EditableText
                 path="home.multicultural.intro"
                 value={multicultural.intro}
                 as="p"
                 multiline
-                className="mt-7 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8"
+                className="mt-1 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8"
               />
             ) : (
               <p
                 ref={introRef}
-                className="mt-7 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8"
+                className="mt-1 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:text-f8"
               >
                 {splitWords(tv(multicultural.intro))}
               </p>
             )}
-
-            {editMode ? (
-              <>
-                <div className="mt-10 grid gap-6">
-                  {multicultural.cards.map((c, i) => (
-                    <SpotlightCard
-                      key={i}
-                      index={i}
-                      count={multicultural.cards.length}
-                      card={c}
-                      editMode={editMode}
-                      tv={tv}
-                    />
-                  ))}
-                </div>
-                <div className="mt-8">
-                  <AddChip listPath="home.multicultural.cards" label="card" />
-                </div>
-              </>
-            ) : (
-              <PointsOfInterest cards={multicultural.cards} tv={tv} t={t} />
-            )}
           </div>
 
           {/* The visual: a 4:3 frame in the right half, or above the copy,
-              the column's full width, on a phone (order-first). Empty, it
-              shows a quiet placeholder frame — in edit mode, the picker's
-              placeholder to click to add one. */}
-          <div className="relative order-first aspect-[4/3] w-full overflow-hidden sm:order-none">
+              the column's full width, on a phone (order-first). It springs out
+              when the section lands (.mc-visual). Empty, it shows a quiet
+              placeholder frame — in edit mode, the picker's placeholder to
+              click to add one. */}
+          <div
+            ref={visualRef}
+            className="mc-visual relative order-first aspect-[4/3] w-full overflow-hidden sm:order-none"
+          >
             {!multicultural.image && !editMode ? (
               <div
                 aria-hidden
@@ -434,106 +470,6 @@ export default function MulticulturalReveal({
 }
 
 /**
- * The three points of interest, and the copy one of them is holding.
- *
- * Ordinary buttons in a row: they tab, they announce what they open, and the
- * body text is in the DOM only while its point is open. Tapping the open one
- * again — or Escape, or a click outside — puts it away.
- */
-function PointsOfInterest({
-  cards,
-  tv,
-  t,
-}: {
-  cards: { title: string; body: string }[];
-  tv: (s: string) => string;
-  t: (s: string) => string;
-}) {
-  const [open, setOpen] = useState<number | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (open === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(null);
-    };
-    const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(null);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onDown);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onDown);
-    };
-  }, [open]);
-
-  const points = cards.map((c, i) => (
-    <button
-      key={i}
-      type="button"
-      aria-expanded={open === i}
-      onClick={() => setOpen((cur) => (cur === i ? null : i))}
-      className="group relative flex items-center gap-2 text-left"
-    >
-      <span
-        className={`relative flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition ${
-          open === i
-            ? "border-gold bg-gold"
-            : "border-gold/70 bg-navy/70 group-hover:bg-gold/40 group-focus-visible:bg-gold/40"
-        }`}
-      >
-        {/* The ring is what makes a 14px dot read as a control. */}
-        <span
-          aria-hidden
-          className={`absolute inset-[-6px] rounded-full border border-gold/30 transition ${
-            open === i ? "opacity-100" : "opacity-60 group-hover:opacity-100"
-          }`}
-        />
-      </span>
-      <span
-        className={`font-heading text-[11px] uppercase tracking-[0.18em] transition ${
-          open === i ? "text-gold" : "text-white/70 group-hover:text-white"
-        }`}
-      >
-        {tv(c.title)}
-      </span>
-    </button>
-  ));
-
-  return (
-    <div ref={wrapRef} className="relative mt-8">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">{points}</div>
-
-      {open !== null && cards[open] && (
-        <div
-          role="dialog"
-          aria-label={tv(cards[open].title)}
-          className="mt-5 border border-gold/25 bg-navy-soft/95 p-5 shadow-2xl shadow-black/40 sm:max-w-md"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="font-heading text-f7 uppercase leading-tight text-gold">
-              {tv(cards[open].title)}
-            </h3>
-            <button
-              type="button"
-              onClick={() => setOpen(null)}
-              aria-label={t("Close")}
-              className="-m-2 shrink-0 p-2 font-heading text-sm text-white/60 transition hover:text-gold"
-            >
-              ✕
-            </button>
-          </div>
-          <p className="mt-3 whitespace-pre-line font-body text-f9 text-white/80">
-            {tv(cards[open].body)}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
  * One title line scaled up until it spans its column exactly, edge to edge.
  * The class-driven size is only a starting point: the natural width of the
  * (nowrap) text is measured at that size and the font-size is scaled by the
@@ -600,76 +536,5 @@ function FitLine({
         {children}
       </span>
     </span>
-  );
-}
-
-/**
- * The editable card, kept for edit mode. Visitors get the map pins instead, but
- * an admin still needs somewhere to type the copy that fills them — and a pin
- * projected onto a moving 3D scene is not that place.
- */
-function SpotlightCard({
-  index,
-  count,
-  card,
-  editMode,
-  tv,
-}: {
-  index: number;
-  count: number;
-  card: { title: string; body: string };
-  editMode: boolean;
-  tv: (s: string) => string;
-}) {
-  const ref = useRef<HTMLElement>(null);
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
-  };
-
-  return (
-    <article
-      ref={ref}
-      onMouseMove={onMouseMove}
-      className="group relative h-full overflow-hidden border border-white/10 bg-navy-soft/60 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold/40"
-    >
-      {/* Cursor spotlight */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{
-          background:
-            "radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), rgba(230,179,103,0.13), transparent 70%)",
-        }}
-      />
-      {editMode && (
-        <ListControls
-          listPath="home.multicultural.cards"
-          index={index}
-          count={count}
-          label="card"
-          className="right-2 top-2"
-        />
-      )}
-      <div className="relative">
-        <EditableText
-          path={`home.multicultural.cards.${index}.title`}
-          value={tv(card.title)}
-          as="h3"
-          className="font-heading text-f7 uppercase text-gold"
-        />
-        <EditableText
-          path={`home.multicultural.cards.${index}.body`}
-          value={tv(card.body)}
-          as="p"
-          multiline
-          className="mt-4 whitespace-pre-line font-body text-f9 text-white/75"
-        />
-      </div>
-    </article>
   );
 }

@@ -437,6 +437,23 @@
   min-height: 100dvh;
 }
 
+/* The manifesto's visual springs out when the section lands. Tucked in (small
+   and clear) only while MulticulturalReveal has it armed, so it shows as-is
+   without JS, in edit mode and with motion off; [data-pop] releases it on the
+   bouncy spring, overshooting a touch and settling. Scale and opacity only —
+   the frame's layout box never moves. */
+.mc-visual[data-armed] {
+  transform: scale(0.82);
+  opacity: 0;
+  transition:
+    transform var(--spring-bounce-ms) var(--spring-bounce),
+    opacity 360ms ease-out;
+}
+.mc-visual[data-armed][data-pop] {
+  transform: none;
+  opacity: 1;
+}
+
 /* Homepage word marquee (WordMarquee): sticky over the manifesto, and once
    stuck ([data-compact]) the words shrink toward the band's left edge, the
    surface folds up to their height, and the band drops back in opacity. Only
