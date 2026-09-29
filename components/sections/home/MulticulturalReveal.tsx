@@ -31,10 +31,10 @@ const INTRO_WORD_MS = 45;
  * ("big things") is fit to that half, its left edge flush with the white lines
  * above it — and the right half holds a CMS visual framed 4:3
  * (home.multicultural.image). With none set the frame's space is held
- * open behind a quiet placeholder frame. On a phone the copy has the width to
- * itself and the visual stays out. The section is centred at the full width of
- * the screen up to a cap, wider than the site column, so the copy is not
- * pressed into half of the narrower column.
+ * open behind a quiet placeholder frame. A phone gets the same section with
+ * the visual stacked above the copy instead of beside it. The section is
+ * centred at the full width of the screen up to a cap, wider than the site
+ * column, so the copy is not pressed into half of the narrower column.
  *
  * The title is split into words that ink-fill one by one as the block travels
  * up the viewport (scroll-linked, runs both directions). The intro fills the
@@ -43,8 +43,9 @@ const INTRO_WORD_MS = 45;
  * style each word also rises as the fill reaches it (see .wordfill-armed in
  * globals.css); under minimal the copy is simply lit.
  *
- * On desktop the section is a snap point: a scroll leaving the hero carries on
- * until the whole manifesto is on screen (see the snap effect below).
+ * The section is a snap point at every width: a scroll leaving the hero
+ * carries on until the whole manifesto is on screen (see the snap effect
+ * below).
  *
  * What used to be three cards is now three points of interest: a dot and a
  * title each, with the body arriving only when one is asked for. The cards
@@ -71,7 +72,7 @@ export default function MulticulturalReveal({
   const introRef = useRef<HTMLParagraphElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Desktop snap between the hero and this section. The stretch between them
+  // Snap between the hero and this section, at every width. The stretch between them
   // (the skyline and the word marquee) is not a place to stop: a scroll that
   // comes to rest in it is carried on the way it was going — on down to this
   // section's top, or back up to the hero. Anywhere else the page scrolls
@@ -83,15 +84,19 @@ export default function MulticulturalReveal({
     if (editMode) return;
     const section = sectionRef.current;
     if (!section) return;
-    const desktop = window.matchMedia("(min-width: 751px)");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     const hasScrollEnd = "onscrollend" in window;
 
     let rest = window.scrollY; // where the last scroll came to rest
     let gliding = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // A finger still on the glass is not a scroll that has come to rest, even
+    // if it has stopped moving: never glide out from under it.
+    let touching = false;
+    let lastScrollAt = 0;
 
     const settle = () => {
+      if (touching) return;
       const y = window.scrollY;
       if (gliding) {
         gliding = false;
@@ -99,7 +104,7 @@ export default function MulticulturalReveal({
         return;
       }
       const top = Math.round(section.getBoundingClientRect().top + y);
-      if (!desktop.matches || y <= 1 || y >= top - 1) {
+      if (y <= 1 || y >= top - 1) {
         rest = y;
         return;
       }
@@ -109,16 +114,36 @@ export default function MulticulturalReveal({
       window.scrollTo({ top: target, behavior: reduce.matches || motionOffRef.current ? "auto" : "smooth" });
     };
     const onScroll = () => {
+      lastScrollAt = performance.now();
       if (hasScrollEnd) return;
       clearTimeout(timer);
       timer = setTimeout(settle, 140);
     };
+    const onTouchStart = () => {
+      touching = true;
+      clearTimeout(timer);
+    };
+    // Lifting the finger: if the page is still moving (a flick), the scroll's
+    // own end settles it; if it was lifted from a standstill, settle now.
+    const onTouchEnd = () => {
+      touching = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (performance.now() - lastScrollAt > 120) settle();
+      }, 160);
+    };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     if (hasScrollEnd) window.addEventListener("scrollend", settle);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       if (hasScrollEnd) window.removeEventListener("scrollend", settle);
     };
   }, [editMode]);
@@ -184,7 +209,7 @@ export default function MulticulturalReveal({
       const rect = root.getBoundingClientRect();
       const vh = window.innerHeight;
       // Where the title's top stands once the section has settled at the top
-      // of the screen (the desktop snap point), less a little: the fill
+      // of the screen (the snap point), less a little: the fill
       // completes just before it gets there, never after.
       const sec = sectionRef.current?.getBoundingClientRect();
       const settled = (sec ? rect.top - sec.top : 0) + vh * 0.05;
@@ -234,7 +259,7 @@ export default function MulticulturalReveal({
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy pb-10 pt-24 sm:pb-16 sm:pt-32"
+      className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy pb-20 pt-16 sm:pb-16 sm:pt-32"
     >
       {/* Soft gold glow anchoring the manifesto */}
       <div
@@ -245,8 +270,8 @@ export default function MulticulturalReveal({
           copy has room to breathe beside the visual. */}
       <div className="relative mx-auto w-full max-w-[1680px] px-6 sm:px-12 lg:px-16">
         {/* Copy in the left half, the visual in the right (sm+); a phone
-            stacks nothing beside the copy. */}
-        <div className="sm:grid sm:grid-cols-2 sm:items-center sm:gap-x-12">
+            stacks the visual above the copy. */}
+        <div className="flex flex-col gap-6 sm:grid sm:grid-cols-2 sm:items-center sm:gap-x-12 sm:gap-y-0">
           <div className="min-w-0">
             <div ref={fillRef} className="wordfill">
               {editMode ? (
@@ -332,10 +357,13 @@ export default function MulticulturalReveal({
             )}
           </div>
 
-          {/* The visual, desktop only: a 4:3 frame in the right half. Empty,
-              it shows a quiet placeholder frame — in edit mode, the picker's
-              placeholder to click to add one. */}
-          <div className="relative hidden aspect-[4/3] w-full overflow-hidden sm:block">
+          {/* The visual: a 4:3 frame in the right half, or above the copy on a
+              phone (order-first). On a phone its height is capped at 24% of
+              the screen (the width follows, keeping 4:3) so the whole section
+              still fits one screen, above the floating menu bar, on a short phone. Empty, it shows a quiet
+              placeholder frame — in edit mode, the picker's placeholder to
+              click to add one. */}
+          <div className="relative order-first aspect-[4/3] w-[min(100%,calc(24svh*4/3))] overflow-hidden sm:order-none sm:w-full">
             {!multicultural.image && !editMode ? (
               <div
                 aria-hidden
@@ -443,7 +471,7 @@ function PointsOfInterest({
 
   return (
     <div ref={wrapRef} className="relative mt-8">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-3">{points}</div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-8">{points}</div>
 
       {open !== null && cards[open] && (
         <div
