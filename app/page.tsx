@@ -6,16 +6,17 @@ import MulticulturalReveal from "@/components/sections/home/MulticulturalReveal"
 import FeaturedWork from "@/components/sections/home/FeaturedWork";
 import InstagramFeed from "@/components/sections/home/InstagramFeed";
 import HomePartners from "@/components/sections/home/HomePartners";
-import { getHome, getPartners, getWork } from "@/lib/cms";
+import { getHome, getPartners, getSite, getWork } from "@/lib/cms";
 import { getInstagramFeed } from "@/lib/instagram";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [home, work, partners, instagramPosts] = await Promise.all([
+  const [home, work, partners, site, instagramPosts] = await Promise.all([
     getHome(),
     getWork(),
     getPartners(),
+    getSite(),
     getInstagramFeed(),
   ]);
   return (
@@ -45,7 +46,11 @@ export default async function Home() {
             heading={home.servicesHeading}
             eyebrow={home.worksEyebrow}
           />
-          <InstagramFeed instagram={home.instagram} livePosts={instagramPosts ?? undefined} />
+          <InstagramFeed
+            instagram={home.instagram}
+            livePosts={instagramPosts ?? undefined}
+            socials={site.socials}
+          />
         </div>
       </div>
     </>

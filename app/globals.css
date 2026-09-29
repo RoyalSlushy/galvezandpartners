@@ -213,6 +213,34 @@
   }
 }
 
+/* The phone header strip's entrance (HeaderServicesStrip): held clear behind
+   the load veil, then each title rises into place and fades up as the veil
+   lifts, the backdrop fading up under it on its own transition. On the
+   heading's own box, never on anything around the backdrop, so its blend is
+   untouched. The attribute is only ever set when there is motion to play. */
+[data-strip-intro="wait"] .hero-slide-heading {
+  opacity: 0;
+}
+[data-strip-intro="in"] .hero-slide-heading {
+  animation: strip-intro 900ms var(--spring-soft) 240ms both;
+}
+@keyframes strip-intro {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.6em, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-strip-intro] .hero-slide-heading {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* The strip standing in the masthead's tagline spot is as wide as its widest
    title (the slides are stacked in one grid cell), so its slides are flushed
    right — whichever title is showing then ends against the social icons beside

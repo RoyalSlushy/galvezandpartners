@@ -19,6 +19,7 @@ import useFitText from "@/components/ui/useFitText";
 import { useMinWidth } from "@/components/ui/useMinWidth";
 import { useMotionOff } from "@/components/motion/MotionProvider";
 import { useHeroSlots } from "@/components/layout/HeroSlots";
+import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
 /** Where the strip goes when it is clicked — the works index it is advertising. */
 const WORKS_HREF = "/our-works";
@@ -181,6 +182,12 @@ export default function HeaderServicesStrip({
     });
   };
 
+  // The phone strip's entrance, timed to the load veil like the hero's (see
+  // useRevealPhase): held back while the veil is up, then the title rises in
+  // and the backdrop fades up under it, instead of either popping in. Null
+  // (motion off, edit mode, no JS) means no entrance: simply there.
+  const phase = useRevealPhase();
+
   const { headerMedia, headerTagline } = useHeroSlots();
   const desktop = useMinWidth(751);
   const roomy = useMinWidth(1440);
@@ -230,10 +237,12 @@ export default function HeaderServicesStrip({
       ariaLabel={t("Our services")}
       editMode={editMode}
       slides={slides}
+      intro={desktop ? null : phase}
       underlay={
         desktop ? undefined : (
           <BackdropClips
             services={services}
+            entered={phase !== "wait"}
             clipRef={(i, el) => {
               clipRefs.current[i] = el;
             }}
@@ -259,12 +268,15 @@ function StripShell({
   editMode,
   slides,
   underlay,
+  intro,
 }: {
   className: string;
   ariaLabel: string;
   editMode: boolean;
   slides: React.ReactNode[];
   underlay?: React.ReactNode;
+  /** The phone entrance's phase (see .strip-intro in globals.css). */
+  intro?: null | "wait" | "in";
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const carousel = (
@@ -289,6 +301,7 @@ function StripShell({
     <Link
       href={WORKS_HREF}
       className={shell}
+      data-strip-intro={intro ?? undefined}
       onPointerDown={(e) => {
         start.current = { x: e.clientX, y: e.clientY };
       }}
@@ -513,9 +526,13 @@ function ServiceSlide({
  */
 function BackdropClips({
   services,
+  entered,
   clipRef,
 }: {
   services: Service[];
+  /** False while the strip's entrance is held behind the load veil: every
+   * clip rests at nothing, and fades up (drifting in) once it is let go. */
+  entered: boolean;
   clipRef: (index: number, el: HTMLVideoElement | null) => void;
 }) {
   const { current } = useContext(CarouselContext);
@@ -528,7 +545,10 @@ function BackdropClips({
       {services.map((s, i) => {
         const media = s.media ?? "";
         if (!media) return null;
-        const active = i === current;
+        const active = i === current && entered;
+        // Up only once it has a frame, too, so a clip that loads after the
+        // entrance fades in rather than appearing all at once.
+        const shown = active && !!ready[i];
         return (
           <div key={i} aria-hidden className="pointer-events-none absolute inset-0">
             <ServiceClip
@@ -540,7 +560,7 @@ function BackdropClips({
               onReady={() => setReady((r) => (r[i] ? r : { ...r, [i]: true }))}
               className="absolute -left-[12.5%] -top-[12.5%] h-[125%] w-[125%] max-w-none rotate-[-15deg] object-cover"
               style={{
-                opacity: active ? BACKDROP_OPACITY : 0,
+                opacity: shown ? BACKDROP_OPACITY : 0,
                 transition: motionOff
                   ? undefined
                   : `opacity ${CLIP_FADE_MS}ms ease-in-out, transform 1400ms cubic-bezier(0.22,1,0.36,1)`,

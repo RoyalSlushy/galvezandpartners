@@ -5,7 +5,7 @@ import { type Social } from "@/content/site";
 import { useEditMode } from "@/components/admin/AdminProvider";
 import SocialEditPopover from "@/components/admin/editable/SocialEditPopover";
 
-const PATHS: Record<Social["icon"], string> = {
+export const SOCIAL_PATHS: Record<Social["icon"], string> = {
   facebook:
     "M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6 4.39 10.97 10.13 11.85v-8.38H7.08v-3.47h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.47h-2.8V24C19.61 23.04 24 18.07 24 12.07z",
   instagram:
@@ -75,7 +75,7 @@ export default function SocialIcons({
               className={`h-6 w-6 fill-current ${iconClassName}`}
               aria-hidden="true"
             >
-              <path d={PATHS[s.icon]} />
+              <path d={SOCIAL_PATHS[s.icon]} />
             </svg>
           </a>
         </li>

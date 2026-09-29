@@ -88,6 +88,7 @@ const ES: Record<string, string> = {
   "Follow the Story.": "Sigue la Historia.",
   "In Good Company.": "En Buena Compañía.",
   "Meet Our Partners": "Conoce a Nuestros Socios",
+  "Or find us on": "O encuéntranos en",
   "Behind the scenes": "Detrás de cámaras",
   "On set with the crew": "En el set con el equipo",
   "ELG Accident Attorneys — campaign day": "ELG Accident Attorneys — día de campaña",
