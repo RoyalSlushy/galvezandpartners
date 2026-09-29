@@ -42,21 +42,35 @@ const DESKTOP = "(min-width: 751px)";
 const MEDIA_MAP = "[filter:invert(1)_hue-rotate(60deg)_saturate(1.3)]";
 
 /**
+ * How far up the clip comes on a phone, where it stands behind the title
+ * rather than beside it: enough to read as the surface the words are set on,
+ * not so much that it competes with them.
+ *
+ * It rides on the clip itself, never on a wrapper — `mix-blend-screen` blends an
+ * element with the backdrop of its own stacking context, and an ancestor at less
+ * than full opacity would make one, leaving the clip to blend against the empty
+ * box instead of the masthead it is standing on. The same goes for the arrival
+ * below: the drift is a transform, and a transform makes a stacking context too,
+ * so it rides on the clip as well.
+ */
+const BACKDROP_OPACITY = 0.2;
+
+/** How long a mobile backdrop takes to fade in or out as the service changes
+ * (see BackdropClips). */
+const CLIP_FADE_MS = 900;
+
+/**
  * How the clip arrives when its service comes up. The slides themselves cut
  * (see Carousel) — fading them would dip the light between two services and,
  * for the length of the fade, cut the arriving clip's blend off from the
  * surface it stands on. So the clip does the moving instead: it drifts and
- * settles beside its title, while the title fades up in its own box (a sibling
- * of the clip, never its ancestor, so the fade costs the blend nothing — see
- * TITLE_ARRIVAL).
- *
- * The drift rides on the clip itself, never on a wrapper: `mix-blend-screen`
- * blends an element with the backdrop of its own stacking context, and a
- * transform on an ancestor would make one, leaving the clip to blend against
- * the empty box instead of the masthead it is standing on. An element's own
- * transform is no obstacle to its own blending. Opacity is left out of the
- * move for a second reason — the clip is painted and decoding whether its
- * slide is up or not (see ServiceClip).
+ * settles beside (desktop) or under (phone) its title, on its own transform, while the title fades up in
+ * its own box (a sibling of the clip, never its ancestor, so the fade costs the
+ * blend nothing — see TITLE_ARRIVAL). The move is kept small and long, on an
+ * ease that lands softly, so a change of service reads as a shift in the light
+ * rather than a jump. Opacity is left out of it — the clip rests at BACKDROP_OPACITY whether
+ * its slide is up or not, so it is painted and decoding either way (see
+ * ServiceClip).
  */
 const ARRIVAL = "transition-transform duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]";
 const ARRIVED = "translate-x-0 scale-100";
@@ -110,12 +124,13 @@ function fitTitle(title: string, short: boolean) {
  * the homepage hero (so its clips keep the hero's context) and the header
  * everywhere else — never both, or the two would land in the same socket.
  *
- * Each service reads as its title with its clip as an icon to the right of it
- * — a mark for the service, not a wash behind its name — at every width.
- * The strip gives way by degrees as the window narrows rather than in one jump,
- * and never leaves the masthead: full titles, then shortened ones once the nav
- * starts crowding it (see fitTitle), then the icon alone. Below sm it moves to
- * the header cell beside the logo, where the titles come back.
+ * On desktop each service reads as its title with its clip as an icon to the
+ * right of it. The strip gives way by degrees as the window narrows rather than
+ * in one jump, and never leaves the masthead: full titles, then shortened ones
+ * once the nav starts crowding it (see fitTitle), then the icon alone. Below sm
+ * it moves to the header cell beside the logo, where the titles come back and
+ * the clip becomes a faint backdrop behind them instead (see BackdropClips) —
+ * the cell is too narrow to hold an icon beside a title.
  */
 export default function HeaderServicesStrip({
   services: serverServices,
@@ -187,6 +202,7 @@ export default function HeaderServicesStrip({
       tv={tv}
       short={short}
       clipOnly={clipOnly}
+      clipBehind={!desktop}
       onHoverStart={() => onSlideHoverStart(i)}
       onHoverEnd={() => onSlideHoverEnd(i)}
       onPreload={() => preload(i)}
@@ -206,13 +222,24 @@ export default function HeaderServicesStrip({
             // over, so this one keeps its bounds.
             "hero-strip-flush items-center overflow-hidden px-4"
           : // No panel of its own and no rule down its edge: the strip stands on
-            // the masthead itself, so the icon blends against it rather than a
-            // tint over it.
+            // the masthead itself, so the clip blends against it rather than a
+            // tint over it, and runs past the cell toward the logo rather than
+            // stopping at a border.
             "h-full flex-1 items-stretch"
       }
       ariaLabel={t("Our services")}
       editMode={editMode}
       slides={slides}
+      underlay={
+        desktop ? undefined : (
+          <BackdropClips
+            services={services}
+            clipRef={(i, el) => {
+              clipRefs.current[i] = el;
+            }}
+          />
+        )
+      }
     />,
     stripSocket,
   );
@@ -231,11 +258,13 @@ function StripShell({
   ariaLabel,
   editMode,
   slides,
+  underlay,
 }: {
   className: string;
   ariaLabel: string;
   editMode: boolean;
   slides: React.ReactNode[];
+  underlay?: React.ReactNode;
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const carousel = (
@@ -244,8 +273,12 @@ function StripShell({
       ariaLabel={ariaLabel}
       className="flex w-full flex-col justify-center"
       chrome={false}
+      underlay={underlay}
     />
   );
+  // Whether the strip keeps its clip inside its own bounds is the caller's to
+  // say (see the two socket classes): the masthead cell lets it run out, the
+  // tagline spot does not.
   const shell = `relative flex min-w-0 ${className}`;
 
   if (editMode) {
@@ -274,8 +307,9 @@ function StripShell({
 }
 
 /**
- * One service in the strip: its title and, to its right, the service's clip as
- * an icon, both sitting on the bottom edge of the slide.
+ * One service in the strip: its title, sitting on the bottom edge of the slide,
+ * with the service's clip as an icon to its right on desktop. On a phone the
+ * clip is drawn behind the title by the strip's underlay (BackdropClips).
  */
 function ServiceSlide({
   service,
@@ -285,6 +319,7 @@ function ServiceSlide({
   tv,
   short,
   clipOnly,
+  clipBehind,
   onHoverStart,
   onHoverEnd,
   onPreload,
@@ -301,6 +336,9 @@ function ServiceSlide({
    * step before the mobile layout, where the nav has taken the room the title
    * needs. A service with no clip keeps its title regardless. */
   clipOnly: boolean;
+  /** Whether the clip is drawn as a backdrop by the strip's underlay
+   * (BackdropClips, on mobile) rather than as an icon in this slide. */
+  clipBehind: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
   /** Called when this slide becomes the one up next, so its clip can be fetched
@@ -369,10 +407,12 @@ function ServiceSlide({
 
   return (
     <div
-      // Title then icon, in a row at every width, both sitting on the slide's
-      // bottom edge. On mobile that edge is the logo's own bottom, from the gap
-      // the header row measures under it (see MobileMenu).
-      className="hero-slide relative flex h-full items-end gap-2 px-3 pb-[var(--gp-logo-gap,0.5rem)] pt-2 sm:min-h-[3rem] sm:gap-2.5 sm:px-0 sm:py-0"
+      // The title sits on the slide's bottom edge — on desktop with its icon
+      // beside it, on a phone alone over the backdrop. min-h holds the strip's
+      // own height and gives the title a box to sit at the foot of. On mobile
+      // that foot is the logo's own bottom edge, from the gap the header row
+      // measures under it (see MobileMenu).
+      className="hero-slide relative flex h-full gap-2 px-3 pb-[var(--gp-logo-gap,0.5rem)] pt-2 max-sm:flex-col max-sm:items-start max-sm:justify-end max-sm:gap-1.5 sm:min-h-[3rem] sm:items-end sm:gap-2.5 sm:px-0 sm:py-0"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -385,9 +425,9 @@ function ServiceSlide({
             label="service"
             className="right-8 top-2 sm:right-12"
           />
-          {/* The icon is small, blended, and hidden until it has a frame, so
-              edit mode gets this chip as a dependable way into its media
-              picker. */}
+          {/* The clip's own box is small, blended, and hidden until it has a
+              frame, so edit mode gets this chip as a dependable way into its
+              media picker. */}
           <button
             type="button"
             onClick={() =>
@@ -398,7 +438,7 @@ function ServiceSlide({
             }
             className="absolute left-8 top-2 z-20 border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/60 transition hover:border-gold/60 hover:text-gold sm:left-12"
           >
-            {media ? "icon" : "add icon"}
+            {media ? "clip" : "add clip"}
           </button>
         </>
       )}
@@ -429,18 +469,19 @@ function ServiceSlide({
           />
         )}
       </div>
-      {/* The clip as an icon, to the right of its title — the mark for that
-          service, not a wash behind its name. It is played through the map
-          (see MEDIA_MAP) and blends against whatever the strip is actually
-          standing on rather than a stand-in painted to match it (the carousel
-          leaves its resting slide free of a stacking context for exactly this
-          — and so does this box: no opacity, z-index or transform of its own).
-          Contained, so the whole frame shows whatever its aspect, and square,
-          so the title's line is all that varies slide to slide. Where the nav
-          has taken the room for a title (clipOnly), the icon is the only thing
-          left in the strip. */}
-      {media ? (
-        <div aria-hidden className="h-8 w-8 shrink-0 overflow-hidden sm:h-10 sm:w-10">
+      {/* Desktop: the clip as an icon, to the right of its title — the mark
+          for that service, not a wash behind its name. It is played through
+          the map (see MEDIA_MAP) and blends against whatever the strip is
+          actually standing on rather than a stand-in painted to match it (the
+          carousel leaves its resting slide free of a stacking context for
+          exactly this — and so does this box: no opacity, z-index or
+          transform of its own). Contained, so the whole frame shows whatever
+          its aspect, and square, so the title's line is all that varies slide
+          to slide. Where the nav has taken the room for a title (clipOnly),
+          the icon is the only thing left in the strip. On a phone the clip is
+          the underlay's backdrop instead (clipBehind), so nothing here. */}
+      {media && !clipBehind ? (
+        <div aria-hidden className="h-10 w-10 shrink-0 overflow-hidden">
           <ServiceClip
             index={index}
             media={media}
@@ -457,9 +498,66 @@ function ServiceSlide({
 }
 
 /**
+ * The mobile strip's backdrops, drawn under the carousel's track instead of in
+ * the slides, so they can fade: a slide is shown outright (fading one would put
+ * an opacity on the clip's ancestor and cut its blend off from the masthead —
+ * see Carousel), so a clip inside one can only cut. Here every service's clip
+ * stands in the same box, and each fades its own opacity — an element's own
+ * opacity is no obstacle to its own blend — up to BACKDROP_OPACITY as its
+ * service comes up and back down to nothing as it goes, so one clip dissolves
+ * into the next. The drift (ARRIVAL) rides along as before. With motion off
+ * the change is a cut.
+ *
+ * The wrappers carry no opacity, z-index or transform, for the blend's sake,
+ * and they paint before the track, so the titles stand over them.
+ */
+function BackdropClips({
+  services,
+  clipRef,
+}: {
+  services: Service[];
+  clipRef: (index: number, el: HTMLVideoElement | null) => void;
+}) {
+  const { current } = useContext(CarouselContext);
+  const motionOff = useMotionOff();
+  const [ready, setReady] = useState<Record<number, boolean>>({});
+  const mediaKey = services.map((s) => s.media ?? "").join("|");
+  useEffect(() => setReady({}), [mediaKey]);
+  return (
+    <>
+      {services.map((s, i) => {
+        const media = s.media ?? "";
+        if (!media) return null;
+        const active = i === current;
+        return (
+          <div key={i} aria-hidden className="pointer-events-none absolute inset-0">
+            <ServiceClip
+              index={i}
+              media={media}
+              ready={!!ready[i]}
+              active={active}
+              clipRef={(el) => clipRef(i, el)}
+              onReady={() => setReady((r) => (r[i] ? r : { ...r, [i]: true }))}
+              className="absolute -left-[12.5%] -top-[12.5%] h-[125%] w-[125%] max-w-none rotate-[-15deg] object-cover"
+              style={{
+                opacity: active ? BACKDROP_OPACITY : 0,
+                transition: motionOff
+                  ? undefined
+                  : `opacity ${CLIP_FADE_MS}ms ease-in-out, transform 1400ms cubic-bezier(0.22,1,0.36,1)`,
+              }}
+            />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
  * One service's clip, mapped and screened (see MEDIA_MAP) so its white ground
  * drops out and only its artwork rides whatever the strip is standing on. The
- * caller owns the box it sits in.
+ * caller owns the box and how the clip sits in it — backdrop behind a title, or
+ * subject in a box of its own.
  *
  * Until it has a frame it is painted rather than hidden, on the blend that takes
  * white out instead of the one that takes black out: a video paints an opaque
@@ -477,6 +575,7 @@ function ServiceClip({
   ready,
   active,
   className,
+  style,
   clipRef,
   onReady,
 }: {
@@ -487,6 +586,7 @@ function ServiceClip({
   /** Whether this clip's service is the one the strip is showing. */
   active: boolean;
   className: string;
+  style?: React.CSSProperties;
   clipRef: (el: HTMLVideoElement | null) => void;
   onReady: () => void;
 }) {
@@ -499,6 +599,7 @@ function ServiceClip({
       src={resolveImage(media, 240, 160)}
       alt=""
       className={`${ready ? "mix-blend-screen" : "mix-blend-multiply"} ${MEDIA_MAP} ${arrival} ${className}`}
+      style={style}
       playbackRate={0.75}
       autoPlayVideo={false}
       loopVideo={false}

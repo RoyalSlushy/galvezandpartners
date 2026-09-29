@@ -428,6 +428,15 @@
   }
 }
 
+/* The manifesto (MulticulturalReveal) fills the visible screen: svh where
+   dvh is missing, and dvh where it is not, so on a phone it tracks the
+   address bar and its foot (and the chevron on it) stays on screen. */
+.mc-screen {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
 /* Homepage word marquee (WordMarquee): sticky over the manifesto, and once
    stuck ([data-compact]) the words shrink toward the band's left edge, the
    surface folds up to their height, and the band drops back in opacity. Only

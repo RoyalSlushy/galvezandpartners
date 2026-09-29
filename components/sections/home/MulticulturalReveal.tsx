@@ -23,16 +23,18 @@ const INTRO_WORD_MS = 45;
 /**
  * "the multi-cultural / Agency doing / big things" manifesto.
  *
- * The section is composed to a single screen: the copy takes what it needs and
- * the points of interest sit under it, so the whole thing lands inside one
- * mobile viewport instead of running on past it.
+ * The section is composed to a single screen: it is at least the height of the
+ * visible viewport (.mc-screen, which follows a phone's collapsing address
+ * bar), its contents centred in the space between the compact marquee pinned
+ * over its top and a chevron at its foot that glides on to the next section.
  *
  * On desktop the copy takes the left half of the body column — the payoff line
  * ("big things") is fit to that half, its left edge flush with the white lines
  * above it — and the right half holds a CMS visual framed 4:3
  * (home.multicultural.image). With none set the frame's space is held
  * open behind a quiet placeholder frame. A phone gets the same section with
- * the visual stacked above the copy instead of beside it. The section is
+ * the visual stacked above the copy, at the column's full width, instead of
+ * beside it. The section is
  * centred at the full width of the screen up to a cap, wider than the site
  * column, so the copy is not pressed into half of the narrower column.
  *
@@ -259,7 +261,7 @@ export default function MulticulturalReveal({
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-viewport w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy pb-20 pt-16 sm:pb-16 sm:pt-32"
+      className="mc-screen relative flex w-full flex-col justify-center overflow-hidden bg-gradient-to-b from-blue-muted/60 via-navy to-navy pb-32 pt-14 sm:pb-24 sm:pt-24"
     >
       {/* Soft gold glow anchoring the manifesto */}
       <div
@@ -357,13 +359,11 @@ export default function MulticulturalReveal({
             )}
           </div>
 
-          {/* The visual: a 4:3 frame in the right half, or above the copy on a
-              phone (order-first). On a phone its height is capped at 24% of
-              the screen (the width follows, keeping 4:3) so the whole section
-              still fits one screen, above the floating menu bar, on a short phone. Empty, it shows a quiet
-              placeholder frame — in edit mode, the picker's placeholder to
-              click to add one. */}
-          <div className="relative order-first aspect-[4/3] w-[min(100%,calc(24svh*4/3))] overflow-hidden sm:order-none sm:w-full">
+          {/* The visual: a 4:3 frame in the right half, or above the copy,
+              the column's full width, on a phone (order-first). Empty, it
+              shows a quiet placeholder frame — in edit mode, the picker's
+              placeholder to click to add one. */}
+          <div className="relative order-first aspect-[4/3] w-full overflow-hidden sm:order-none">
             {!multicultural.image && !editMode ? (
               <div
                 aria-hidden
@@ -397,6 +397,38 @@ export default function MulticulturalReveal({
           </div>
         </div>
       </div>
+
+      {/* A way on: a chevron at the foot of the screen, bobbing gently (still
+          with motion off), that glides on to the next section. Above the
+          floating menu bar on a phone. */}
+      {!editMode && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-[4.5rem] z-10 flex justify-center sm:bottom-4">
+          <button
+            type="button"
+            aria-label={t("Next section")}
+            onClick={() => {
+              const sec = sectionRef.current;
+              if (!sec) return;
+              const next = sec.getBoundingClientRect().bottom + window.scrollY;
+              window.scrollTo({ top: next, behavior: reduced ? "auto" : "smooth" });
+            }}
+            className="pointer-events-auto flex h-11 w-11 items-center justify-center text-white/40 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className={`h-6 w-6 ${reduced ? "" : "pr-chevron"}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </section>
   );
 }

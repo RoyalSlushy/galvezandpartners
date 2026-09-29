@@ -65,6 +65,7 @@ const ES: Record<string, string> = {
   "What We Can Do For YOU.": "Lo Que Podemos Hacer Por TI.",
   "View More": "Ver Más",
   "Our services": "Nuestros servicios",
+  "Next section": "Siguiente sección",
   "Galvez & Partners storytelling": "Narrativa de Galvez & Partners",
 
   // --- Marquee band (English words only; the Spanish ones fall through) ---
