@@ -7,6 +7,7 @@ import EditableText from "@/components/admin/editable/EditableText";
 import EditableLines from "@/components/admin/editable/EditableLines";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
+import NextChevron from "@/components/ui/NextChevron";
 import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
 
 type Multicultural = {
@@ -438,32 +439,7 @@ export default function MulticulturalReveal({
           with motion off), that glides on to the next section. Above the
           floating menu bar on a phone. */}
       {!editMode && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-[4.5rem] z-10 flex justify-center sm:bottom-4">
-          <button
-            type="button"
-            aria-label={t("Next section")}
-            onClick={() => {
-              const sec = sectionRef.current;
-              if (!sec) return;
-              const next = sec.getBoundingClientRect().bottom + window.scrollY;
-              window.scrollTo({ top: next, behavior: reduced ? "auto" : "smooth" });
-            }}
-            className="pointer-events-auto flex h-11 w-11 items-center justify-center text-white/40 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-              className={`h-6 w-6 ${reduced ? "" : "pr-chevron"}`}
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-        </div>
+        <NextChevron sectionRef={sectionRef} className="bottom-[4.5rem] sm:bottom-4" />
       )}
     </section>
   );
