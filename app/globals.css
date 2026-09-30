@@ -890,9 +890,17 @@ html[data-gp-partners-snap] {
    driven by PartnerMarquee, which moves .pm-track within one run's length —
    so the loop has no seam only while every cell carries the same trailing
    space (margin, never a flex gap, which would leave one gap short at the
-   join). Cells carry an even padding; a logo fills the box inside it. */
+   join). Cells carry an even padding; a logo fills the box inside it.
+   The lane is the body column (the site width) plus a little bleed either
+   side, centred — it reaches out past the copy's edges without running the
+   full width of a wide screen. Narrower than that, it is simply the screen. */
 .pm-lane {
+  --pm-bleed: 3rem;
   position: relative;
+  width: 100%;
+  max-width: calc(var(--site-max, 1200px) + 2 * var(--pm-bleed));
+  margin-left: auto;
+  margin-right: auto;
   height: 4rem;
   margin-top: 2.5rem;
   overflow: hidden;
@@ -944,6 +952,7 @@ html[data-gp-partners-snap] {
 }
 @media (min-width: 1001px) {
   .pm-lane {
+    --pm-bleed: 5rem;
     height: 5.25rem;
   }
   .pm-cell {
@@ -1185,6 +1194,14 @@ html[data-gp-partners-snap] {
 }
 .gallery-scroll {
   scroll-padding-left: max(1.25rem, calc((100vw - 1200px) / 2 + 2rem));
+  /* The rows are pushed by swipe, drag or trackpad (Featured Work and Our
+     Works track the journey with their own progress line), so the browser's
+     scroll thumb is hidden in every engine. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.gallery-scroll::-webkit-scrollbar {
+  display: none;
 }
 @media (min-width: 751px) {
   .gallery-pad {

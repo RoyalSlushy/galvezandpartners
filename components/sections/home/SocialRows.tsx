@@ -30,6 +30,9 @@ function handleFor(href: string): string {
  * is already its. The list is the site-wide one (site.socials), so a link
  * edited in the header or footer changes here too; it is edited there, not
  * here.
+ *
+ * Stacked on phones and tablets; on desktop the rows sit side by side in one
+ * wider row, split by hairlines, so the three networks read across.
  */
 export default function SocialRows({ socials: serverSocials }: { socials: Social[] }) {
   const socials = useCmsValue("site.socials", serverSocials);
@@ -39,20 +42,23 @@ export default function SocialRows({ socials: serverSocials }: { socials: Social
   if (rows.length === 0) return null;
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-xl">
+    <div className="mx-auto mt-10 w-full max-w-xl md:max-w-4xl">
       <p className="text-center font-heading text-[11px] uppercase tracking-[0.2em] text-white/40">
         {t("Or find us on")}
       </p>
-      <ul className="mt-4 border-t border-white/10">
+      <ul className="mt-4 border-t border-white/10 md:flex md:border-b">
         {rows.map((s, i) => (
-          <li key={i} className="border-b border-white/10">
+          <li
+            key={i}
+            className="border-b border-white/10 md:min-w-0 md:flex-1 md:border-b-0 md:border-l md:first:border-l-0"
+          >
             <a
               href={s.href}
               target="_blank"
               rel="noreferrer noopener"
               aria-label={`${s.label} — ${handleFor(s.href)}`}
               tabIndex={editMode ? -1 : undefined}
-              className={`group flex items-center gap-4 px-2 py-4 transition-colors duration-300 hover:bg-white/[0.03] focus-visible:bg-white/[0.03] focus-visible:outline-none ${
+              className={`group flex items-center gap-4 px-2 py-4 transition-colors duration-300 md:px-5 hover:bg-white/[0.03] focus-visible:bg-white/[0.03] focus-visible:outline-none ${
                 editMode ? "pointer-events-none" : ""
               }`}
             >

@@ -49,8 +49,8 @@ const POP_VISIBLE = 0.6;
  * globals.css); under minimal the copy is simply lit.
  *
  * The section is a snap point at every width, between the hero above it and
- * the featured work below it (see the snap effect). Landing on it, the visual
- * springs out of its frame.
+ * the featured work below it (see the snap effect). Landing on it — or
+ * scrolling on past it — the visual springs out of its frame.
  *
  * The three points of interest that used to close the section are gone; their
  * copy is still in home.multicultural.cards, unused.
@@ -76,8 +76,11 @@ export default function MulticulturalReveal({
   // The visual's pop. Armed (tucked in, see .mc-visual) only while this effect
   // is live, so without JS, in edit mode or with motion off it simply shows.
   // It pops once a scroll comes to rest with enough of it on screen — which is
-  // what landing on the snap point is — and tucks back in once the section has
-  // left the screen entirely, so it pops again on the next visit.
+  // what landing on the snap point is — and just as well the moment enough of
+  // it comes on screen mid-scroll, so a scroll that carries on past the snap
+  // point (or never rests on it) still sees it spring out. It tucks back in
+  // once the section has left the screen entirely, so it pops again on the
+  // next visit.
   const popRef = useRef<() => void>(() => {});
   useEffect(() => {
     const el = visualRef.current;
@@ -98,9 +101,21 @@ export default function MulticulturalReveal({
       if (entries.every((e) => !e.isIntersecting)) el.removeAttribute("data-pop");
     });
     io.observe(section);
+    // Mid-scroll: crossing the same share of the visual on screen pops it. The
+    // ratio is of the visual's own (tucked, so scaled) box, as check()'s is.
+    const inView = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting && e.intersectionRatio >= POP_VISIBLE - 0.01)) {
+          el.setAttribute("data-pop", "");
+        }
+      },
+      { threshold: [POP_VISIBLE] },
+    );
+    inView.observe(el);
     check();
     return () => {
       io.disconnect();
+      inView.disconnect();
       popRef.current = () => {};
       el.removeAttribute("data-armed");
       el.removeAttribute("data-pop");

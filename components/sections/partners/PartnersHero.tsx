@@ -24,9 +24,9 @@ import { useMotionOff } from "@/components/motion/MotionProvider";
  * so it dissolves into the header above it. With no backdrop uploaded it still
  * reads as designed over plain navy.
  *
- * Under the copy runs the partner logos: one full-bleed lane drifting sideways
- * — leftward on sm+, rightward on a phone (see PartnerMarquee) — standing in
- * the site's glyphs until logos are added. There is no CTA; the logos close the
+ * Under the copy runs the partner logos: one lane, bleeding a little past the
+ * body column, drifting sideways — leftward on sm+, rightward on a phone (see
+ * PartnerMarquee) — standing in the site's glyphs until logos are added. There is no CTA; the logos close the
  * lander.
  *
  * It makes the page's entrance, timed to the load veil like every other landing
@@ -241,9 +241,10 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
       {/* A way on to the roster from the empty foot of the lander: a chevron
           centred in the padding under the marquee, bobbing gently (still with
           motion off). Pressing it glides to the roster, which is also where
-          the page's snap lands. Only when there is a roster to go to. */}
+          the page's snap lands. Only when there is a roster to go to. The
+          press target spans the body column, not just the glyph. */}
       {hasRoster && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-20 items-center justify-center sm:h-16">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 mx-auto flex h-20 max-w-site items-center px-5 sm:h-16 sm:px-8">
           <a
             href="#partners-roster"
             aria-label={tv("See all partners")}
@@ -253,7 +254,7 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
               e.preventDefault();
               roster.scrollIntoView({ behavior: motionOff ? "auto" : "smooth", block: "start" });
             }}
-            className="pointer-events-auto flex h-11 w-11 items-center justify-center text-white/50 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
+            className="pointer-events-auto flex h-11 w-full items-center justify-center text-white/50 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
           >
             <svg
               viewBox="0 0 24 24"

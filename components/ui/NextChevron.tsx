@@ -10,6 +10,10 @@ import { useMotionOff } from "@/components/motion/MotionProvider";
  * Positioned by the caller's `className` — absolutely, at the section's foot,
  * and on a phone above the floating menu bar. The forwarded ref is the
  * chevron's own box, for a caller that measures whether it fits.
+ *
+ * The press target is the full width of the body column (Container's width and
+ * gutters, centred by the auto margins between inset-x-0), not just the glyph,
+ * so anywhere along the section's foot will do.
  */
 const NextChevron = forwardRef<
   HTMLDivElement,
@@ -24,7 +28,7 @@ const NextChevron = forwardRef<
   return (
     <div
       ref={ref}
-      className={`pointer-events-none absolute inset-x-0 z-10 flex justify-center ${className}`}
+      className={`pointer-events-none absolute inset-x-0 z-10 mx-auto max-w-site px-5 sm:px-8 ${className}`}
     >
       <button
         type="button"
@@ -35,7 +39,7 @@ const NextChevron = forwardRef<
           const next = sec.getBoundingClientRect().bottom + window.scrollY;
           window.scrollTo({ top: next, behavior: reduced ? "auto" : "smooth" });
         }}
-        className="pointer-events-auto flex h-11 w-11 items-center justify-center text-white/40 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
+        className="pointer-events-auto flex h-11 w-full items-center justify-center text-white/40 transition-colors duration-300 hover:text-gold focus-visible:text-gold"
       >
         <svg
           viewBox="0 0 24 24"

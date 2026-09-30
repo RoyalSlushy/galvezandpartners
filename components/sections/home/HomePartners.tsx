@@ -18,8 +18,8 @@ type HomePartnersCopy = {
 
 /**
  * The homepage's partners band: a heading, a way on to Our Partners, and the
- * same logo lane that closes that page's lander (PartnerMarquee), full-bleed
- * under the copy. The logos are the Our Partners list itself (partners.logos),
+ * same logo lane that closes that page's lander (PartnerMarquee), under the
+ * copy and bleeding a little past the body column either side. The logos are the Our Partners list itself (partners.logos),
  * run here back to front so the two lanes don't open on the same partners.
  * Logos are managed on Our Partners; only this band's copy is edited here.
  */
