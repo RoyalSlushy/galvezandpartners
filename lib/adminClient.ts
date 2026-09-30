@@ -235,8 +235,11 @@ export function collectImages(sections: Partial<Record<ContentKey, unknown>>): I
   for (const p of home?.instagram?.posts ?? []) if (p?.img) raws.push(p.img);
   const team = sections.team as { members?: { photo?: string }[] } | undefined;
   for (const m of team?.members ?? []) if (m?.photo) raws.push(m.photo);
-  const work = sections.work as { items?: { img?: string }[] } | undefined;
-  for (const w of work?.items ?? []) if (w?.img) raws.push(w.img);
+  const work = sections.work as { items?: { img?: string; video?: string }[] } | undefined;
+  for (const w of work?.items ?? []) {
+    if (w?.img) raws.push(w.img);
+    if (w?.video) raws.push(w.video);
+  }
   const cs = sections.case_studies as { studies?: { gallery?: string[] }[] } | undefined;
   for (const s of cs?.studies ?? []) for (const g of s?.gallery ?? []) if (g) raws.push(g);
   const partners = sections.partners as

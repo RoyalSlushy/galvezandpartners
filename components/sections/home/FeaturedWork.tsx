@@ -6,13 +6,15 @@ import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import NextChevron from "@/components/ui/NextChevron";
+import { useMinWidth } from "@/components/ui/useMinWidth";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
-import { focusPosition } from "@/lib/wix";
-import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
-import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { focusPosition, wixImageFit } from "@/lib/wix";
+import { PLACEHOLDER_IMG, isVideoUrl, resolveImage } from "@/lib/adminClient";
+import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
+import { useMotionOff } from "@/components/motion/MotionProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
@@ -25,20 +27,49 @@ type FeaturedCopy = {
   ctaHref: string;
 };
 
-// Card width also capped by viewport height (cards are 4:5) so the section's
-// header, row, and progress line together stay inside one screen — the whole of
-// the cases is on view once you reach them, on short laptops included.
-const CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(38vw,40vh)] md:w-[min(30vw,40vh)]";
-const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,36vh)] md:w-[min(26vw,36vh)]";
+/** How long a case has to have been the snapped one, showing its thumbnail,
+ * before its video takes over (ms). */
+const VIDEO_DELAY_MS = 1000;
+
+/** The card's thumbnail: a bare Wix id is fetched whole (fit, not cropped), so
+ * the same file serves the 4:5 card and the 4:3 one it opens into; anything
+ * else is used as it is. */
+function thumbSrc(raw: string): string {
+  if (!raw) return PLACEHOLDER_IMG;
+  return /^(https?:|data:|\/)/.test(raw) || isVideoUrl(raw)
+    ? resolveImage(raw)
+    : wixImageFit(raw, 1000, 1000);
+}
 
 /**
  * "Featured work" — a horizontal gallery of the shared work.items portfolio
  * (the same list that powers /our-works, so CMS edits propagate). The row is
- * one you push sideways: swipe on touch, drag with the mouse, or scroll
- * horizontally with a trackpad, snapping card to card. Vertical scroll is left
- * alone — the page runs straight past the section — and a gold progress line
- * under the row tracks how far along the cases you are. A closing card carries
- * the CTA to the Our Works page.
+ * one you push sideways: swipe on touch, drag with the mouse, scroll
+ * horizontally with a trackpad, or step with the arrows under it, snapping case
+ * to case. Vertical scroll is left alone — the page runs straight past the
+ * section. The row hugs the body column's left edge (see .fw-scroll) and runs
+ * on to the screen's right edge. A closing card carries the CTA to the Our
+ * Works page.
+ *
+ * Each card carries its case's initial as a big outlined glyph over its
+ * corner (the uploaded letterform where there is one, the display face
+ * otherwise), in place of an index number.
+ *
+ * On desktop the snapped case opens out from 4:5 to 4:3 at the same height,
+ * the others staying 4:5. The snapping there is done here rather than by CSS:
+ * the snap targets move as the cards change width, so once a scroll or drag
+ * comes to rest the row glides the chosen case onto the body's edge, keeping
+ * it there while the widths settle. Phones and tablets keep CSS snapping and
+ * every card at 4:5.
+ *
+ * Cases show their thumbnail (work.items.*.img). A case with a video
+ * (work.items.*.video) plays it — muted, looping — once it has been the
+ * snapped one for a second, fading it in over the thumbnail; the rest stay
+ * thumbnails until they are snapped in turn. Nothing plays off screen, in edit
+ * mode, or with motion off.
+ *
+ * Under the row, to the left, arrows step case to case beside a gold progress
+ * line tracking how far along the cases you are.
  *
  * The section fills the visible screen (.mc-screen, as the manifesto above it
  * does), with the heading and the row stacked close as one block, centred in
@@ -46,7 +77,8 @@ const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,36vh)] md:w-[
  * chevron at its foot glides on to the next section — shown only where the
  * block leaves room for it under the row, so it never lands on a card.
  *
- * Edit mode shares the same row; all edit affordances live there.
+ * Edit mode shares the same row (every card 4:5, CSS snapping); all edit
+ * affordances live there, including a chip on each card for its video.
  */
 export default function FeaturedWork({
   featured: serverFeatured,
@@ -58,16 +90,44 @@ export default function FeaturedWork({
   const featured = useCmsValue("home.featuredWork", serverFeatured);
   const items = useCmsValue("work.items", serverItems);
   const editMode = useEditMode();
+  const motionOff = useMotionOff();
   const t = useT();
   // Only the section heading is translated; work titles are brand names.
   const tv = useEditableT();
+  const count = items.length;
+
+  // Desktop opens the snapped case to 4:3 and snaps by hand (see above).
+  const desktop = useMinWidth(1001);
+  const handSnap = desktop && !editMode;
 
   const scrollRowRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const blockRef = useRef<HTMLDivElement>(null);
   const chevronRef = useRef<HTMLDivElement>(null);
   const [chevronFits, setChevronFits] = useState(false);
+
+  // The snapped case. Kept in a ref as well for the scroll handlers.
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const choose = (i: number) => {
+    activeRef.current = i;
+    setActive(i);
+  };
+  // Steps the row to case i — set by the snapping effect below, which knows
+  // whether this is the desktop glide or a plain smooth scroll.
+  const goRef = useRef<(i: number) => void>(() => {});
+
+  // Whether the section is on screen: videos only play while it is.
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)));
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
 
   // Whether the chevron has room under the block: its top has to clear the
   // block's foot. Re-measured whenever the section or the block changes size.
@@ -143,6 +203,146 @@ export default function FeaturedWork({
     };
   }, [editMode]);
 
+  // Snapping, and which case is the snapped one.
+  useEffect(() => {
+    const scroller = scrollRowRef.current;
+    const track = trackRef.current;
+    if (!scroller || !track || count === 0) return;
+    const reduce =
+      motionOff || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const card = (i: number) => track.children[i] as HTMLElement | undefined;
+    // The scroll position that puts case i on the row's left edge (the track
+    // starts at the scroller's own left edge, and is the cards' offsetParent).
+    const leftOf = (i: number) =>
+      Math.min(card(i)?.offsetLeft ?? 0, scroller.scrollWidth - scroller.clientWidth);
+    const nearest = (x: number) => {
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < count; i++) {
+        const d = Math.abs(leftOf(i) - x);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      return best;
+    };
+    if (activeRef.current > count - 1) choose(count - 1);
+
+    // Phones, tablets and edit mode: CSS snaps the row; the snapped case is
+    // whichever sits nearest the row's left edge.
+    if (!handSnap) {
+      let raf = 0;
+      const pick = () => {
+        raf = 0;
+        const i = nearest(scroller.scrollLeft);
+        if (i !== activeRef.current) choose(i);
+      };
+      const onScroll = () => {
+        if (!raf) raf = requestAnimationFrame(pick);
+      };
+      goRef.current = (i) => {
+        const to = Math.max(0, Math.min(count - 1, i));
+        scroller.scrollTo({ left: leftOf(to), behavior: reduce ? "auto" : "smooth" });
+      };
+      pick();
+      scroller.addEventListener("scroll", onScroll, { passive: true });
+      return () => {
+        if (raf) cancelAnimationFrame(raf);
+        scroller.removeEventListener("scroll", onScroll);
+        goRef.current = () => {};
+      };
+    }
+
+    // Desktop: once a scroll or drag comes to rest, glide the chosen case onto
+    // the left edge. The glide chases the case's own position every frame, so
+    // it lands true while the case opens out and the last one closes up.
+    let gliding = false;
+    let down = false;
+    let raf = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let rest = scroller.scrollLeft; // where the last glide left the row
+
+    const glide = (i: number) => {
+      const to = Math.max(0, Math.min(count - 1, i));
+      if (to !== activeRef.current) choose(to);
+      cancelAnimationFrame(raf);
+      gliding = true;
+      const start = performance.now();
+      const step = (now: number) => {
+        const target = leftOf(to);
+        const cur = scroller.scrollLeft;
+        const d = target - cur;
+        if (reduce || Math.abs(d) <= 1) scroller.scrollLeft = target;
+        else scroller.scrollLeft = cur + Math.sign(d) * Math.max(1, Math.abs(d) * 0.14);
+        // Keep chasing while the widths are still moving (their transition
+        // runs 700ms), and for as long as the case is off its mark.
+        const settled = Math.abs(leftOf(to) - scroller.scrollLeft) <= 1;
+        if (now - start < 2500 && (now - start < 760 || !settled)) {
+          raf = requestAnimationFrame(step);
+        } else {
+          gliding = false;
+          rest = scroller.scrollLeft;
+        }
+      };
+      raf = requestAnimationFrame(step);
+    };
+    goRef.current = glide;
+
+    const settle = () => {
+      if (down || gliding) return;
+      const x = scroller.scrollLeft;
+      const delta = x - rest;
+      if (Math.abs(delta) < 2) return;
+      let i = nearest(x);
+      // A short push still moves on a case, rather than falling back.
+      if (i === activeRef.current && Math.abs(delta) > 24) i += Math.sign(delta);
+      glide(i);
+    };
+    const later = (ms: number) => {
+      clearTimeout(timer);
+      timer = setTimeout(settle, ms);
+    };
+    const onScroll = () => {
+      if (!gliding) later(150);
+    };
+    const onDown = () => {
+      down = true;
+      cancelAnimationFrame(raf);
+      gliding = false;
+      clearTimeout(timer);
+    };
+    const onUp = () => {
+      if (!down) return;
+      down = false;
+      later(60);
+    };
+    // Keep the snapped case on its mark through a resize.
+    const ro = new ResizeObserver(() => {
+      if (gliding || down) return;
+      scroller.scrollLeft = leftOf(activeRef.current);
+      rest = scroller.scrollLeft;
+    });
+
+    scroller.scrollLeft = leftOf(activeRef.current);
+    rest = scroller.scrollLeft;
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    ro.observe(scroller);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      ro.disconnect();
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      goRef.current = () => {};
+    };
+  }, [handSnap, count, motionOff]);
+
   // Progress line: how far the row has travelled, so the horizontal journey
   // still reads at a glance.
   useEffect(() => {
@@ -199,35 +399,37 @@ export default function FeaturedWork({
   );
 
   const cards = items.map((w, i) => {
+    const initial = (w.title.trim()[0] ?? "").toUpperCase();
+    const isActive = i === active;
     const inner = (
       <div className="relative">
-        {/* Giant outlined index overlapping the card */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-9 left-2 z-10 font-display text-[5.5rem] leading-none text-stroke-white opacity-60 sm:-top-12 sm:text-[7rem]"
-        >
-          <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-white" />
-        </span>
-        {editMode && (
-          <ListControls
-            listPath="work.items"
-            index={i}
-            count={items.length}
-            label="work item"
-            className="right-2 top-2"
-          />
+        {/* The case's initial, a giant outlined glyph overlapping the card */}
+        {initial && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-9 left-2 z-10 font-display text-[5.5rem] leading-none text-stroke-white opacity-60 sm:-top-12 sm:text-[7rem]"
+          >
+            <GlyphNumber value={initial} tintClassName="bg-white" />
+          </span>
         )}
-        <div className="group relative overflow-hidden bg-navy-soft">
-          <div data-parallax className="will-change-transform" style={{ transform: "scale(1.12)" }}>
-            <EditableImage
-              path={`work.items.${i}.img`}
-              raw={w.img}
-              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
-              style={{ objectPosition: focusPosition(w.img) }}
-              alt={w.title}
-              className="aspect-[4/5] w-full object-cover"
+        {editMode && (
+          <>
+            <ListControls
+              listPath="work.items"
+              index={i}
+              count={items.length}
+              label="work item"
+              className="right-2 top-2"
             />
-          </div>
+            <VideoChip index={i} video={w.video ?? ""} />
+          </>
+        )}
+        <div className="fw-frame group relative w-full overflow-hidden bg-navy-soft">
+          <CaseMedia
+            work={w}
+            index={i}
+            playing={isActive && inView && !editMode && !motionOff}
+          />
           <div
             className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
               editMode ? " pointer-events-none" : ""
@@ -261,24 +463,26 @@ export default function FeaturedWork({
       </div>
     );
     const offset = i % 2 === 1 ? "sm:mt-10" : "";
+    const cls = `fw-card ${offset} snap-start`;
     return w.slug && !editMode ? (
       <Link
         key={i}
         href={`/case-study/${w.slug}`}
         aria-label={w.title}
-        className={`${CARD_W} ${offset} snap-start`}
+        data-active={isActive || undefined}
+        className={cls}
       >
         {inner}
       </Link>
     ) : (
-      <div key={i} className={`${CARD_W} ${offset} snap-start`}>
+      <div key={i} data-active={isActive || undefined} className={cls}>
         {inner}
       </div>
     );
   });
 
   const endCard = (
-    <div className={`flex ${END_CARD_W} snap-start items-center`}>
+    <div className="fw-end flex snap-start items-center">
       <div className="relative flex aspect-[4/5] w-full flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-8">
         <CtaGrid className="glyph-grid-fade-left" glyphClassName="bg-gold" fontClassName="text-gold" />
         <p className="relative font-display text-f5 lowercase leading-[0.95] text-white">
@@ -322,21 +526,41 @@ export default function FeaturedWork({
           <RevealOnScroll>{header}</RevealOnScroll>
         </Container>
         {/* Close under the header, so the two read as one block; the top
-            padding is the room the giant index numerals stand up into. */}
+            padding is the room the giant glyphs stand up into. */}
         <div
           ref={scrollRowRef}
-          className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
+          data-accordion={editMode ? undefined : ""}
+          className={`fw-scroll gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
             editMode ? "mt-16 pb-6" : "mt-2 pb-4 sm:mt-3"
           }`}
         >
-          <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
+          <div ref={trackRef} className="fw-track relative flex w-max items-start">
             {cards}
             {endCard}
           </div>
         </div>
+        {/* Under the row, to the left: the arrows, then the progress line. */}
         <Container className="mt-6">
-          <div className="h-px w-full bg-white/10">
-            <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
+          <div className="flex items-center gap-5">
+            {!editMode && count > 1 && (
+              <div className="flex shrink-0 gap-2">
+                <StepButton
+                  dir={-1}
+                  label={t("Previous case")}
+                  disabled={active <= 0}
+                  onClick={() => goRef.current(activeRef.current - 1)}
+                />
+                <StepButton
+                  dir={1}
+                  label={t("Next case")}
+                  disabled={active >= count - 1}
+                  onClick={() => goRef.current(activeRef.current + 1)}
+                />
+              </div>
+            )}
+            <div className="h-px min-w-0 flex-1 bg-white/10">
+              <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
+            </div>
           </div>
         </Container>
         {editMode && (
@@ -356,5 +580,153 @@ export default function FeaturedWork({
         />
       )}
     </section>
+  );
+}
+
+/**
+ * A case's frame contents: the thumbnail always, and — for a case with a
+ * video, while `playing` — the video over it. The video is mounted only once
+ * its case is the snapped one (so the others cost nothing), starts
+ * VIDEO_DELAY_MS after that, and fades in once it is actually playing; losing
+ * the snap fades it back out to the thumbnail and lets it go.
+ */
+function CaseMedia({ work, index, playing }: { work: Work; index: number; playing: boolean }) {
+  const video = work.video && isVideoUrl(work.video) ? resolveImage(work.video) : "";
+  const want = !!video && playing;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (want && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (want) {
+      let live = true;
+      setMounted(true);
+      const timer = setTimeout(() => {
+        const v = videoRef.current;
+        if (!v || !live) return;
+        try {
+          v.currentTime = 0;
+        } catch {
+          /* not seekable yet — it starts from the top anyway */
+        }
+        v.play()
+          .then(() => {
+            if (live) setShown(true);
+          })
+          .catch(() => {});
+      }, VIDEO_DELAY_MS);
+      return () => {
+        live = false;
+        clearTimeout(timer);
+      };
+    }
+    setShown(false);
+    videoRef.current?.pause();
+    // Let the fade out finish before the element goes.
+    const timer = setTimeout(() => setMounted(false), 600);
+    return () => clearTimeout(timer);
+  }, [want]);
+
+  return (
+    <>
+      <EditableImage
+        path={`work.items.${index}.img`}
+        raw={work.img}
+        src={thumbSrc(work.img)}
+        style={{ objectPosition: focusPosition(work.img) }}
+        alt={work.title}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {mounted && video && (
+        <video
+          ref={videoRef}
+          src={video}
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+            shown ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      )}
+    </>
+  );
+}
+
+/** Edit mode: the way into a case's video field (a video has no slot of its
+ * own on the card to click), and a way to clear it. */
+function VideoChip({ index, video }: { index: number; video: string }) {
+  const admin = useAdmin();
+  const path = `work.items.${index}.video`;
+  const stop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  return (
+    <div className="absolute left-2 top-2 z-20 flex items-center gap-1" onClick={stop}>
+      <button
+        type="button"
+        onClick={(e) => {
+          stop(e);
+          admin.openImagePicker({ path, raw: video });
+        }}
+        className="border border-dashed border-white/30 bg-navy/80 px-3 py-1 font-heading text-xs text-white/70 transition hover:border-gold/60 hover:text-gold"
+      >
+        {video ? "video" : "add video"}
+      </button>
+      {video && (
+        <button
+          type="button"
+          aria-label="Remove video"
+          title="Remove video"
+          onClick={(e) => {
+            stop(e);
+            admin.setValue(path, "");
+          }}
+          className="border border-white/20 bg-navy/80 px-2 py-1 font-heading text-xs text-white/60 transition hover:border-red-400/60 hover:text-red-300"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** One of the arrows under the row. */
+function StepButton({
+  dir,
+  label,
+  disabled,
+  onClick,
+}: {
+  dir: -1 | 1;
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-11 w-11 items-center justify-center border border-white/15 text-white/70 transition-colors duration-300 hover:border-gold/60 hover:text-gold focus-visible:border-gold/60 focus-visible:text-gold disabled:pointer-events-none disabled:opacity-30"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="h-5 w-5"
+      >
+        <path d={dir < 0 ? "m15 6-6 6 6 6" : "m9 6 6 6-6 6"} />
+      </svg>
+    </button>
   );
 }

@@ -54,12 +54,16 @@ export function logoSrc(raw: string): string {
 export default function PartnerMarquee({
   logos,
   reverse = false,
+  tall = false,
 }: {
   logos: PartnerLogo[];
   /** Run the partners (or the stand-in glyphs) in reverse order — the
    * homepage's copy of the lane lists them back to front, so it doesn't open
    * on the same logos as the Our Partners page. */
   reverse?: boolean;
+  /** Taller cells (see .pm-lane-tall) — the homepage's band, where the lane
+   * has the section to itself rather than closing a lander. */
+  tall?: boolean;
 }) {
   const glyphs = useGlyphMap();
   const listed = (logos ?? []).filter((l) => l?.img);
@@ -101,7 +105,7 @@ export default function PartnerMarquee({
           ))}
         </ul>
       )}
-      <Lane tiles={tiles} />
+      <Lane tiles={tiles} tall={tall} />
     </>
   );
 }
@@ -121,7 +125,7 @@ function MarqueeLogo({ src }: { src: string }) {
   );
 }
 
-function Lane({ tiles }: { tiles: Tile[] }) {
+function Lane({ tiles, tall }: { tiles: Tile[]; tall: boolean }) {
   const still = useMotionOff();
   const laneRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -271,7 +275,7 @@ function Lane({ tiles }: { tiles: Tile[] }) {
   return (
     <div
       ref={laneRef}
-      className="pm-lane"
+      className={`pm-lane${tall ? " pm-lane-tall" : ""}`}
       data-dragging={dragging || undefined}
       // Marks the lane as a sideways drag of its own, so the mobile menu's
       // edge swipe leaves it alone (see MobileMenu).

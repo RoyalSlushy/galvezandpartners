@@ -1,7 +1,15 @@
 /** Portfolio items shown on /our-works and /case-study. slug -> detail page
  * (null = no page). `description` is the short blurb shown under the active
- * card in the /our-works accordion. */
-export type Work = { title: string; slug: string | null; img: string; description: string };
+ * card in the /our-works accordion. `img` is the card's thumbnail; `video`
+ * (optional, an uploaded clip) plays over it on the homepage's featured-work
+ * row once the card is the one snapped into place. */
+export type Work = {
+  title: string;
+  slug: string | null;
+  img: string;
+  video?: string;
+  description: string;
+};
 
 /** One image on the /our-works masonry gallery. `tags` is a comma-separated
  * list (kept as a plain string so it stays editable inline via the CMS);

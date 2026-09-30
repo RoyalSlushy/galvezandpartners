@@ -19,8 +19,10 @@ type HomePartnersCopy = {
 /**
  * The homepage's partners band: a heading, a way on to Our Partners, and the
  * same logo lane that closes that page's lander (PartnerMarquee), under the
- * copy and bleeding a little past the body column either side. The logos are the Our Partners list itself (partners.logos),
- * run here back to front so the two lanes don't open on the same partners.
+ * copy and bleeding a little past the body column either side, its cells a
+ * little taller than that page's. The logos are the Our Partners list itself
+ * (partners.logos), run here back to front so the two lanes don't open on the
+ * same partners.
  * Logos are managed on Our Partners; only this band's copy is edited here.
  */
 export default function HomePartners({
@@ -69,7 +71,7 @@ export default function HomePartners({
           </div>
         </RevealOnScroll>
       </Container>
-      <PartnerMarquee logos={logos} reverse />
+      <PartnerMarquee logos={logos} reverse tall />
     </section>
   );
 }

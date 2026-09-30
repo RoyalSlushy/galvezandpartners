@@ -909,6 +909,10 @@ html[data-gp-partners-snap] {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
+/* The homepage's lane (HomePartners): the same cells, a little taller. */
+.pm-lane-tall {
+  height: 5rem;
+}
 .pm-lane[data-dragging] {
   cursor: grabbing;
 }
@@ -944,6 +948,9 @@ html[data-gp-partners-snap] {
     height: 4.5rem;
     margin-top: 3rem;
   }
+  .pm-lane-tall {
+    height: 5.5rem;
+  }
   .pm-cell {
     width: 11rem;
     margin-right: 0.75rem;
@@ -954,6 +961,9 @@ html[data-gp-partners-snap] {
   .pm-lane {
     --pm-bleed: 5rem;
     height: 5.25rem;
+  }
+  .pm-lane-tall {
+    height: 6.5rem;
   }
   .pm-cell {
     width: 13rem;
@@ -1210,6 +1220,76 @@ html[data-gp-partners-snap] {
   }
   .gallery-scroll {
     scroll-padding-left: max(2rem, calc((100vw - 1200px) / 2 + 2rem));
+  }
+}
+
+/* Homepage featured work (FeaturedWork). The row hugs the body column's left
+   edge — the scroller starts there, so cases slide out of view at the body's
+   edge rather than the screen's — and runs on past the column to the screen's
+   right edge. Every card is --fw-w wide, its frame 4:5 (the height is fixed
+   off the width, so a card that widens keeps it).
+
+   On desktop ([data-accordion], visitors only) the snapped case opens out to
+   4:3 at that same height (5/3 of the width) while the rest stay 4:5, and the
+   snapping is done by FeaturedWork rather than CSS (the snap targets move as
+   the cards change width). The trailing padding lets the last case reach the
+   left edge with the closing card beside it. */
+.fw-scroll {
+  margin-left: calc(max(0px, (100vw - var(--site-max, 1200px)) / 2) + 1.25rem);
+  /* The scroller's own left edge is the snap line (not .gallery-scroll's
+     gutter inset). */
+  scroll-padding-left: 0;
+}
+.fw-track {
+  --fw-w: min(74vw, 420px);
+  --fw-end: min(74vw, 420px);
+  --fw-gap: 1.5rem;
+  gap: var(--fw-gap);
+  padding-right: 1.25rem;
+}
+.fw-card {
+  width: var(--fw-w);
+  flex-shrink: 0;
+}
+.fw-end {
+  width: var(--fw-end);
+  flex-shrink: 0;
+}
+.fw-frame {
+  height: calc(var(--fw-w) * 1.25);
+}
+@media (min-width: 751px) {
+  .fw-scroll {
+    margin-left: calc(max(0px, (100vw - var(--site-max, 1200px)) / 2) + 2rem);
+  }
+  .fw-track {
+    --fw-w: min(38vw, 40vh, 420px);
+    --fw-end: min(34vw, 36vh, 420px);
+    --fw-gap: 2.25rem;
+    padding-right: 2rem;
+  }
+}
+@media (min-width: 1001px) {
+  .fw-track {
+    --fw-w: min(30vw, 40vh, 420px);
+    --fw-end: min(26vw, 36vh, 420px);
+  }
+  .fw-scroll[data-accordion] {
+    scroll-snap-type: none;
+  }
+  .fw-scroll[data-accordion] .fw-track {
+    padding-right: max(2rem, calc(100% - var(--fw-w) * 5 / 3 - var(--fw-gap) - var(--fw-end)));
+  }
+  .fw-scroll[data-accordion] .fw-card {
+    transition: width 700ms var(--spring-soft);
+  }
+  .fw-scroll[data-accordion] .fw-card[data-active] {
+    width: calc(var(--fw-w) * 5 / 3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fw-scroll[data-accordion] .fw-card {
+    transition: none;
   }
 }
 
