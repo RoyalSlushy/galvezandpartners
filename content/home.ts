@@ -33,6 +33,25 @@ export const HERO = {
   gradient: DEFAULT_HERO_GRADIENT,
 };
 
+/** The skyline that caps the content rising over the hero (see Cityscape).
+ * Empty colors follow the theme — the back row takes the panel tint and the
+ * front row the content's base color, so its bases fuse with the panel below.
+ * `image` swaps the drawn skyline for uploaded artwork (a silhouette with a
+ * transparent sky reads best); empty keeps the built-in one. */
+export type CityscapeContent = {
+  show: boolean;
+  backColor: string;
+  frontColor: string;
+  image: string;
+};
+
+export const CITYSCAPE: CityscapeContent = {
+  show: true,
+  backColor: "",
+  frontColor: "",
+  image: "",
+};
+
 /** `media` is an optional decorative backdrop for the service's carousel card
  * (gif / mp4 / svg — a full URL or bare Wix media id), rendered tilted behind
  * the card text. Empty/absent means no backdrop; set from the admin editor. */
@@ -94,6 +113,16 @@ export const FEATURED_WORK = {
   ctaHref: "/our-works",
 };
 
+/** Copy for the homepage's partners band. The logos themselves are the Our
+ * Partners page's list (partners.logos), so a partner added there shows here
+ * too; this is only the band's own heading and its link on to that page. */
+export const HOME_PARTNERS = {
+  eyebrow: "our partners",
+  heading: "In Good Company.",
+  ctaLabel: "Meet Our Partners",
+  ctaHref: "/our-partners",
+};
+
 export type InstagramPost = { img: string; href: string; caption: string };
 
 /** Instagram preview strip. Posts are CMS-managed (image + link + caption);
@@ -152,6 +181,9 @@ export const MULTICULTURAL = {
   titleLines: ["the multi-cultural", "Agency doing", "big things"],
   intro:
     "Welcome to G+P Advertising, your go-to destination for all things marketing and advertising.",
+  /** The visual beside the manifesto on desktop, framed 4:3 (an image, or an
+   * uploaded video). Empty leaves the frame's space open. */
+  image: "",
   cards: [
     {
       title: "reach new Heights",

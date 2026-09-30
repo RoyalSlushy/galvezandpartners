@@ -64,6 +64,7 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
   "case_studies.studies.*.gallery": () => "",
   // The Our Team lander's own frames — bare media values, like a case gallery.
   "team.lander.images": () => "",
+  "partners.logos": () => ({ img: "", name: "Partner", industry: "Industry", href: "" }),
 };
 
 export function templateFor(listPath: string): unknown {
@@ -87,6 +88,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.hero.sub": "hero subtitle",
   "home.hero.image": "hero image",
   "home.hero.ctaLabel": "button label",
+  "home.cityscape.image": "skyline artwork",
   "home.worksEyebrow": "eyebrow",
   "home.servicesHeading": "services heading",
   "home.services.*.title": "service title",
@@ -94,6 +96,7 @@ const FIELD_LABELS: Record<string, string> = {
   "home.services.*.media": "card backdrop",
   "home.multicultural.titleLines": "title lines",
   "home.multicultural.intro": "intro",
+  "home.multicultural.image": "manifesto visual",
   "home.multicultural.cards.*.title": "card title",
   "home.multicultural.cards.*.body": "card body",
   "home.marqueeWords": "marquee words",
@@ -101,6 +104,9 @@ const FIELD_LABELS: Record<string, string> = {
   "home.featuredWork.heading": "heading",
   "home.featuredWork.blurb": "intro",
   "home.featuredWork.ctaLabel": "button label",
+  "home.partners.eyebrow": "eyebrow",
+  "home.partners.heading": "heading",
+  "home.partners.ctaLabel": "button label",
   "home.instagram.eyebrow": "eyebrow",
   "home.instagram.heading": "heading",
   "home.instagram.handle": "handle",
@@ -138,6 +144,16 @@ const FIELD_LABELS: Record<string, string> = {
   "partners.heading": "heading",
   "partners.body": "body",
   "partners.ctaLabel": "button label",
+  "partners.background": "lander backdrop",
+  "partners.logos.*.img": "partner logo",
+  "partners.logos.*.name": "partner name",
+  "partners.logos.*.industry": "industry",
+  "partners.logos.*.href": "partner link",
+  "partners.directory.eyebrow": "eyebrow",
+  "partners.directory.heading": "heading",
+  "partners.directory.filterLabel": "industry button label",
+  "partners.directory.allLabel": "all-industries label",
+  "partners.directory.seeAllLabel": "see-all button label",
   "contact.heading": "heading",
   "contact.intro": "intro",
 };

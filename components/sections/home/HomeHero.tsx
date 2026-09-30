@@ -119,14 +119,18 @@ export default function HomeHero({
           it — the film, the blended backdrops, the scrims and the hero's own
           content — so the whole hero reads as one framed screen. */}
       <div className="mx-auto flex min-h-0 w-full max-w-site flex-1 sm:px-8">
-      <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div className="hero-frame relative flex min-h-0 w-full flex-1 flex-col sm:overflow-hidden">
       {/* The hero film, full-bleed across the frame. The wipe needs a box of its
           own: EditableImage owns the media element's class list, and clipping it
-          directly would fight it. */}
+          directly would fight it. On mobile the same box runs on down into the
+          skyline band and fades out there into the section gradient
+          (.hero-film-fade), so the footage melts into the band rather than
+          ending on an edge — which is why the frame only clips from sm up; the
+          section clips it on a phone. */}
       <div
         data-hero-wipe
         style={{ ["--d" as string]: `${BEAT.image}ms` }}
-        className="absolute inset-0 z-0 will-change-[clip-path,transform]"
+        className="hero-film-fade absolute inset-0 z-0 will-change-[clip-path,transform]"
       >
         <EditableImage
           path="home.hero.image"
@@ -158,15 +162,6 @@ export default function HomeHero({
       <div className="hero-shell relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-5 p-4 sm:p-6">
       <div className="contents sm:flex sm:items-stretch sm:gap-3">
         <div className="relative min-w-0 sm:flex-1">
-          {/* The legibility wash, and only here: it pools behind the copy so
-              the words hold against whatever the footage is doing under them,
-              and leaves the rest of the film alone. -z-10 puts it at the back
-              of the shell's own stacking context — behind the copy, still over
-              the film. */}
-          <div
-            aria-hidden
-            className="hero-copy-scrim pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10"
-          />
           <FitLine
             path="home.hero.headline"
             value={tv(hero.headline)}
@@ -174,7 +169,7 @@ export default function HomeHero({
             beat={BEAT.headline}
             max={40}
             min={18}
-            className="font-heading leading-none text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)] sm:whitespace-normal sm:text-[clamp(1.6rem,3.2vw,2.9rem)]"
+            className="font-heading leading-none text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:whitespace-normal sm:text-[clamp(1.6rem,3.2vw,2.9rem)]"
           />
           <FitLine
             path="home.hero.sub"
@@ -183,7 +178,7 @@ export default function HomeHero({
             beat={BEAT.sub}
             max={20}
             min={8}
-            className="mt-1 font-body text-white/85 drop-shadow-[0_1px_10px_rgba(0,0,0,0.5)] sm:mt-1 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
+            className="mt-1 font-body text-white/85 sm:mt-1 sm:whitespace-normal sm:text-[clamp(0.85rem,1.2vw,1.05rem)]"
           />
         </div>
 

@@ -24,7 +24,18 @@ import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider
  * band is already the loudest thing on the page, so kinetic deliberately reads
  * the same as classic here — it has nothing left to add that isn't noise.
  * Minimal drops to a plain constant drift that ignores scrolling entirely.
+ *
+ * The band is sticky at the top of the screen for as long as the manifesto
+ * under it is on screen (its scope is the wrapper in page.tsx). Once it sticks —
+ * which is when the manifesto snaps up under it — it compacts: the words shrink
+ * toward its left edge and the whole band drops back in opacity, so it rides
+ * over the manifesto as a quiet strip rather than a headline. Its layout box
+ * never changes (only transforms and opacity move), so nothing under it jumps.
+ * Edit mode leaves it in the flow, full size.
  */
+
+/** How far the band shrinks once stuck (see .wm-band in globals.css). */
+const COMPACT_SCALE = 0.55;
 
 /** Per-motion-style tuning of the band. */
 const TUNING = {
@@ -62,7 +73,35 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
   const t = useT();
 
   const trackRef = useRef<HTMLDivElement>(null);
+  const bandRef = useRef<HTMLElement>(null);
   const [copies, setCopies] = useState(2);
+
+  // Compact while stuck: the band's top is pinned at the viewport's top only
+  // once it has stuck (and stays there, or above, until it is carried off).
+  useEffect(() => {
+    const band = bandRef.current;
+    if (!band) return;
+    if (editMode) {
+      band.removeAttribute("data-compact");
+      return;
+    }
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      band.toggleAttribute("data-compact", band.getBoundingClientRect().top <= 0.5);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [editMode]);
 
   const animate = !editMode && !reduced;
 
@@ -75,7 +114,9 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
       const run = track.querySelector<HTMLElement>("[data-run]");
       const runW = run?.offsetWidth ?? 0;
       if (runW > 0) {
-        setCopies(Math.max(2, Math.ceil(window.innerWidth / runW) + 1));
+        // Enough to cover the viewport at the compact scale too, where one run
+        // is only COMPACT_SCALE as wide on screen.
+        setCopies(Math.max(2, Math.ceil(window.innerWidth / (runW * COMPACT_SCALE)) + 1));
       }
     };
     measure();
@@ -177,32 +218,42 @@ export default function WordMarquee({ words: serverWords }: { words: string[] })
 
   return (
     <section
+      ref={bandRef}
       aria-label={t("What we are")}
-      className="w-full overflow-hidden border-y border-white/5 bg-gradient-to-b from-blue-muted/50 to-blue-muted/60 py-6 sm:py-8"
+      className={`wm-band w-full overflow-hidden ${editMode ? "relative" : "sticky top-0 z-20"}`}
+      style={{ ["--wm-k" as string]: COMPACT_SCALE }}
     >
-      {editMode ? (
-        <div key="edit" className="mx-auto max-w-site px-5 sm:px-8">
-          <EditableLines
-            path="home.marqueeWords"
-            values={words}
-            as="p"
-            className="flex flex-wrap items-center gap-x-8 gap-y-2"
-            lineClassName={(_, i) =>
-              `font-display text-f6 lowercase leading-none ${
-                i % 2 === 0 ? "text-gold" : "text-stroke-gold"
-              }`
-            }
-            editingClassName="text-f6 text-white"
-            label="marquee words"
-          />
-        </div>
-      ) : reduced ? (
-        <div key="static">{run(false, 0, true)}</div>
-      ) : (
-        <div key="track" ref={trackRef} className="flex w-max will-change-transform">
-          {Array.from({ length: copies }, (_, c) => run(c > 0, c))}
-        </div>
-      )}
+      {/* The band's surface, on its own layer so it can fold up to the
+          compacted words' height without squashing them. */}
+      <div
+        aria-hidden
+        className="wm-bg absolute inset-0 border-y border-white/5 bg-gradient-to-b from-blue-muted/50 to-blue-muted/60"
+      />
+      <div className="wm-body relative py-6 sm:py-8">
+        {editMode ? (
+          <div key="edit" className="mx-auto max-w-site px-5 sm:px-8">
+            <EditableLines
+              path="home.marqueeWords"
+              values={words}
+              as="p"
+              className="flex flex-wrap items-center gap-x-8 gap-y-2"
+              lineClassName={(_, i) =>
+                `font-display text-f6 lowercase leading-none ${
+                  i % 2 === 0 ? "text-gold" : "text-stroke-gold"
+                }`
+              }
+              editingClassName="text-f6 text-white"
+              label="marquee words"
+            />
+          </div>
+        ) : reduced ? (
+          <div key="static">{run(false, 0, true)}</div>
+        ) : (
+          <div key="track" ref={trackRef} className="flex w-max will-change-transform">
+            {Array.from({ length: copies }, (_, c) => run(c > 0, c))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

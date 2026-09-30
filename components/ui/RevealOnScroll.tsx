@@ -13,7 +13,9 @@ import { useMotionStyle, type MotionStyle } from "@/components/motion/MotionProv
  * scripts/generate-motion-curves.mjs), so "kinetic" really does overshoot and
  * settle rather than approximating a spring with a bezier guess.
  *
- * `delay` (seconds) staggers siblings; the `.reveal` rule in globals.css is
+ * `delay` (seconds) staggers siblings; `shown`, when given, takes over from the
+ * block's own observer, so a parent can reveal a group together (a grid row,
+ * say) and time the group as a whole; the `.reveal` rule in globals.css is
  * still the belt-and-braces `prefers-reduced-motion` stop.
  */
 
@@ -55,13 +57,16 @@ export default function RevealOnScroll({
   as: Tag = "div",
   delay = 0,
   className = "",
+  shown,
 }: {
   children: ReactNode;
   as?: ElementType;
   delay?: number;
   className?: string;
+  shown?: boolean;
 }) {
-  const { ref, inView } = useInView<HTMLDivElement>();
+  const { ref, inView: seen } = useInView<HTMLDivElement>();
+  const inView = shown ?? seen;
   const style = useMotionStyle();
 
   if (style === "off") {

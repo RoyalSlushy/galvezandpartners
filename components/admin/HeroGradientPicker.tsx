@@ -230,7 +230,7 @@ export default function HeroGradientPicker({
 
 /** Coerce any CSS color to a `#rrggbb` string that `<input type="color">`
  * accepts (it rejects shorthand / alpha / named colors). Falls back to black. */
-function normalizeHex(color: string): string {
+export function normalizeHex(color: string): string {
   const c = color.trim();
   if (/^#[0-9a-fA-F]{6}$/.test(c)) return c.toLowerCase();
   if (/^#[0-9a-fA-F]{3}$/.test(c)) {

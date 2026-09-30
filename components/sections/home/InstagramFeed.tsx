@@ -5,6 +5,8 @@ import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
 import type { InstagramPost } from "@/content/home";
+import type { Social } from "@/content/site";
+import SocialRows from "@/components/sections/home/SocialRows";
 import { wixImage } from "@/lib/wix";
 import { PLACEHOLDER_IMG } from "@/lib/adminClient";
 import { instagramEmbedUrl } from "@/lib/instagramEmbed";
@@ -55,9 +57,12 @@ const DRIFT_SPEED = { classic: 32, kinetic: 58 } as const;
 export default function InstagramFeed({
   instagram: serverIg,
   livePosts,
+  socials,
 }: {
   instagram: Instagram;
   livePosts?: InstagramPost[];
+  /** The site's social links, for the rows under the Follow button. */
+  socials: Social[];
 }) {
   const ig = useCmsValue("home.instagram", serverIg);
   const editMode = useEditMode();
@@ -361,6 +366,8 @@ export default function InstagramFeed({
             )}
           </Button>
         </div>
+        {/* The other networks, as rows under the Follow button. */}
+        <SocialRows socials={socials} />
       </Container>
 
       {embed && (

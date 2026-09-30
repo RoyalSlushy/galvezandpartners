@@ -22,6 +22,9 @@ import {
   INSTAGRAM,
   WORKS_EYEBROW,
   SERVICES_HEADING,
+  CITYSCAPE,
+  HOME_PARTNERS,
+  type CityscapeContent,
   type Service,
   type InstagramPost,
   type HeroGradient,
@@ -71,12 +74,14 @@ export type HomeContent = {
     ctaHref: string;
     gradient: HeroGradient;
   };
+  cityscape: CityscapeContent;
   services: Service[];
   worksEyebrow: string;
   servicesHeading: string;
   multicultural: {
     titleLines: string[];
     intro: string;
+    image: string;
     cards: { title: string; body: string }[];
   };
   marqueeWords: string[];
@@ -84,6 +89,12 @@ export type HomeContent = {
     eyebrow: string;
     heading: string;
     blurb: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
+  partners: {
+    eyebrow: string;
+    heading: string;
     ctaLabel: string;
     ctaHref: string;
   };
@@ -121,16 +132,19 @@ export const DEFAULT_SITE: SiteContent = {
 
 export const DEFAULT_HOME: HomeContent = {
   hero: { ...HERO },
+  cityscape: { ...CITYSCAPE },
   services: SERVICES.map((s) => ({ ...s })),
   worksEyebrow: WORKS_EYEBROW,
   servicesHeading: SERVICES_HEADING,
   multicultural: {
     titleLines: [...MULTICULTURAL.titleLines],
     intro: MULTICULTURAL.intro,
+    image: MULTICULTURAL.image,
     cards: MULTICULTURAL.cards.map((c) => ({ ...c })),
   },
   marqueeWords: [...MARQUEE_WORDS],
   featuredWork: { ...FEATURED_WORK },
+  partners: { ...HOME_PARTNERS },
   instagram: {
     ...INSTAGRAM,
     posts: INSTAGRAM.posts.map((p) => ({ ...p })),
@@ -160,7 +174,11 @@ export const DEFAULT_CASE_STUDIES: CaseStudiesContent = {
   studies: CASE_STUDIES.map((c) => ({ ...c, gallery: [...c.gallery] })),
 };
 
-export const DEFAULT_PARTNERS: PartnersContent = { ...PARTNERS };
+export const DEFAULT_PARTNERS: PartnersContent = {
+  ...PARTNERS,
+  logos: [...PARTNERS.logos],
+  directory: { ...PARTNERS.directory },
+};
 
 export const DEFAULT_CONTACT: ContactPageContent = { ...CONTACT_PAGE };
 

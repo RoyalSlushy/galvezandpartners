@@ -5,15 +5,18 @@ import ServicesGrid from "@/components/sections/home/ServicesGrid";
 import MulticulturalReveal from "@/components/sections/home/MulticulturalReveal";
 import FeaturedWork from "@/components/sections/home/FeaturedWork";
 import InstagramFeed from "@/components/sections/home/InstagramFeed";
-import { getHome, getWork } from "@/lib/cms";
+import HomePartners from "@/components/sections/home/HomePartners";
+import { getHome, getPartners, getSite, getWork } from "@/lib/cms";
 import { getInstagramFeed } from "@/lib/instagram";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [home, work, instagramPosts] = await Promise.all([
+  const [home, work, partners, site, instagramPosts] = await Promise.all([
     getHome(),
     getWork(),
+    getPartners(),
+    getSite(),
     getInstagramFeed(),
   ]);
   return (
@@ -27,17 +30,27 @@ export default async function Home() {
           stand against the hero gradient with no panel behind them — then an
           opaque base covers the hero as the content climbs. */}
       <div className="relative z-10 mt-[calc(-1*var(--cityscape-h))] sm:mt-0">
-        <Cityscape />
+        <Cityscape cityscape={home.cityscape} />
         <div className="bg-navy">
-          <WordMarquee words={home.marqueeWords} />
-          <MulticulturalReveal multicultural={home.multicultural} />
+          {/* The marquee sticks to the top of the screen for as long as the
+              manifesto is on it, compacting as it sticks (see WordMarquee);
+              this wrapper is what lets it go once the manifesto has passed. */}
+          <div className="relative">
+            <WordMarquee words={home.marqueeWords} />
+            <MulticulturalReveal multicultural={home.multicultural} />
+          </div>
           <FeaturedWork featured={home.featuredWork} items={work.items} />
+          <HomePartners copy={home.partners} logos={partners.logos} />
           <ServicesGrid
             services={home.services}
             heading={home.servicesHeading}
             eyebrow={home.worksEyebrow}
           />
-          <InstagramFeed instagram={home.instagram} livePosts={instagramPosts ?? undefined} />
+          <InstagramFeed
+            instagram={home.instagram}
+            livePosts={instagramPosts ?? undefined}
+            socials={site.socials}
+          />
         </div>
       </div>
     </>

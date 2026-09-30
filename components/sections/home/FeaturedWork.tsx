@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import RevealOnScroll from "@/components/ui/RevealOnScroll";
+import NextChevron from "@/components/ui/NextChevron";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
@@ -39,6 +40,12 @@ const END_CARD_W = "w-[74vw] max-w-[420px] shrink-0 sm:w-[min(34vw,36vh)] md:w-[
  * under the row tracks how far along the cases you are. A closing card carries
  * the CTA to the Our Works page.
  *
+ * The section fills the visible screen (.mc-screen, as the manifesto above it
+ * does), with the heading and the row stacked close as one block, centred in
+ * it. It is the manifesto's second snap stop (see MulticulturalReveal). A
+ * chevron at its foot glides on to the next section — shown only where the
+ * block leaves room for it under the row, so it never lands on a card.
+ *
  * Edit mode shares the same row; all edit affordances live there.
  */
 export default function FeaturedWork({
@@ -57,6 +64,30 @@ export default function FeaturedWork({
 
   const scrollRowRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
+  const chevronRef = useRef<HTMLDivElement>(null);
+  const [chevronFits, setChevronFits] = useState(false);
+
+  // Whether the chevron has room under the block: its top has to clear the
+  // block's foot. Re-measured whenever the section or the block changes size.
+  useEffect(() => {
+    if (editMode) return;
+    const section = sectionRef.current;
+    const block = blockRef.current;
+    const chevron = chevronRef.current;
+    if (!section || !block || !chevron) return;
+    const measure = () => {
+      const gap =
+        chevron.getBoundingClientRect().top - block.getBoundingClientRect().bottom;
+      setChevronFits(gap >= 8);
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(section);
+    ro.observe(block);
+    measure();
+    return () => ro.disconnect();
+  }, [editMode, items.length]);
 
   // Mouse users can grab the row and drag it sideways (touch already scrolls
   // natively). Scroll snap is parked during the drag so the row follows the
@@ -273,38 +304,56 @@ export default function FeaturedWork({
   );
 
   return (
-    // One screen, content centred in it: reaching the section puts the whole of
-    // it — header, cards, progress line — on view, with nothing of the row left
-    // below the fold. min-h (not h) so a short or narrow screen grows the
-    // section rather than clipping it. Edit mode grows freely instead.
+    // One screen, the block centred in it: reaching the section puts the whole
+    // of it — header, cards, progress line — on view, with nothing of the row
+    // left below the fold. A minimum (not a fixed height) so a short or narrow
+    // screen grows the section rather than clipping it. On a phone the bottom
+    // padding is the larger by the floating menu bar's height, so the block
+    // centres in the part of the screen that is not under the bar. Edit mode
+    // grows freely instead.
     <section
-      className={`w-full overflow-hidden bg-navy ${
-        editMode ? "py-20 sm:py-28" : "min-h-viewport flex flex-col justify-center py-10"
+      ref={sectionRef}
+      className={`relative w-full overflow-hidden bg-navy ${
+        editMode ? "py-20 sm:py-28" : "mc-screen flex flex-col justify-center pb-24 pt-8 sm:py-12"
       }`}
     >
-      <Container>
-        <RevealOnScroll>{header}</RevealOnScroll>
-      </Container>
-      <div
-        ref={scrollRowRef}
-        className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
-          editMode ? "mt-16 pb-6" : "mt-10 pb-4"
-        }`}
-      >
-        <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
-          {cards}
-          {endCard}
-        </div>
-      </div>
-      <Container className="mt-6">
-        <div className="h-px w-full bg-white/10">
-          <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
-        </div>
-      </Container>
-      {editMode && (
-        <Container className="mt-6">
-          <AddChip listPath="work.items" label="work item" />
+      <div ref={blockRef}>
+        <Container>
+          <RevealOnScroll>{header}</RevealOnScroll>
         </Container>
+        {/* Close under the header, so the two read as one block; the top
+            padding is the room the giant index numerals stand up into. */}
+        <div
+          ref={scrollRowRef}
+          className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto pt-12 active:cursor-grabbing ${
+            editMode ? "mt-16 pb-6" : "mt-2 pb-4 sm:mt-3"
+          }`}
+        >
+          <div className="gallery-pad flex w-max items-start gap-6 sm:gap-9">
+            {cards}
+            {endCard}
+          </div>
+        </div>
+        <Container className="mt-6">
+          <div className="h-px w-full bg-white/10">
+            <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
+          </div>
+        </Container>
+        {editMode && (
+          <Container className="mt-6">
+            <AddChip listPath="work.items" label="work item" />
+          </Container>
+        )}
+      </div>
+
+      {/* A way on, when there is room for it under the row (see above). Kept
+          in the layout either way so it can be measured. */}
+      {!editMode && (
+        <NextChevron
+          ref={chevronRef}
+          sectionRef={sectionRef}
+          className={`bottom-[4.5rem] sm:bottom-4 ${chevronFits ? "" : "invisible"}`}
+        />
       )}
     </section>
   );

@@ -55,8 +55,15 @@ export default function Carousel({
   className = "",
   ariaLabel = "Card carousel",
   chrome = true,
+  underlay,
 }: {
   slides: ReactNode[];
+  /** Painted under the track and inside the carousel's context, so it can
+   * follow the current slide (useCarouselSlide) while living outside every
+   * slide — for a layer that must cross-fade between slides, which a slide
+   * itself cannot, since it is shown outright (see the track below). The
+   * caller positions it. */
+  underlay?: ReactNode;
   className?: string;
   ariaLabel?: string;
   /** Whether to draw the prev/next handles and the dot indicators. With them
@@ -251,6 +258,7 @@ export default function Carousel({
       style={{ touchAction: "pan-y" }}
     >
       <CarouselContext.Provider value={{ current, cause }}>
+        {underlay}
         {/* Ambient spotlight — fills the carousel container and tracks the cursor,
             sitting behind the cards, handles and dots. */}
         <div

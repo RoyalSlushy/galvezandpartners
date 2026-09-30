@@ -23,11 +23,12 @@ const GRADIENT_PATH = "home.hero.gradient";
 const GRADIENT_HOST_PATHS = new Set(["site.headerImage"]);
 
 /** Image slots that get cropped hard somewhere on the site (the case-study
- * hero band, the Our Works case cards), so their picker also offers a focal
+ * hero band, the Our Works case cards, the Our Partners backdrop), so their picker also offers a focal
  * point for that crop. */
 const FOCUS_PATHS = [
   /^case_studies\.studies\.\d+\.gallery\.\d+$/,
   /^work\.items\.\d+\.img$/,
+  /^partners\.background$/,
 ];
 
 /**

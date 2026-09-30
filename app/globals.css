@@ -132,18 +132,29 @@
   background-position: 0 calc(-1 * var(--header-h));
 }
 
-/* The hero copy's legibility wash. It used to be a scrim over the whole frame,
-   which dimmed the film to hold up two lines of type; this pools behind the
-   copy instead and leaves the footage alone. Anchored at the block's
-   bottom-left, where the copy sits, and faded out well before its own edges so
-   there is nothing to read as a panel behind the words. */
-.hero-copy-scrim {
-  background: radial-gradient(
-    115% 145% at 12% 88%,
-    rgb(var(--c-navy) / 0.88) 0%,
-    rgb(var(--c-navy) / 0.55) 38%,
-    rgb(var(--c-navy) / 0) 72%
-  );
+/* Mobile: the film runs on down behind the CTA bar and the skyline band, and
+   fades out there into the section's own gradient — so the footage melts into
+   the band the buildings stand in instead of stopping on a hard edge, and the
+   fade never reaches up behind the copy (which would read as a panel behind
+   the words). The fade starts about where the CTA bar does (its height plus
+   the shell's padding, ~5.5rem) and ends at the section's foot. A mask rather
+   than a painted overlay, so what shows through is the real backdrop, and the
+   blend follows whatever gradient the admin has set. Desktop frames the film
+   and keeps its edge. */
+@media (max-width: 750px) {
+  .hero-frame .hero-film-fade {
+    bottom: calc(-1 * var(--cityscape-h));
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--cityscape-h) - 5.5rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 calc(100% - var(--cityscape-h) - 5.5rem),
+      transparent 100%
+    );
+  }
 }
 
 /* Inner-page header accent: a thin bottom stroke whose colors are the hero
@@ -199,6 +210,34 @@
   .hero-fill.hero-breathe {
     background-size: 100% 100%;
     animation: none;
+  }
+}
+
+/* The phone header strip's entrance (HeaderServicesStrip): held clear behind
+   the load veil, then each title rises into place and fades up as the veil
+   lifts, the backdrop fading up under it on its own transition. On the
+   heading's own box, never on anything around the backdrop, so its blend is
+   untouched. The attribute is only ever set when there is motion to play. */
+[data-strip-intro="wait"] .hero-slide-heading {
+  opacity: 0;
+}
+[data-strip-intro="in"] .hero-slide-heading {
+  animation: strip-intro 900ms var(--spring-soft) 240ms both;
+}
+@keyframes strip-intro {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.6em, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-strip-intro] .hero-slide-heading {
+    animation: none;
+    opacity: 1;
   }
 }
 
@@ -414,6 +453,67 @@
   }
   .btn-outline {
     @apply btn border-2 border-gold text-gold hover:bg-gold hover:text-navy;
+  }
+}
+
+/* The manifesto (MulticulturalReveal) fills the visible screen: svh where
+   dvh is missing, and dvh where it is not, so on a phone it tracks the
+   address bar and its foot (and the chevron on it) stays on screen. */
+.mc-screen {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+/* The manifesto's visual springs out when the section lands. Tucked in (small
+   and clear) only while MulticulturalReveal has it armed, so it shows as-is
+   without JS, in edit mode and with motion off; [data-pop] releases it on the
+   bouncy spring, overshooting a touch and settling. Scale and opacity only —
+   the frame's layout box never moves. */
+.mc-visual[data-armed] {
+  transform: scale(0.82);
+  opacity: 0;
+  transition:
+    transform var(--spring-bounce-ms) var(--spring-bounce),
+    opacity 360ms ease-out;
+}
+.mc-visual[data-armed][data-pop] {
+  transform: none;
+  opacity: 1;
+}
+
+/* Homepage word marquee (WordMarquee): sticky over the manifesto, and once
+   stuck ([data-compact]) the words shrink toward the band's left edge, the
+   surface folds up to their height, and the band drops back in opacity. Only
+   transforms and opacity change, so the band's layout box — and everything
+   under it — stays put. */
+.wm-band {
+  transition: opacity 500ms ease;
+}
+.wm-bg,
+.wm-body {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.wm-bg {
+  transform-origin: top;
+}
+.wm-body {
+  transform-origin: 0 0;
+}
+.wm-band[data-compact] {
+  opacity: 0.55;
+}
+.wm-band[data-compact] .wm-bg {
+  transform: scaleY(var(--wm-k));
+}
+.wm-band[data-compact] .wm-body {
+  transform: scale(var(--wm-k));
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-band,
+  .wm-bg,
+  .wm-body {
+    transition: none;
   }
 }
 
@@ -735,6 +835,12 @@ html[data-gp-case-snap] {
   scroll-snap-type: y proximity;
 }
 
+/* Our Partners: the lander and the roster are gentle snap stops the same way,
+   scoped to the attribute PartnersHero sets on <html> while mounted. */
+html[data-gp-partners-snap] {
+  scroll-snap-type: y proximity;
+}
+
 /* Case-study masthead (CaseStudyHero): a revolving slideshow of the study's
    frames, each drifting (Ken Burns) in an alternating direction while the
    active one crossfades in. Stilled under reduced motion below — the first
@@ -776,6 +882,116 @@ html[data-gp-case-snap] {
   .team-band {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
     mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 9%, #000 24%, #000 100%);
+  }
+}
+
+/* Our Partners logo marquee (PartnerMarquee). One lane under the lander's
+   copy. Its drift (leftward from sm up, rightward on a phone) and its drag are
+   driven by PartnerMarquee, which moves .pm-track within one run's length —
+   so the loop has no seam only while every cell carries the same trailing
+   space (margin, never a flex gap, which would leave one gap short at the
+   join). Cells carry an even padding; a logo fills the box inside it. */
+.pm-lane {
+  position: relative;
+  height: 4rem;
+  margin-top: 2.5rem;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.pm-lane[data-dragging] {
+  cursor: grabbing;
+}
+.pm-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  will-change: transform;
+}
+.pm-run {
+  display: flex;
+  flex-shrink: 0;
+}
+.pm-cell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 8.5rem;
+  margin-right: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.pm-logo {
+  pointer-events: none;
+}
+@media (min-width: 751px) {
+  .pm-lane {
+    height: 4.5rem;
+    margin-top: 3rem;
+  }
+  .pm-cell {
+    width: 11rem;
+    margin-right: 0.75rem;
+    padding: 0.75rem 1.125rem;
+  }
+}
+@media (min-width: 1001px) {
+  .pm-lane {
+    height: 5.25rem;
+  }
+  .pm-cell {
+    width: 13rem;
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+/* Our Partners lander: the chevron down to the roster bobs gently — a short
+   drop and a slight brightening, then back. */
+.pr-chevron {
+  animation: pr-chevron 2.4s ease-in-out infinite;
+}
+@keyframes pr-chevron {
+  0%,
+  100% {
+    transform: translate3d(0, -2px, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate3d(0, 3px, 0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pr-chevron {
+    animation: none;
+  }
+}
+
+/* Our Partners roster (PartnersDirectory): the industry panel eases out of
+   the rail beside it when opened. */
+.pd-pop {
+  animation: pd-pop 280ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+@keyframes pd-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(-8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-pop {
+    animation: none;
   }
 }
 
