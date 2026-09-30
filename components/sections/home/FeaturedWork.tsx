@@ -12,12 +12,13 @@ import { GlyphNumber } from "@/components/ui/Glyph";
 import type { Work } from "@/content/work";
 import { focusPosition, wixImageFit } from "@/lib/wix";
 import { PLACEHOLDER_IMG, isVideoUrl, resolveImage } from "@/lib/adminClient";
-import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import { useMotionOff } from "@/components/motion/MotionProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import { CaseVideo, VideoChip } from "@/components/sections/work/CaseVideo";
 
 type FeaturedCopy = {
   eyebrow: string;
@@ -27,9 +28,11 @@ type FeaturedCopy = {
   ctaHref: string;
 };
 
-/** How long a case has to have been the snapped one, showing its thumbnail,
- * before its video takes over (ms). */
-const VIDEO_DELAY_MS = 1000;
+/** How long the row takes to glide from one case to the next (ms) — the same
+ * duration and curve as the cards' width change (.fw-card in globals.css), so
+ * the two move as one. A plain ease, no spring. */
+const GLIDE_MS = 600;
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
 /** The card's thumbnail: a bare Wix id is fetched whole (fit, not cropped), so
  * the same file serves the 4:5 card and the 4:3 one it opens into; anything
@@ -58,15 +61,16 @@ function thumbSrc(raw: string): string {
  * On desktop the snapped case opens out from 4:5 to 4:3 at the same height,
  * the others staying 4:5. The snapping there is done here rather than by CSS:
  * the snap targets move as the cards change width, so once a scroll or drag
- * comes to rest the row glides the chosen case onto the body's edge, keeping
- * it there while the widths settle. Phones and tablets keep CSS snapping and
- * every card at 4:5.
+ * comes to rest the row glides the chosen case onto the body's edge on a plain
+ * ease (no spring), in step with the widths. Phones and tablets keep CSS
+ * snapping and every card at 4:5.
  *
  * Cases show their thumbnail (work.items.*.img). A case with a video
- * (work.items.*.video) plays it — muted, looping — once it has been the
+ * (work.items.*.video) plays it — muted, once through — after it has been the
  * snapped one for a second, fading it in over the thumbnail; the rest stay
- * thumbnails until they are snapped in turn. Nothing plays off screen, in edit
- * mode, or with motion off.
+ * thumbnails until they are snapped in turn (see CaseVideo). When the video
+ * ends the row moves on to the next case, from the last back to the first.
+ * Nothing plays off screen, in edit mode, or with motion off.
  *
  * Under the row, to the left, arrows step case to case beside a gold progress
  * line tracking how far along the cases you are.
@@ -255,8 +259,17 @@ export default function FeaturedWork({
     }
 
     // Desktop: once a scroll or drag comes to rest, glide the chosen case onto
-    // the left edge. The glide chases the case's own position every frame, so
-    // it lands true while the case opens out and the last one closes up.
+    // the left edge — a plain ease-in-out over GLIDE_MS, the same as the width
+    // change. It heads straight for where the case will stand once the widths
+    // have settled (every case before it back at 4:5), rather than chasing its
+    // moving position, so it never runs past the mark and back.
+    const settledLeftOf = (i: number) => {
+      const frame = card(i)?.querySelector<HTMLElement>(".fw-frame");
+      // The frame's height is fixed off the 4:5 width (see .fw-frame).
+      const w = (frame?.getBoundingClientRect().height ?? 0) / 1.25;
+      const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+      return w > 0 ? i * (w + gap) : leftOf(i);
+    };
     let gliding = false;
     let down = false;
     let raf = 0;
@@ -268,17 +281,17 @@ export default function FeaturedWork({
       if (to !== activeRef.current) choose(to);
       cancelAnimationFrame(raf);
       gliding = true;
+      const from = scroller.scrollLeft;
+      const target = Math.min(settledLeftOf(to), scroller.scrollWidth - scroller.clientWidth);
       const start = performance.now();
       const step = (now: number) => {
-        const target = leftOf(to);
-        const cur = scroller.scrollLeft;
-        const d = target - cur;
-        if (reduce || Math.abs(d) <= 1) scroller.scrollLeft = target;
-        else scroller.scrollLeft = cur + Math.sign(d) * Math.max(1, Math.abs(d) * 0.14);
-        // Keep chasing while the widths are still moving (their transition
-        // runs 700ms), and for as long as the case is off its mark.
-        const settled = Math.abs(leftOf(to) - scroller.scrollLeft) <= 1;
-        if (now - start < 2500 && (now - start < 760 || !settled)) {
+        const p = reduce ? 1 : Math.min(1, (now - start) / GLIDE_MS);
+        if (p < 1) scroller.scrollLeft = from + (target - from) * easeInOut(p);
+        // At the end, and for a few frames' grace past it, the case is held on
+        // its actual mark: the width change starts a frame after the glide
+        // (once React has committed), so it finishes a touch later.
+        else scroller.scrollLeft = leftOf(to);
+        if (now - start < GLIDE_MS + 120) {
           raf = requestAnimationFrame(step);
         } else {
           gliding = false;
@@ -425,10 +438,20 @@ export default function FeaturedWork({
           </>
         )}
         <div className="fw-frame group relative w-full overflow-hidden bg-navy-soft">
-          <CaseMedia
-            work={w}
-            index={i}
+          <EditableImage
+            path={`work.items.${i}.img`}
+            raw={w.img}
+            src={thumbSrc(w.img)}
+            style={{ objectPosition: focusPosition(w.img) }}
+            alt={w.title}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <CaseVideo
+            video={w.video}
             playing={isActive && inView && !editMode && !motionOff}
+            // Played through: on to the next case, from the last back to the
+            // first.
+            onEnded={() => goRef.current((i + 1) % count)}
           />
           <div
             className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
@@ -580,118 +603,6 @@ export default function FeaturedWork({
         />
       )}
     </section>
-  );
-}
-
-/**
- * A case's frame contents: the thumbnail always, and — for a case with a
- * video, while `playing` — the video over it. The video is mounted only once
- * its case is the snapped one (so the others cost nothing), starts
- * VIDEO_DELAY_MS after that, and fades in once it is actually playing; losing
- * the snap fades it back out to the thumbnail and lets it go.
- */
-function CaseMedia({ work, index, playing }: { work: Work; index: number; playing: boolean }) {
-  const video = work.video && isVideoUrl(work.video) ? resolveImage(work.video) : "";
-  const want = !!video && playing;
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [mounted, setMounted] = useState(false);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    if (want && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (want) {
-      let live = true;
-      setMounted(true);
-      const timer = setTimeout(() => {
-        const v = videoRef.current;
-        if (!v || !live) return;
-        try {
-          v.currentTime = 0;
-        } catch {
-          /* not seekable yet — it starts from the top anyway */
-        }
-        v.play()
-          .then(() => {
-            if (live) setShown(true);
-          })
-          .catch(() => {});
-      }, VIDEO_DELAY_MS);
-      return () => {
-        live = false;
-        clearTimeout(timer);
-      };
-    }
-    setShown(false);
-    videoRef.current?.pause();
-    // Let the fade out finish before the element goes.
-    const timer = setTimeout(() => setMounted(false), 600);
-    return () => clearTimeout(timer);
-  }, [want]);
-
-  return (
-    <>
-      <EditableImage
-        path={`work.items.${index}.img`}
-        raw={work.img}
-        src={thumbSrc(work.img)}
-        style={{ objectPosition: focusPosition(work.img) }}
-        alt={work.title}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {mounted && video && (
-        <video
-          ref={videoRef}
-          src={video}
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-            shown ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      )}
-    </>
-  );
-}
-
-/** Edit mode: the way into a case's video field (a video has no slot of its
- * own on the card to click), and a way to clear it. */
-function VideoChip({ index, video }: { index: number; video: string }) {
-  const admin = useAdmin();
-  const path = `work.items.${index}.video`;
-  const stop = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  return (
-    <div className="absolute left-2 top-2 z-20 flex items-center gap-1" onClick={stop}>
-      <button
-        type="button"
-        onClick={(e) => {
-          stop(e);
-          admin.openImagePicker({ path, raw: video });
-        }}
-        className="border border-dashed border-white/30 bg-navy/80 px-3 py-1 font-heading text-xs text-white/70 transition hover:border-gold/60 hover:text-gold"
-      >
-        {video ? "video" : "add video"}
-      </button>
-      {video && (
-        <button
-          type="button"
-          aria-label="Remove video"
-          title="Remove video"
-          onClick={(e) => {
-            stop(e);
-            admin.setValue(path, "");
-          }}
-          className="border border-white/20 bg-navy/80 px-2 py-1 font-heading text-xs text-white/60 transition hover:border-red-400/60 hover:text-red-300"
-        >
-          ✕
-        </button>
-      )}
-    </div>
   );
 }
 

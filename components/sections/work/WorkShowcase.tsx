@@ -17,6 +17,8 @@ import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
+import { useMotionOff } from "@/components/motion/MotionProvider";
+import { CaseVideo, VideoChip } from "@/components/sections/work/CaseVideo";
 
 // CARD_W/END_CARD_W are the edit-mode sizes: width-driven at every breakpoint,
 // since edit mode lets the section grow past the viewport.
@@ -46,6 +48,13 @@ const DESC_H = "sm:h-[calc(100%-3.25rem)]";
  * Phones get the whole section in one viewport (heading, card row, shared
  * blurb); sm+ lays the row out width-driven with each case's blurb under its
  * own card. Edit mode keeps every affordance in that same row.
+ *
+ * Cases play their video the way the homepage's featured work does (see
+ * CaseVideo): the case snapped to the row's left edge shows its thumbnail,
+ * then a second later its video (work.items.*.video) fades in over it and
+ * plays once through, the rest staying thumbnails; when it ends the row moves
+ * on to the next case, from the last back to the first. Nothing plays off
+ * screen, in edit mode, or with motion off.
  */
 export default function WorkShowcase({
   items: serverItems,
@@ -57,6 +66,7 @@ export default function WorkShowcase({
   const items = useCmsValue("work.items", serverItems);
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
+  const motionOff = useMotionOff();
   const phase = useRevealPhase();
   // Case-study titles are brand names and stay untranslated.
   const tv = useEditableT();
@@ -213,6 +223,66 @@ export default function WorkShowcase({
     };
   }, [mounted, editMode, wideEnough]);
 
+  // The snapped case — whichever sits nearest the snap anchor (the scroller's
+  // left edge inset by the row's gutter) — is the one whose video plays.
+  const [active, setActive] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)));
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
+  const anchorOf = (scroller: HTMLElement, track: HTMLElement) =>
+    scroller.getBoundingClientRect().left + (parseFloat(getComputedStyle(track).paddingLeft) || 0);
+  useEffect(() => {
+    if (editMode) return;
+    const scroller = scrollRowRef.current;
+    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
+    if (!scroller || !track) return;
+    let raf = 0;
+    const pick = () => {
+      raf = 0;
+      const anchor = anchorOf(scroller, track);
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < items.length; i++) {
+        const el = track.children[i] as HTMLElement | undefined;
+        if (!el) continue;
+        const d = Math.abs(el.getBoundingClientRect().left - anchor);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      setActive(best);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(pick);
+    };
+    pick();
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      scroller.removeEventListener("scroll", onScroll);
+    };
+  }, [editMode, items.length]);
+  // A played-through video moves the row on to case i (the snap holds it).
+  const goTo = (i: number) => {
+    const scroller = scrollRowRef.current;
+    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
+    const el = track?.children[i] as HTMLElement | undefined;
+    if (!scroller || !track || !el) return;
+    const reduce =
+      motionOff || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    scroller.scrollBy({
+      left: el.getBoundingClientRect().left - anchorOf(scroller, track),
+      behavior: reduce ? "auto" : "smooth",
+    });
+  };
+
   const cards = items.map((w, i) => {
     const inner = (
       <div className={editMode ? "relative" : "relative h-full"}>
@@ -228,13 +298,16 @@ export default function WorkShowcase({
           <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-white" />
         </span>
         {editMode && (
-          <ListControls
-            listPath="work.items"
-            index={i}
-            count={items.length}
-            label="work item"
-            className="right-2 top-2"
-          />
+          <>
+            <ListControls
+              listPath="work.items"
+              index={i}
+              count={items.length}
+              label="work item"
+              className="right-2 top-2"
+            />
+            <VideoChip index={i} video={w.video ?? ""} />
+          </>
         )}
         <div
           className={`group relative overflow-hidden bg-navy-soft${
@@ -257,6 +330,11 @@ export default function WorkShowcase({
               className={editMode ? "aspect-[4/5] w-full object-cover" : "h-full w-full object-cover"}
             />
           </div>
+          <CaseVideo
+            video={w.video}
+            playing={i === active && inView && !editMode && !motionOff}
+            onEnded={() => goTo((i + 1) % items.length)}
+          />
           <div
             className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
               editMode ? " pointer-events-none" : ""
@@ -373,6 +451,7 @@ export default function WorkShowcase({
   // width-driven row and lets the section grow instead.
   return (
     <section
+      ref={sectionRef}
       data-gp-hero={phase ?? undefined}
       id="work-cases"
       className={`relative w-full overflow-hidden bg-navy ${
