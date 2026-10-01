@@ -91,6 +91,8 @@ export default function WorkShowcase({
         endCard={endCard}
         fit
         describe
+        // Level cards here: the room a stagger would take goes to the cases.
+        stagger={false}
         rowClassName={editMode ? "mt-10 pb-6" : "mt-1 pb-2 sm:mt-2"}
         controlsClassName={editMode ? "mt-6" : "mt-2 max-sm:pr-[4.5rem] sm:mt-3"}
       />

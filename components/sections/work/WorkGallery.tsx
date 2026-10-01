@@ -250,7 +250,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const shown = editMode ? visible : visible.slice(0, limit);
 
   return (
-    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
+    <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-12 sm:pb-16">
       <Container>
         {/* Section head: the gold line the cases' progress bar ends on, opening
             downward into the band that carries this section's title. Its slot is
@@ -602,7 +602,8 @@ function TagFilter({
 
   return (
     <div
-      className={`mt-8 w-full border transition-colors duration-300 ${
+      // Flush under the band: the bar hangs straight off the gallery's head.
+      className={`w-full border transition-colors duration-300 ${
         tag || open ? "border-gold/60" : "border-white/15"
       }`}
     >

@@ -75,12 +75,17 @@ function thumbSrc(raw: string): string {
  * `describe` adds the snapped case's description under it; the others' slots
  * stay empty, so only the case that is playing is described. Edit mode shows
  * every description, so each can be edited, and every card at 4:5.
+ *
+ * `stagger` steps every other card down at sm+ (the homepage's rhythm). Turned
+ * off, the cards stand level — and under `fit` the height the step took goes
+ * to the cards instead, so each case is that much larger.
  */
 export default function CaseCarousel({
   items,
   endCard,
   fit = false,
   describe = false,
+  stagger = true,
   rowClassName = "",
   controlsClassName = "mt-6",
   className = "",
@@ -90,6 +95,8 @@ export default function CaseCarousel({
   endCard: ReactNode;
   fit?: boolean;
   describe?: boolean;
+  /** Step every other card down at sm+ (on by default). */
+  stagger?: boolean;
   /** Spacing around the scrolling row. */
   rowClassName?: string;
   /** Spacing around the arrows and progress line. */
@@ -144,15 +151,15 @@ export default function CaseCarousel({
     const measure = () => {
       const cs = getComputedStyle(row);
       const inner = row.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-      const stagger = window.matchMedia("(min-width: 751px)").matches ? STAGGER : 0;
-      const frame = inner - stagger - (describe ? DESC_SLOT : 0);
+      const step = stagger && window.matchMedia("(min-width: 751px)").matches ? STAGGER : 0;
+      const frame = inner - step - (describe ? DESC_SLOT : 0);
       setFitW(frame > 0 ? Math.floor(frame / 1.25) : null);
     };
     const ro = new ResizeObserver(measure);
     ro.observe(row);
     measure();
     return () => ro.disconnect();
-  }, [fitting, describe]);
+  }, [fitting, describe, stagger]);
 
   // Mouse users can grab the row and drag it sideways (touch already scrolls
   // natively). Scroll snap is parked during the drag so the row follows the
@@ -480,7 +487,7 @@ export default function CaseCarousel({
         )}
       </div>
     );
-    const offset = i % 2 === 1 ? "sm:mt-10" : "";
+    const offset = stagger && i % 2 === 1 ? "sm:mt-10" : "";
     const cls = `fw-card ${offset} snap-start`;
     return w.slug && !editMode ? (
       <Link

@@ -58,11 +58,14 @@ export default function InstagramFeed({
   instagram: serverIg,
   livePosts,
   socials,
+  topClassName = "pt-20",
 }: {
   instagram: Instagram;
   livePosts?: InstagramPost[];
   /** The site's social links, for the rows under the Follow button. */
   socials: Social[];
+  /** The section's top padding — tighter where it follows the gallery. */
+  topClassName?: string;
 }) {
   const ig = useCmsValue("home.instagram", serverIg);
   const editMode = useEditMode();
@@ -252,7 +255,7 @@ export default function InstagramFeed({
   );
 
   return (
-    <section className="relative w-full overflow-hidden bg-navy pb-24 pt-20 sm:pb-28">
+    <section className={`relative w-full overflow-hidden bg-navy pb-24 sm:pb-28 ${topClassName}`}>
       {/* Warm corner glows, a nod to the gradient app icon */}
       <div
         aria-hidden

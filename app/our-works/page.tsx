@@ -30,6 +30,7 @@ export default async function OurWorks() {
         instagram={home.instagram}
         livePosts={instagramPosts ?? undefined}
         socials={site.socials}
+        topClassName="pt-2"
       />
     </>
   );
