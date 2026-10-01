@@ -10,6 +10,7 @@ import HeroSlotsProvider from "@/components/layout/HeroSlots";
 import PageReveal from "@/components/ui/PageReveal";
 import ScrollToTopOnHome from "@/components/ScrollToTopOnHome";
 import { getSite, getHome, getCaseStudies } from "@/lib/cms";
+import { faviconSrc } from "@/lib/adminClient";
 import { getTheme, themeCssVars } from "@/lib/themes";
 import { heroTopColor, heroBorderGradientCss } from "@/lib/heroGradient";
 
@@ -23,10 +24,11 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${site.site.name}`,
     },
     description: site.site.description,
-    // Brand favicon — a gold "&" tile (public/favicon.svg). The page-load veil
-    // (PageReveal) breathes this same mark while a page's first-viewport assets
-    // load, so the loader and the browser tab share one icon.
-    icons: { icon: "/favicon.svg" },
+    // Brand favicon — the CMS one (site.favicon, set from the admin's Site
+    // details panel), else the built-in gold "&" tile (public/favicon.svg).
+    // The page-load veil (PageReveal) breathes this same mark while a page's
+    // first-viewport assets load, so the loader and the browser tab share one.
+    icons: { icon: faviconSrc(site.favicon) },
   };
 }
 
@@ -107,7 +109,7 @@ export default async function RootLayout({
                   not become a scroll container — the pinned /our-works accordion
                   sticks against the viewport. */}
               <div className="relative flex flex-1 flex-col overflow-x-clip">
-                <PageReveal navOrder={[...site.nav.map((item) => item.href), "/contact-us"]} />
+                <PageReveal favicon={faviconSrc(site.favicon)} navOrder={[...site.nav.map((item) => item.href), "/contact-us"]} />
                 <div data-gp-page className="flex flex-1 flex-col">
                   <main className="flex-1">{children}</main>
                   <Footer

@@ -274,6 +274,7 @@ const ES: Record<string, string> = {
     "Ninguna imagen coincide con esa búsqueda y combinación de etiquetas.",
   "clear filters": "limpiar filtros",
   "Filter by Tag": "Filtrar por etiqueta",
+  "All tags": "Todas las etiquetas",
   "Load More": "Cargar más",
 
   // --- Partners ---

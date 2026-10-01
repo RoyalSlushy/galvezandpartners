@@ -1,60 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import Container from "@/components/ui/Container";
 import useFitText from "@/components/ui/useFitText";
-import { useMinWidth } from "@/components/ui/useMinWidth";
 import GutterRail from "@/components/ui/GutterRail";
 import CtaGrid from "@/components/sections/home/CtaGrid";
-import { GlyphNumber } from "@/components/ui/Glyph";
+import CaseCarousel from "@/components/sections/work/CaseCarousel";
 import type { Work } from "@/content/work";
-import { focusPosition } from "@/lib/wix";
-import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
-import EditableImage from "@/components/admin/editable/EditableImage";
-import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import { AddChip } from "@/components/admin/editable/ListControls";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
-import { useMotionOff } from "@/components/motion/MotionProvider";
-import { CaseVideo, VideoChip } from "@/components/sections/work/CaseVideo";
-
-// CARD_W/END_CARD_W are the edit-mode sizes: width-driven at every breakpoint,
-// since edit mode lets the section grow past the viewport.
-const CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(34vw,38vh)] md:w-[min(27vw,38vh)]";
-const END_CARD_W = "w-[72vw] max-w-[420px] shrink-0 sm:w-[min(30vw,34vh)] md:w-[min(24vw,34vh)]";
-// Visitors get CARD_FIT at every breakpoint: the card takes the row's height
-// and derives its own width from it (the frame stays 4:5), so heading + cards +
-// blurb always land inside the first screen, whatever the viewport.
-const CARD_FIT = "h-full w-auto shrink-0";
-// Room reserved under each card at sm+ for its blurb (mt-3 + a box exactly two
-// text-sm lines tall); the frame above it takes the rest of the row. Phones
-// move that blurb out of the row entirely, so their frame gets the full height.
-const DESC_H = "sm:h-[calc(100%-3.25rem)]";
 
 /**
- * /our-works hero: the cases as a horizontal strip you push sideways — swipe on
- * touch, drag with the mouse, or scroll horizontally with a trackpad — snapping
- * card to card. Vertical scroll is left alone: the page runs straight past the
- * cases into the gallery wall below, with no pinning and no scroll-jacking.
- * A gold progress line under the row tracks how far along the strip you are and
- * hands off to the gallery band below (see WorkGallery); a masonry-grid icon
- * rail on the left jumps to that #work-gallery section directly.
+ * /our-works hero: the cases as the same carousel the homepage's featured work
+ * is (see CaseCarousel) — the row hugging the body's left edge, the snapped
+ * case opening to 4:3 on desktop and playing its video, arrows and a gold
+ * progress line under it. The progress line hands off to the gallery band
+ * below (see WorkGallery); a masonry-grid icon rail on the left jumps to that
+ * #work-gallery section directly.
+ *
+ * Here the carousel is fit to the screen: the section is the first screen
+ * under the masthead, the heading takes what it needs, and the cards size
+ * themselves to the room left (`fit`), so heading, cards, description, arrows
+ * and line all land inside the viewport at any size. Only the snapped case —
+ * the one playing — shows its description, under its card (`describe`).
  *
  * The heading is centered and fit to a single line at any width, with the word
  * "speaks" accented in gold under a pulsing halo.
  *
- * Phones get the whole section in one viewport (heading, card row, shared
- * blurb); sm+ lays the row out width-driven with each case's blurb under its
- * own card. Edit mode keeps every affordance in that same row.
- *
- * Cases play their video the way the homepage's featured work does (see
- * CaseVideo): the case snapped to the row's left edge shows its thumbnail,
- * then a second later its video (work.items.*.video) fades in over it and
- * plays once through, the rest staying thumbnails; when it ends the row moves
- * on to the next case, from the last back to the first. Nothing plays off
- * screen, in edit mode, or with motion off.
+ * Edit mode lets the section grow and keeps every affordance in the row.
  */
 export default function WorkShowcase({
   items: serverItems,
@@ -66,368 +42,14 @@ export default function WorkShowcase({
   const items = useCmsValue("work.items", serverItems);
   const heading = useCmsValue("work.heading", serverHeading);
   const editMode = useEditMode();
-  const motionOff = useMotionOff();
   const phase = useRevealPhase();
   // Case-study titles are brand names and stay untranslated.
   const tv = useEditableT();
 
-  const descTexts = [
-    ...items.map((w) => tv(w.description ?? "")),
-    tv("Every frame on one wall — sort it, filter it, tag it."),
-  ];
-  const descTextsRef = useRef<string[]>(descTexts);
-  descTextsRef.current = descTexts;
-
-  // The phone treatment (one-viewport column + shared blurb) only applies below
-  // the `sm` breakpoint; sm+ keeps per-card blurbs in a width-driven row.
-  const wideEnough = useMinWidth(751);
-  // Nothing here changes the server markup, but the phone blurb only starts
-  // tracking once the width query has actually been evaluated on the client.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  // Mouse users can grab the row and drag it sideways (touch already scrolls
-  // natively). Scroll snap is parked during the drag so the row follows the
-  // cursor instead of fighting the detents, and a real drag swallows the
-  // release click so the card under the cursor doesn't open.
-  const scrollRowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const scroller = scrollRowRef.current;
-    if (!scroller) return;
-    let down = false;
-    let dragged = false;
-    let lastX = 0;
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse" || e.button !== 0) return;
-      down = true;
-      dragged = false;
-      lastX = e.clientX;
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!down) return;
-      const dx = e.clientX - lastX;
-      if (!dragged && Math.abs(dx) < 4) return;
-      if (!dragged) scroller.style.scrollSnapType = "none";
-      dragged = true;
-      lastX = e.clientX;
-      scroller.scrollLeft -= dx;
-    };
-    const onUp = () => {
-      down = false;
-      if (dragged) scroller.style.scrollSnapType = "";
-    };
-    const onClick = (e: MouseEvent) => {
-      if (!dragged) return;
-      dragged = false;
-      e.preventDefault();
-      e.stopPropagation();
-      // The page transition starts its outgoing push on any link press, so tell
-      // it this one is going nowhere (see PageReveal).
-      window.dispatchEvent(new Event("gp:nav-cancel"));
-    };
-    const onDragStart = (e: Event) => e.preventDefault();
-    scroller.addEventListener("pointerdown", onDown);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    scroller.addEventListener("click", onClick, true);
-    scroller.addEventListener("dragstart", onDragStart);
-    return () => {
-      scroller.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      scroller.removeEventListener("click", onClick, true);
-      scroller.removeEventListener("dragstart", onDragStart);
-      scroller.style.scrollSnapType = "";
-    };
-  }, [mounted, editMode]);
-
-  // Progress line: how far the strip has travelled, so the horizontal journey
-  // still reads at a glance — and still hands the gold line down to the
-  // gallery band below (see WorkGallery).
-  const barRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const scroller = scrollRowRef.current;
-    const bar = barRef.current;
-    if (!scroller || !bar) return;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const max = scroller.scrollWidth - scroller.clientWidth;
-      const p = max > 0 ? scroller.scrollLeft / max : 1;
-      // A sliver stays lit at rest so the line reads as a track to travel
-      // rather than an empty rule.
-      bar.style.transform = `scaleX(${Math.max(0.03, Math.min(1, p))})`;
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      scroller.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      bar.style.transform = "";
-    };
-  }, [items.length, editMode]);
-
-  // Phone: the cards carry no blurb — a single shared blurb under the row swaps
-  // to whichever card sits on the snap anchor, fading between texts.
-  const mobileDescRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    if (!mounted || editMode || wideEnough) return;
-    const scroller = scrollRowRef.current;
-    const desc = mobileDescRef.current;
-    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
-    if (!scroller || !desc || !track) return;
-    let last = 0;
-    let raf = 0;
-    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
-    const pick = () => {
-      raf = 0;
-      const kids = Array.from(track.children) as HTMLElement[];
-      if (!kids.length) return;
-      // Snap anchor = the scroller's left edge inset by the row's gutter
-      // (.gallery-scroll mirrors the same inset as scroll-padding-left).
-      const anchor =
-        scroller.getBoundingClientRect().left +
-        (parseFloat(getComputedStyle(track).paddingLeft) || 0);
-      let best = 0;
-      let bestD = Infinity;
-      for (let i = 0; i < kids.length; i++) {
-        const d = Math.abs(kids[i].getBoundingClientRect().left - anchor);
-        if (d < bestD) {
-          bestD = d;
-          best = i;
-        }
-      }
-      if (best === last) return;
-      last = best;
-      desc.style.opacity = "0";
-      clearTimeout(fadeTimer);
-      fadeTimer = setTimeout(() => {
-        desc.textContent = descTextsRef.current[last] ?? "";
-        desc.style.opacity = "1";
-      }, 160);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(pick);
-    };
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      scroller.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-      clearTimeout(fadeTimer);
-      desc.style.opacity = "";
-    };
-  }, [mounted, editMode, wideEnough]);
-
-  // The snapped case — whichever sits nearest the snap anchor (the scroller's
-  // left edge inset by the row's gutter) — is the one whose video plays.
-  const [active, setActive] = useState(0);
-  const sectionRef = useRef<HTMLElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)));
-    io.observe(section);
-    return () => io.disconnect();
-  }, []);
-  const anchorOf = (scroller: HTMLElement, track: HTMLElement) =>
-    scroller.getBoundingClientRect().left + (parseFloat(getComputedStyle(track).paddingLeft) || 0);
-  useEffect(() => {
-    if (editMode) return;
-    const scroller = scrollRowRef.current;
-    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
-    if (!scroller || !track) return;
-    let raf = 0;
-    const pick = () => {
-      raf = 0;
-      const anchor = anchorOf(scroller, track);
-      let best = 0;
-      let bestD = Infinity;
-      for (let i = 0; i < items.length; i++) {
-        const el = track.children[i] as HTMLElement | undefined;
-        if (!el) continue;
-        const d = Math.abs(el.getBoundingClientRect().left - anchor);
-        if (d < bestD) {
-          bestD = d;
-          best = i;
-        }
-      }
-      setActive(best);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(pick);
-    };
-    pick();
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      scroller.removeEventListener("scroll", onScroll);
-    };
-  }, [editMode, items.length]);
-  // A played-through video moves the row on to case i (the snap holds it).
-  const goTo = (i: number) => {
-    const scroller = scrollRowRef.current;
-    const track = (scroller?.firstElementChild as HTMLElement | null) ?? null;
-    const el = track?.children[i] as HTMLElement | undefined;
-    if (!scroller || !track || !el) return;
-    const reduce =
-      motionOff || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    scroller.scrollBy({
-      left: el.getBoundingClientRect().left - anchorOf(scroller, track),
-      behavior: reduce ? "auto" : "smooth",
-    });
-  };
-
-  const cards = items.map((w, i) => {
-    const inner = (
-      <div className={editMode ? "relative" : "relative h-full"}>
-        {/* Outlined index, overlapping the top-left of the frame. At sm+ the
-            cards take their size from the viewport's height, so the numeral
-            does too — a fixed size would swallow the card on a short screen. */}
-        <span
-          aria-hidden
-          className={`pointer-events-none absolute -top-7 left-2 z-10 font-display text-[4.5rem] leading-none text-stroke-white opacity-60 sm:-top-9 ${
-            editMode ? "sm:text-[5.5rem]" : "sm:text-[min(5.5rem,7vh)]"
-          }`}
-        >
-          <GlyphNumber value={String(i + 1).padStart(2, "0")} tintClassName="bg-white" />
-        </span>
-        {editMode && (
-          <>
-            <ListControls
-              listPath="work.items"
-              index={i}
-              count={items.length}
-              label="work item"
-              className="right-2 top-2"
-            />
-            <VideoChip index={i} video={w.video ?? ""} />
-          </>
-        )}
-        <div
-          className={`group relative overflow-hidden bg-navy-soft${
-            editMode ? "" : ` aspect-[4/5] h-full max-w-[85vw] sm:max-w-none ${DESC_H}`
-          }`}
-        >
-          <div
-            data-parallax
-            className={`will-change-transform${editMode ? "" : " h-full"}`}
-            style={{ transform: "scale(1.12)" }}
-          >
-            <EditableImage
-              path={`work.items.${i}.img`}
-              raw={w.img}
-              src={w.img ? resolveImage(w.img, 700, 875) : PLACEHOLDER_IMG}
-              // The CMS focal point keeps the important part of the frame in
-              // view under the crop (defaults to centre when unset).
-              style={{ objectPosition: focusPosition(w.img) }}
-              alt={w.title}
-              className={editMode ? "aspect-[4/5] w-full object-cover" : "h-full w-full object-cover"}
-            />
-          </div>
-          <CaseVideo
-            video={w.video}
-            playing={i === active && inView && !editMode && !motionOff}
-            onEnded={() => goTo((i + 1) % items.length)}
-          />
-          <div
-            className={`absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/15 to-transparent transition-opacity duration-500${
-              editMode ? " pointer-events-none" : ""
-            }`}
-          />
-          <div className="absolute inset-x-0 bottom-0 p-5">
-            <div className="flex items-end justify-between gap-3">
-              <EditableText
-                path={`work.items.${i}.title`}
-                value={w.title}
-                as="h2"
-                className="font-heading text-f8 leading-tight text-white"
-                link={{
-                  path: `work.items.${i}.slug`,
-                  value: w.slug ?? "",
-                  kind: "slug",
-                  createCaseStudy: true,
-                }}
-              />
-              {w.slug && (
-                <span
-                  aria-hidden
-                  className="mb-1 flex h-10 w-10 shrink-0 translate-y-3 items-center justify-center bg-gold text-navy opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                    <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Description sits under the card (out of the image), in the fixed slot
-            DESC_H reserves for it. Phones move it out of the row entirely —
-            into the shared blurb under the track — so it hides here (edit mode
-            keeps it in place so each case stays editable).
-            `w-0 min-w-full` keeps the copy from setting the column's width: the
-            column is sized by the 4:5 frame above (which takes its width from
-            the row's height), and the blurb then fills whatever that is —
-            without it, a long blurb stretches its own card wider than the
-            rest. */}
-        <EditableText
-          path={`work.items.${i}.description`}
-          value={w.description}
-          as="p"
-          multiline
-          className={`mt-3 line-clamp-2 whitespace-pre-line font-body text-sm text-white/70${
-            // max-sm:hidden rather than `hidden sm:block`: line-clamp needs its
-            // own display value, and an sm:block would overwrite it — leaving a
-            // third line half-showing under the clamp instead of an ellipsis.
-            // h-[2.5rem] is exactly the two lines the clamp allows, so a blurb
-            // with a hard line break in it (the copy is pre-line) can't push a
-            // third line into view under the clamp.
-            editMode ? "" : " h-[2.5rem] w-0 min-w-full overflow-hidden max-sm:hidden"
-          }`}
-        />
-      </div>
-    );
-    const rootW = editMode ? CARD_W : CARD_FIT;
-    // Every other card is stepped down a touch for rhythm. Visitors' cards are
-    // height-driven, so the step is a shorter card hung off the row's bottom
-    // edge (a top margin would push it out of the viewport instead).
-    const offset = i % 2 !== 1 ? "" : editMode ? "sm:mt-6" : "sm:h-[93%] sm:self-end";
-    return w.slug && !editMode ? (
-      <Link
-        key={i}
-        href={`/case-study/${w.slug}`}
-        aria-label={w.title}
-        className={`${rootW} ${offset} snap-start`}
-      >
-        {inner}
-      </Link>
-    ) : (
-      <div key={i} className={`${rootW} ${offset} snap-start`}>
-        {inner}
-      </div>
-    );
-  });
-
   // Closing card carries the hand-off to the gallery wall below.
   const endCard = (
-    <a
-      href="#work-gallery"
-      className={`flex ${editMode ? `${END_CARD_W} items-center` : `${CARD_FIT} items-start`} snap-start`}
-    >
-      <div
-        className={`relative flex aspect-[4/5] flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7 ${
-          // Its frame lines up with the cases' — same height, so the same
-          // bottom edge — with their blurb slot left empty beneath it. min-w-0
-          // keeps the copy inside from widening the frame past its 4:5.
-          editMode ? "w-full" : `h-full min-w-0 max-w-[85vw] sm:max-w-none ${DESC_H}`
-        }`}
-      >
+    <a href="#work-gallery" className="fw-end flex snap-start items-start">
+      <div className="relative flex aspect-[4/5] w-full min-w-0 flex-col items-start justify-center overflow-hidden border border-gold/25 bg-gradient-to-br from-navy-soft to-navy p-5 sm:p-7">
         <CtaGrid
           className="glyph-grid-fade-left"
           glyphClassName="bg-gold"
@@ -443,15 +65,13 @@ export default function WorkShowcase({
     </a>
   );
 
-  // Visitors get a one-viewport layout at every breakpoint: the section fills
-  // the screen under the site header as a column — heading, then the card row
-  // (which flexes, and sizes the 4:5 cards from its own height), then the
-  // progress line and the blurb — so landing on the page puts the whole of the
-  // cases on screen with nothing below the fold. Edit mode keeps the
-  // width-driven row and lets the section grow instead.
+  // Visitors get the section as the first screen under the masthead: heading,
+  // then the carousel taking the rest (its cards sized to fit it). On a phone
+  // the arrows' row stops short of the floating menu button in the corner (a
+  // w-12 square inset right-4 / bottom-3 — see MobileMenu) rather than the
+  // whole section rising above it. Edit mode lets the section grow instead.
   return (
     <section
-      ref={sectionRef}
       data-gp-hero={phase ?? undefined}
       id="work-cases"
       className={`relative w-full overflow-hidden bg-navy ${
@@ -466,45 +86,14 @@ export default function WorkShowcase({
           <ShowcaseHeading heading={heading} display={tv(heading)} editMode={editMode} />
         </div>
       </Container>
-      <div
-        ref={scrollRowRef}
-        className={`gallery-scroll cursor-grab snap-x snap-mandatory overflow-x-auto active:cursor-grabbing ${
-          editMode ? "mt-10 pb-6 pt-10" : "mt-2 min-h-0 flex-1 pb-2 pt-8 sm:mt-4 sm:pt-10"
-        }`}
-      >
-        <div
-          className={`gallery-pad flex w-max items-start gap-6 sm:gap-8 ${
-            editMode ? "" : "h-full"
-          }`}
-        >
-          {cards}
-          {endCard}
-        </div>
-      </div>
-      {!editMode && (
-        <>
-          {/* Progress line for the journey across the cases. It runs full width
-              as the last of them lands, where the gallery section below picks it
-              up and opens it into its own band (see WorkGallery). */}
-          <Container className="mt-2 sm:mt-4">
-            <div className="h-px w-full bg-white/10">
-              <div ref={barRef} className="h-full origin-left scale-x-[0.03] bg-gold" />
-            </div>
-          </Container>
-          {/* Left-aligned to the site gutter (matching the cards/heading) but its
-              right edge stops short of the floating nav icon at the bottom-right
-              (a w-12 / 3rem circle inset right-4 / 1rem — see MobileMenu), so the
-              blurb never runs underneath it. Width ≈ 100vw − that icon column. */}
-          <div className="mt-3 pl-5 pr-[4.75rem] sm:hidden">
-            <p
-              ref={mobileDescRef}
-              className="line-clamp-3 h-[4.3rem] font-body text-sm leading-relaxed text-white/70 transition-opacity duration-300"
-            >
-              {descTexts[0]}
-            </p>
-          </div>
-        </>
-      )}
+      <CaseCarousel
+        items={items}
+        endCard={endCard}
+        fit
+        describe
+        rowClassName={editMode ? "mt-10 pb-6" : "mt-1 pb-2 sm:mt-2"}
+        controlsClassName={editMode ? "mt-6" : "mt-2 max-sm:pr-[4.5rem] sm:mt-3"}
+      />
       {editMode && (
         <Container className="mt-6">
           <AddChip listPath="work.items" label="work item" />

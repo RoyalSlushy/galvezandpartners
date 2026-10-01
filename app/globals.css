@@ -1274,7 +1274,8 @@ html[data-gp-partners-snap] {
   }
 }
 
-/* Homepage featured work (FeaturedWork). The row hugs the body column's left
+/* The case carousel (CaseCarousel — the homepage's featured work and the Our
+   Works cases). The row hugs the body column's left
    edge — the scroller starts there, so cases slide out of view at the body's
    edge rather than the screen's — and runs on past the column to the screen's
    right edge. Every card is --fw-w wide, its frame 4:5 (the height is fixed
@@ -1292,6 +1293,9 @@ html[data-gp-partners-snap] {
   scroll-padding-left: 0;
 }
 .fw-track {
+  /* --fw-cap-w is the width-only cap; a row sized to its own room (the
+     carousel's `fit`) takes the smaller of it and what its height allows. */
+  --fw-cap-w: min(74vw, 420px);
   --fw-w: min(74vw, 420px);
   --fw-end: min(74vw, 420px);
   --fw-gap: 1.5rem;
@@ -1314,6 +1318,7 @@ html[data-gp-partners-snap] {
     margin-left: calc(max(0px, (100vw - var(--site-max, 1200px)) / 2) + 2rem);
   }
   .fw-track {
+    --fw-cap-w: min(38vw, 420px);
     --fw-w: min(38vw, 40vh, 420px);
     --fw-end: min(34vw, 36vh, 420px);
     --fw-gap: 2.25rem;
@@ -1322,6 +1327,7 @@ html[data-gp-partners-snap] {
 }
 @media (min-width: 1001px) {
   .fw-track {
+    --fw-cap-w: min(30vw, 420px);
     --fw-w: min(30vw, 40vh, 420px);
     --fw-end: min(26vw, 36vh, 420px);
   }

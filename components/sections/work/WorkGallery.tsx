@@ -384,69 +384,16 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             list below to change it. Tags are comma-separated.
           </p>
         ) : (
-          // One row under the band: the tag filter — every tag in use, once
-          // each, in a single dropdown — and, while anything is filtering the
-          // wall, the clear-all. Search and sort live up in the band.
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <div
-              className={`relative inline-flex h-11 min-w-0 max-w-full items-center border transition-colors duration-300 focus-within:border-gold ${
-                tag ? "border-gold bg-gold/10" : "border-white/15 hover:border-gold/60"
-              }`}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="pointer-events-none absolute left-3.5 h-4 w-4 text-gold"
-                aria-hidden
-              >
-                <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
-                <circle cx="7.5" cy="7.5" r="1.5" />
-              </svg>
-              <label className="sr-only" htmlFor="gallery-tag">
-                {tv("Filter by Tag")}
-              </label>
-              <select
-                id="gallery-tag"
-                value={tag ?? ""}
-                onChange={(e) => setTag(e.target.value || null)}
-                className="h-full min-w-0 max-w-full cursor-pointer appearance-none truncate bg-transparent pl-10 pr-10 font-heading text-xs uppercase tracking-wide text-white outline-none"
-              >
-                <option value="" className="bg-navy text-white">
-                  {tv("Filter by Tag")}
-                </option>
-                {allTags.map(([t, count]) => (
-                  <option key={t} value={t} className="bg-navy text-white">
-                    {t} ({count})
-                  </option>
-                ))}
-              </select>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="pointer-events-none absolute right-3.5 h-4 w-4 text-white/60"
-                aria-hidden
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-            {filtersActive && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
-              >
-                {tv("clear")}
-              </button>
-            )}
-          </div>
+          // Under the band: the tag filter (see TagFilter). Search and sort
+          // live up in the band.
+          <TagFilter
+            tags={allTags}
+            tag={tag}
+            onTag={setTag}
+            filtersActive={filtersActive}
+            onClear={clearFilters}
+            tv={tv}
+          />
         )}
 
       </Container>
@@ -581,6 +528,200 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
           document.body,
         )}
     </section>
+  );
+}
+
+/**
+ * The wall's tag filter: a bar the width of the body column, and an accordion
+ * under it. The bar's "Filter by Tag" opens the accordion — every tag in use,
+ * once each, alphabetical, with its count — and the bar's own empty stretch
+ * carries the busiest tags as quick picks (the one in force first), as many
+ * as fit on its one line (the rest are hidden rather than cut in half). Picking a tag, there or in
+ * the accordion, filters the wall to it; picking it again, or "All tags",
+ * lets it go. While anything filters the wall the bar offers a clear too.
+ */
+function TagFilter({
+  tags,
+  tag,
+  onTag,
+  filtersActive,
+  onClear,
+  tv,
+}: {
+  tags: [string, number][];
+  tag: string | null;
+  onTag: (t: string | null) => void;
+  filtersActive: boolean;
+  onClear: () => void;
+  tv: (s: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = "gallery-tags-panel";
+
+  // Busiest first for the quick picks — after the tag in force, so it is
+  // always on the bar to be seen (and let go).
+  const busiest = useMemo(
+    () =>
+      [...tags].sort(
+        (a, b) =>
+          Number(b[0] === tag) - Number(a[0] === tag) || b[1] - a[1] || a[0].localeCompare(b[0]),
+      ),
+    [tags, tag],
+  );
+
+  // Quick picks that wrapped off the bar's one line are hidden (and so out of
+  // the tab order) rather than left clipped. Re-measured as the bar resizes.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [shownPicks, setShownPicks] = useState(busiest.length);
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const measure = () => {
+      const kids = Array.from(strip.children) as HTMLElement[];
+      if (!kids.length) return;
+      const top = kids[0].offsetTop;
+      const n = kids.findIndex((k) => k.offsetTop > top + 2);
+      setShownPicks(n < 0 ? kids.length : n);
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(strip);
+    measure();
+    return () => ro.disconnect();
+  }, [busiest]);
+
+  const pick = (t: string | null) => {
+    onTag(t === tag ? null : t);
+    setOpen(false);
+  };
+  const chip = (active: boolean) =>
+    `border px-3 py-1 font-heading text-[11px] uppercase tracking-wide transition-colors duration-300 ${
+      active
+        ? "border-gold bg-gold text-navy"
+        : "border-white/15 text-white/65 hover:border-gold/60 hover:text-gold focus-visible:border-gold/60 focus-visible:text-gold"
+    }`;
+
+  return (
+    <div
+      className={`mt-8 w-full border transition-colors duration-300 ${
+        tag || open ? "border-gold/60" : "border-white/15"
+      }`}
+    >
+      <div className="flex min-h-11 items-center gap-3 pr-1.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((o) => !o)}
+          className="flex h-11 shrink-0 items-center gap-2.5 pl-3.5 pr-1 font-heading text-xs uppercase tracking-wide text-white transition-colors hover:text-gold focus-visible:text-gold focus-visible:outline-none"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4 text-gold"
+            aria-hidden
+          >
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+            <circle cx="7.5" cy="7.5" r="1.5" />
+          </svg>
+          {tv("Filter by Tag")}
+          {tag && <span className="text-gold">· {tag}</span>}
+        </button>
+        {/* Quick picks, filling the bar's empty stretch (desktop). */}
+        <div
+          ref={stripRef}
+          className="hidden h-[1.875rem] min-w-0 flex-1 flex-wrap gap-2 overflow-hidden md:flex"
+        >
+          {busiest.map(([t], i) => (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={tag === t}
+              onClick={() => pick(t)}
+              className={`${chip(tag === t)} ${i >= shownPicks ? "invisible" : ""}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => {
+                onClear();
+                setOpen(false);
+              }}
+              className="px-2 font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
+            >
+              {tv("clear")}
+            </button>
+          )}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label={tv("Filter by Tag")}
+            onClick={() => setOpen((o) => !o)}
+            className="flex h-9 w-9 items-center justify-center text-white/60 transition-colors hover:text-gold focus-visible:text-gold"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      {/* The accordion: every tag, opening down under the bar. */}
+      <div
+        id={panelId}
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        {/* Shut, it is hidden from assistive tech and its chips leave the tab
+            order, so focus never lands on a tag that cannot be seen. */}
+        <div className="min-h-0 overflow-hidden" aria-hidden={!open}>
+          <div className="flex flex-wrap gap-2 border-t border-white/10 p-3.5">
+            <button
+              type="button"
+              aria-pressed={!tag}
+              tabIndex={open ? undefined : -1}
+              onClick={() => pick(null)}
+              className={chip(!tag)}
+            >
+              {tv("All tags")}
+            </button>
+            {tags.map(([t, count]) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={tag === t}
+                tabIndex={open ? undefined : -1}
+                onClick={() => pick(t)}
+                className={chip(tag === t)}
+              >
+                {t}
+                <span className={`ml-1.5 ${tag === t ? "text-navy/60" : "text-white/35"}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

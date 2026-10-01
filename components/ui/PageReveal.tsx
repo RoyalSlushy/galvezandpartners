@@ -82,7 +82,14 @@ function dirBetween(navOrder: string[], from: string, to: string) {
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
+export default function PageReveal({
+  navOrder = [],
+  favicon = "/favicon.svg",
+}: {
+  navOrder?: string[];
+  /** The site's favicon URL (site.favicon, resolved), breathed by the veil. */
+  favicon?: string;
+}) {
   const pathname = usePathname();
   const [veiled, setVeiled] = useState(true);
   // Direction of the navigation in progress: +1 rightward through the menu, -1
@@ -305,7 +312,7 @@ export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
             it; the brand favicon gently "breathes" while loading. */}
         <span className="gp-veil-spinner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/favicon.svg" alt="" className="gp-veil-breathe h-16 w-16" />
+          <img src={favicon} alt="" className="gp-veil-breathe h-16 w-16 object-contain" />
         </span>
       </div>
     </div>

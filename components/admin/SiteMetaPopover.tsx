@@ -4,10 +4,12 @@ import { useEffect, useRef } from "react";
 import { useAdmin, useCmsValue } from "./AdminProvider";
 import EditableText from "./editable/EditableText";
 import { SpinnerIcon } from "./icons";
+import { faviconSrc } from "@/lib/adminClient";
 
 /**
  * Popover for the site fields that have no visible spot on the page:
- * site name, brand, and the meta description. Rows use the same click-to-edit
+ * site name, brand, the meta description, and the favicon (site.favicon — the
+ * browser-tab icon and the mark the page-load veil breathes). Rows use the same click-to-edit
  * interaction as the rest of the site.
  */
 export default function SiteMetaPopover({ onClose }: { onClose: () => void }) {
@@ -33,6 +35,7 @@ export default function SiteMetaPopover({ onClose }: { onClose: () => void }) {
   const brand = useCmsValue<string>("site.site.brand", "");
   const tagline = useCmsValue<string>("site.tagline", "");
   const description = useCmsValue<string>("site.site.description", "");
+  const favicon = useCmsValue<string>("site.favicon", "");
 
   return (
     <div
@@ -70,6 +73,35 @@ export default function SiteMetaPopover({ onClose }: { onClose: () => void }) {
               multiline
               className="whitespace-pre-line text-sm leading-snug text-white/85"
             />
+          </MetaRow>
+          <MetaRow label="Favicon">
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={faviconSrc(favicon)}
+                alt=""
+                className="h-10 w-10 shrink-0 border border-white/10 bg-navy object-contain p-1"
+              />
+              <button
+                type="button"
+                onClick={() => admin.openImagePicker({ path: "site.favicon", raw: favicon })}
+                className="border border-dashed border-white/30 px-3 py-1 font-heading text-xs text-white/70 transition hover:border-gold/60 hover:text-gold"
+              >
+                {favicon ? "change" : "upload"}
+              </button>
+              {favicon && (
+                <button
+                  type="button"
+                  onClick={() => admin.setValue("site.favicon", "")}
+                  className="font-heading text-xs text-white/50 transition hover:text-gold"
+                >
+                  use default
+                </button>
+              )}
+            </div>
+            <span className="mt-1 block text-[11px] leading-snug text-white/40">
+              A square image (SVG or PNG, 256px or larger) works best.
+            </span>
           </MetaRow>
         </div>
       )}

@@ -1,5 +1,5 @@
 import type { ContentKey } from "@/lib/cms";
-import { stripFocus, wixImage } from "@/lib/wix";
+import { stripFocus, wixImage, wixImageFit } from "@/lib/wix";
 
 // NOTE: keep this module free of `@/lib/supabase` / `@/lib/cms` value imports —
 // it is statically bundled into every page via AdminProvider, and those pull
@@ -223,6 +223,15 @@ export function resolveImage(raw: string, w = 400, h = 300): string {
   const src = stripFocus(raw);
   if (isVideoUrl(src) || /^(https?:|data:|\/)/.test(src)) return src;
   return wixImage(src, w, h);
+}
+
+/** The browser-tab icon's URL: the CMS favicon (site.favicon) when one is
+ * set — a bare Wix id fetched whole at icon size, anything else as it is — and
+ * the built-in mark otherwise. */
+export function faviconSrc(raw: string | undefined): string {
+  const src = stripFocus(raw ?? "").trim();
+  if (!src) return "/favicon.svg";
+  return /^(https?:|data:|\/)/.test(src) ? src : wixImageFit(src, 256, 256);
 }
 
 /** Every distinct image currently referenced across the site content. */

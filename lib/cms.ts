@@ -59,6 +59,9 @@ export type SiteContent = {
   theme: string;
   glyphs: Glyph[];
   headerImage: string;
+  /** The browser-tab icon (and the mark the page-load veil breathes): an
+   * uploaded image, or empty for the built-in /favicon.svg. */
+  favicon: string;
   /** Translations for copy written in the editor, which content/i18n.ts can't
    * know about. Kept with the rest of the site-wide settings rather than in a
    * section of its own, since it belongs to no one page. */
@@ -127,6 +130,7 @@ export const DEFAULT_SITE: SiteContent = {
   theme: THEME,
   glyphs: GLYPHS.map((g) => ({ ...g })),
   headerImage: HEADER_IMAGE,
+  favicon: "",
   translations: structuredClone(DEFAULT_TRANSLATIONS),
 };
 
