@@ -95,11 +95,18 @@ export default function useFitText<T extends HTMLElement>({
     document.fonts?.ready.then(onChange);
     document.fonts?.addEventListener("loadingdone", onChange);
 
+    // An entrance animation inside the box (a line rising into place on a
+    // transform, say) spills past the box while it plays, which a fit taken
+    // then reads as text too big for it — and its ending resizes nothing, so
+    // nothing above would notice the box is free again. Refit when one ends.
+    el.addEventListener("animationend", onChange);
+
     return () => {
       ro.disconnect();
       mq?.removeEventListener("change", onChange);
       window.removeEventListener("resize", onChange);
       document.fonts?.removeEventListener("loadingdone", onChange);
+      el.removeEventListener("animationend", onChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fit, ...deps]);

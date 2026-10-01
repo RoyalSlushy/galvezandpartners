@@ -6,6 +6,7 @@ import Container from "@/components/ui/Container";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import GutterRail from "@/components/ui/GutterRail";
 import { useMotionOff } from "@/components/motion/MotionProvider";
+import { useScrollStops } from "@/components/motion/useScrollStops";
 import type { GalleryItem } from "@/content/work";
 import { wixImageFit } from "@/lib/wix";
 import { isVideoUrl, PLACEHOLDER_IMG } from "@/lib/adminClient";
@@ -60,6 +61,10 @@ function parseTags(tags: string): string[] {
 // the varied bounds plus real aspect ratios give the masonry its rhythm.
 const CROP_HEIGHTS = [780, 540, 880, 660, 800, 560];
 
+// How many pieces the wall shows at first, and how many more each press of
+// "Load More" brings in.
+const PAGE = 20;
+
 // Height of the gold title band at the head of the section (px) — deep enough
 // to read as the wall's masthead once it has fully unrolled. Its slot is
 // reserved at the same height, so unrolling it never moves the wall below.
@@ -67,12 +72,21 @@ const BAND_H = 114;
 
 /**
  * "#work-gallery" — the masonry wall after the cases: a vertically scrolling,
- * CMS-managed image grid with search, sort, and a tag-chip filter system. The
- * section is headed by a gold band — the far end of the progress line the cases
- * above run on — that unrolls as the wall climbs into frame, carrying the
- * section title over an inset letter grid. Hovering a piece names it; its tags
- * are filters, and live only in the bar above. Edit mode swaps that bar for
- * inline editing of every image, title, and tag list.
+ * CMS-managed image grid with search, sort, and a tag filter. The section is
+ * headed by a gold band — the far end of the progress line the cases above run
+ * on — that unrolls as the wall climbs into frame, carrying the section title
+ * over an inset letter grid. Hovering a piece names it; its tags are filters,
+ * gathered into one "Filter by Tag" dropdown under the band (every tag in use,
+ * once each). Edit mode swaps those controls for inline editing of every
+ * image, title, and tag list.
+ *
+ * The wall shows PAGE pieces at a time: a "Load More" button at the foot of
+ * the section brings in the next PAGE, and a change of search, tag or sort
+ * starts again from the first PAGE. Edit mode shows every piece.
+ *
+ * The wall's top is a snap stop, as is the top of the page (the cases) above
+ * it — on the way between the two only: past the wall's top the page scrolls
+ * freely, so reading on down the wall is never pulled back up to its top.
  */
 export default function WorkGallery({ gallery: serverGallery }: { gallery: GalleryContent }) {
   const gallery = useCmsValue("work.gallery", serverGallery);
@@ -82,9 +96,18 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
   const tv = useEditableT();
 
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [matchAll, setMatchAll] = useState(false);
+  // The tag the wall is filtered to (null = every piece).
+  const [tag, setTag] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("curated");
+  // How many of the matching pieces are on the wall: PAGE, plus PAGE for each
+  // "Load More" pressed since the search, tag or sort last changed. The count
+  // is kept with the filters it was loaded under and reset as they change —
+  // here, during the render that changes them, so the wall never shows a
+  // render's worth of the old count first.
+  const filterKey = `${query}\u0000${tag ?? ""}\u0000${sort}`;
+  const [paging, setPaging] = useState({ key: filterKey, limit: PAGE });
+  if (paging.key !== filterKey) setPaging({ key: filterKey, limit: PAGE });
+  const limit = paging.key === filterKey ? paging.limit : PAGE;
   // Which of the band's two controls is open; the other shows as its icon.
   const [pane, setPane] = useState<"sort" | "search">("sort");
   // Curated index of the piece open in the media overlay (null = closed).
@@ -163,28 +186,39 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
     };
   }, [lightbox]);
 
-  // Tag cloud: every tag in use, busiest first (ties alphabetical).
+  // Snap stops: the top of the page (the cases) and the top of this wall. A
+  // scroll that comes to rest between the two is carried on the way it was
+  // going (see useScrollStops) — so one push down from the cases lands on the
+  // wall's top, and one push up from there lands back on the cases. Past the
+  // wall's top the page scrolls freely, so reading on down the wall (and the
+  // strip after it) is never pulled back up to its top. Not in edit mode,
+  // where the page is a form to work down rather than two screens.
+  useScrollStops(
+    () => {
+      const wall = sectionRef.current;
+      if (!wall) return null;
+      return { stops: [0, Math.round(wall.getBoundingClientRect().top + window.scrollY)] };
+    },
+    { enabled: !editMode },
+  );
+
+  // Every tag in use, once each (tags are compared lowercased and trimmed — see
+  // parseTags), alphabetical, with how many pieces carry it.
   const allTags = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of items) {
-      for (const tag of parseTags(item.tags)) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      for (const t of new Set(parseTags(item.tags))) counts.set(t, (counts.get(t) ?? 0) + 1);
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [items]);
-
-  const toggleTag = (tag: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag);
-      else next.add(tag);
-      return next;
-    });
-  };
+  // A tag whose last piece was removed (or re-tagged) falls back to all.
+  useEffect(() => {
+    if (tag && !allTags.some(([t]) => t === tag)) setTag(null);
+  }, [tag, allTags]);
 
   const clearFilters = () => {
     setQuery("");
-    setSelected(new Set());
-    setMatchAll(false);
+    setTag(null);
   };
 
   // Pair each item with its curated index so CMS paths (and fit bounds) stay
@@ -200,13 +234,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             item.title.toLowerCase().includes(q) || tags.some((t) => t.includes(q)),
         );
       }
-      if (selected.size > 0) {
-        pairs = pairs.filter(({ tags }) =>
-          matchAll
-            ? [...selected].every((t) => tags.includes(t))
-            : tags.some((t) => selected.has(t)),
-        );
-      }
+      if (tag) pairs = pairs.filter(({ tags }) => tags.includes(tag));
       if (sort === "recent") pairs = [...pairs].reverse();
       else if (sort === "az")
         pairs = [...pairs].sort((a, b) => a.item.title.localeCompare(b.item.title));
@@ -214,9 +242,12 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
         pairs = [...pairs].sort((a, b) => b.item.title.localeCompare(a.item.title));
     }
     return pairs;
-  }, [items, editMode, query, selected, matchAll, sort]);
+  }, [items, editMode, query, tag, sort]);
 
-  const filtersActive = query.trim() !== "" || selected.size > 0;
+  const filtersActive = query.trim() !== "" || tag !== null;
+  // The pieces on the wall right now: a page at a time for visitors, all of
+  // them while editing.
+  const shown = editMode ? visible : visible.slice(0, limit);
 
   return (
     <section ref={sectionRef} id="work-gallery" className="w-full bg-navy pb-20 sm:pb-24">
@@ -353,70 +384,68 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             list below to change it. Tags are comma-separated.
           </p>
         ) : (
-          <div className="mt-8 flex flex-col gap-5">
-            {/* Tag match mode and the clear-all — search and sort live up in the
-                band. The row only renders when it has something to hold. */}
-            {(selected.size > 1 || filtersActive) && (
-              <div className="flex flex-wrap items-center gap-3">
-                {selected.size > 1 && (
-                  <div
-                    className="flex overflow-hidden border border-white/15"
-                    role="group"
-                    aria-label="Tag match mode"
-                  >
-                    {(["any", "all"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        aria-pressed={matchAll === (mode === "all")}
-                        onClick={() => setMatchAll(mode === "all")}
-                        className={`px-4 py-2 font-heading text-xs uppercase tracking-wide transition ${
-                          matchAll === (mode === "all")
-                            ? "bg-gold text-navy"
-                            : "text-white/60 hover:text-gold"
-                        }`}
-                      >
-                        {tv(mode)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {filtersActive && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
-                  >
-                    {tv("clear")}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Tag chips */}
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by tag">
-              {allTags.map(([tag, count]) => {
-                const active = selected.has(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => toggleTag(tag)}
-                    className={`border px-3.5 py-1.5 font-heading text-xs uppercase tracking-wide transition ${
-                      active
-                        ? "border-gold bg-gold text-navy"
-                        : "border-white/15 text-white/65 hover:border-gold/60 hover:text-gold"
-                    }`}
-                  >
-                    {tag}
-                    <span className={`ml-1.5 ${active ? "text-navy/60" : "text-white/35"}`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+          // One row under the band: the tag filter — every tag in use, once
+          // each, in a single dropdown — and, while anything is filtering the
+          // wall, the clear-all. Search and sort live up in the band.
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div
+              className={`relative inline-flex h-11 min-w-0 max-w-full items-center border transition-colors duration-300 focus-within:border-gold ${
+                tag ? "border-gold bg-gold/10" : "border-white/15 hover:border-gold/60"
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="pointer-events-none absolute left-3.5 h-4 w-4 text-gold"
+                aria-hidden
+              >
+                <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+                <circle cx="7.5" cy="7.5" r="1.5" />
+              </svg>
+              <label className="sr-only" htmlFor="gallery-tag">
+                {tv("Filter by Tag")}
+              </label>
+              <select
+                id="gallery-tag"
+                value={tag ?? ""}
+                onChange={(e) => setTag(e.target.value || null)}
+                className="h-full min-w-0 max-w-full cursor-pointer appearance-none truncate bg-transparent pl-10 pr-10 font-heading text-xs uppercase tracking-wide text-white outline-none"
+              >
+                <option value="" className="bg-navy text-white">
+                  {tv("Filter by Tag")}
+                </option>
+                {allTags.map(([t, count]) => (
+                  <option key={t} value={t} className="bg-navy text-white">
+                    {t} ({count})
+                  </option>
+                ))}
+              </select>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="pointer-events-none absolute right-3.5 h-4 w-4 text-white/60"
+                aria-hidden
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
             </div>
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="font-heading text-xs uppercase tracking-wide text-gold underline-offset-4 transition hover:underline"
+              >
+                {tv("clear")}
+              </button>
+            )}
           </div>
         )}
 
@@ -445,7 +474,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
         {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
         {visible.length > 0 ? (
           <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
-            {visible.map(({ item, idx }) => (
+            {shown.map(({ item, idx }) => (
               <figure
                 key={idx}
                 className="group relative mb-4 break-inside-avoid overflow-hidden bg-navy-soft"
@@ -518,6 +547,19 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
             </p>
             <button type="button" onClick={clearFilters} className="btn-outline mt-2">
               {tv("clear filters")}
+            </button>
+          </div>
+        )}
+
+        {/* The next page of the wall, at the foot of the section. */}
+        {shown.length < visible.length && (
+          <div className="mt-10 flex justify-center sm:mt-12">
+            <button
+              type="button"
+              onClick={() => setPaging({ key: filterKey, limit: limit + PAGE })}
+              className="btn-outline"
+            >
+              {tv("Load More")}
             </button>
           </div>
         )}

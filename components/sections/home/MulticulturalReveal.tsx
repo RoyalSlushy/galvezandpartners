@@ -9,6 +9,7 @@ import EditableImage from "@/components/admin/editable/EditableImage";
 import { PLACEHOLDER_IMG, resolveImage } from "@/lib/adminClient";
 import NextChevron from "@/components/ui/NextChevron";
 import { useMotionOff, useMotionStyle } from "@/components/motion/MotionProvider";
+import { useScrollStops } from "@/components/motion/useScrollStops";
 
 type Multicultural = {
   titleLines: string[];
@@ -49,7 +50,7 @@ const POP_VISIBLE = 0.6;
  * globals.css); under minimal the copy is simply lit.
  *
  * The section is a snap point at every width, between the hero above it and
- * the featured work below it (see the snap effect). Landing on it — or
+ * the featured work below it (see the useScrollStops call). Landing on it — or
  * scrolling on past it — the visual springs out of its frame.
  *
  * The three points of interest that used to close the section are gone; their
@@ -63,8 +64,6 @@ export default function MulticulturalReveal({
   const multicultural = useCmsValue("home.multicultural", serverMulticultural);
   const editMode = useEditMode();
   const reduced = useMotionOff();
-  const motionOffRef = useRef(reduced);
-  motionOffRef.current = reduced;
   const motion = useMotionStyle();
   const t = useT();
   const tv = useEditableT();
@@ -125,98 +124,29 @@ export default function MulticulturalReveal({
   // Snap stops, at every width: the hero (the top of the page), this section's
   // top, and the top of the section after it (featured work). A scroll that
   // comes to rest between two neighbouring stops is carried on the way it was
-  // going, to the next stop down or back to the one above. Past the last stop
-  // the page scrolls freely. Where this section is taller than the screen (a
-  // short phone) the stretch in which its foot is still coming up is left
-  // free as well, so all of it can be read.
-  //
-  // Done by hand rather than with CSS scroll-snap: the hero is sticky (a poor
-  // snap target), and a "proximity" snap only catches a scroll that already
-  // ends within a short reach of a stop, while "mandatory" would hold the rest
-  // of the page to snap points too. Edit mode is left alone.
-  useEffect(() => {
-    if (editMode) return;
-    const section = sectionRef.current;
-    if (!section) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const hasScrollEnd = "onscrollend" in window;
-
-    let rest = window.scrollY; // where the last scroll came to rest
-    let gliding = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    // A finger still on the glass is not a scroll that has come to rest, even
-    // if it has stopped moving: never glide out from under it.
-    let touching = false;
-    let lastScrollAt = 0;
-
-    const settle = () => {
-      if (touching) return;
+  // going, to the next stop down or back to the one above (see
+  // useScrollStops). Past the last stop the page scrolls freely. Where this
+  // section is taller than the screen (a short phone) the stretch in which its
+  // foot is still coming up is left free as well, so all of it can be read.
+  // Landing anywhere gives the visual its chance to pop. Edit mode is left
+  // alone.
+  useScrollStops(
+    () => {
+      const section = sectionRef.current;
+      if (!section) return null;
       const y = window.scrollY;
-      if (gliding) {
-        gliding = false;
-        rest = y;
-        popRef.current();
-        return;
-      }
       const rect = section.getBoundingClientRect();
       const top = Math.round(rect.top + y);
       const next = Math.round(rect.bottom + y);
       // Where the section's foot meets the screen's; past `top` only when the
       // section is taller than the screen.
       const foot = next - window.innerHeight;
-      const stops = foot > top + 1 ? [0, top, foot, next] : [0, top, next];
-      let i = -1;
-      for (let k = 0; k < stops.length - 1; k++) {
-        if (y > stops[k] + 1 && y < stops[k + 1] - 1) i = k;
-      }
-      // At a stop, past the last one, or in the free stretch of a tall section.
-      if (i < 0 || (stops.length === 4 && i === 1)) {
-        rest = y;
-        popRef.current();
-        return;
-      }
-      const target = y > rest ? stops[i + 1] : stops[i];
-      gliding = true;
-      rest = target;
-      window.scrollTo({
-        top: target,
-        behavior: reduce.matches || motionOffRef.current ? "auto" : "smooth",
-      });
-    };
-    const onScroll = () => {
-      lastScrollAt = performance.now();
-      if (hasScrollEnd) return;
-      clearTimeout(timer);
-      timer = setTimeout(settle, 140);
-    };
-    const onTouchStart = () => {
-      touching = true;
-      clearTimeout(timer);
-    };
-    // Lifting the finger: if the page is still moving (a flick), the scroll's
-    // own end settles it; if it was lifted from a standstill, settle now.
-    const onTouchEnd = () => {
-      touching = false;
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (performance.now() - lastScrollAt > 120) settle();
-      }, 160);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    if (hasScrollEnd) window.addEventListener("scrollend", settle);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchEnd);
-      if (hasScrollEnd) window.removeEventListener("scrollend", settle);
-    };
-  }, [editMode]);
+      return foot > top + 1
+        ? { stops: [0, top, foot, next], freeGap: 1 }
+        : { stops: [0, top, next] };
+    },
+    { enabled: !editMode, onRest: () => popRef.current() },
+  );
 
   // The intro's fill, on a clock rather than the scroll: dimmed once armed,
   // then lit word by word from the moment the section comes into view, once.

@@ -457,10 +457,14 @@ function ServiceSlide({
       )}
       {/* Auto-width (not flex-1): in the masthead the strip is as wide as its
           widest title, and a filling box would leave the shorter ones stranded
-          mid-strip instead of ending against the icons beside it. */}
+          mid-strip instead of ending against the icons beside it. It carries
+          the phone entrance's rise (.hero-slide-title; the heading inside
+          carries the fade): the box's own transform leaves the fit above
+          measuring the title, not the title mid-rise (see [data-strip-intro]
+          in globals.css). */}
       <div
         ref={ref}
-        className={`relative z-[1] min-w-0 overflow-hidden ${titleArrival} ${
+        className={`hero-slide-title relative z-[1] min-w-0 overflow-hidden ${titleArrival} ${
           clipOnly && media ? "hidden" : ""
         }`}
       >

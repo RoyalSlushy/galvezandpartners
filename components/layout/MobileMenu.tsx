@@ -499,15 +499,16 @@ export default function MobileMenu({
 
       {/* Floating bottom nav (mobile only). On a page with no hero it's a gold
           hamburger button in the bottom-right corner; once the first screen is
-          scrolled past it grows into a full-width glassmorphic bottom header —
-          logotype (left), current page (center), hamburger (right). */}
+          scrolled past it grows into a full-width bottom header with a frosted
+          glass body (.glass-bar) — logotype (left), current page (center),
+          hamburger (right). */}
       <div
-        className={`fixed z-30 flex items-center overflow-hidden shadow-2xl transition-all duration-500 ease-out sm:hidden ${
+        className={`fixed z-30 flex items-center overflow-hidden transition-all duration-500 ease-out sm:hidden ${
           inHeroCta ? "pointer-events-none opacity-0" : ""
         } ${
           expanded
-            ? "bottom-0 right-0 h-16 w-screen gap-3 border-t border-white/15 bg-navy/40 px-4 text-white backdrop-blur-xl"
-            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 bg-gold text-navy"
+            ? "glass-bar bottom-0 right-0 h-16 w-screen gap-3 px-4 text-white"
+            : "bottom-3 right-4 h-12 w-12 justify-center gap-0 bg-gold text-navy shadow-2xl"
         }`}
       >
         <Link
