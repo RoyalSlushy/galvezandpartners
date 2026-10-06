@@ -671,29 +671,6 @@ export default function MemberCardModal({
                   )}
                 </div>
 
-                {/* The blurb: a few sentences on the person and their role.
-                    Held to a readable measure rather than the card's full
-                    width, and multiline so paragraph breaks can be typed. Part of
-                    the card at rest on every screen — it is what the profile is
-                    for, and a card that opens on a name and a job title says
-                    nothing about the person. */}
-                {(editMode || member.bio) && (
-                  <p className="mt-5 max-w-prose shrink-0 font-body text-base leading-relaxed text-navy/75 sm:text-lg">
-                    <EditableText
-                      path={`${base}.bio`}
-                      value={
-                        member.bio
-                          ? tv(member.bio)
-                          : "Add a few sentences about this person and their role."
-                      }
-                      as="span"
-                      label="blurb"
-                      multiline
-                      className={member.bio ? undefined : "italic text-navy/40"}
-                    />
-                  </p>
-                )}
-
                 {/* The short answers and the motto — the small print of the
                     profile. This takes whatever the card has left after the name
                     and the blurb: as much as the gap above allows while folded,
@@ -718,6 +695,30 @@ export default function MemberCardModal({
                       : undefined
                   }
                 >
+                  {/* The blurb: a few sentences on the person and their role.
+                      Held to a readable measure rather than the card's full
+                      width, and multiline so paragraph breaks can be typed. Part of
+                      the card at rest on every screen — it is what the profile is
+                      for, and a card that opens on a name and a job title says
+                      nothing about the person. It shares the scrolling area with
+                      the lines below, so the two scroll as one. */}
+                  {(editMode || member.bio) && (
+                    <p className="mt-5 max-w-prose font-body text-base leading-relaxed text-navy/75 sm:text-lg">
+                      <EditableText
+                        path={`${base}.bio`}
+                        value={
+                          member.bio
+                            ? tv(member.bio)
+                            : "Add a few sentences about this person and their role."
+                        }
+                        as="span"
+                        label="blurb"
+                        multiline
+                        className={member.bio ? undefined : "italic text-navy/40"}
+                      />
+                    </p>
+                  )}
+
                   {(shown.length > 0 || editMode) && (
                     <dl className="mt-6 grid gap-x-10 gap-y-5 border-t border-navy/10 pt-6 sm:grid-cols-2">
                       {shown.map((fact, fi) => (
