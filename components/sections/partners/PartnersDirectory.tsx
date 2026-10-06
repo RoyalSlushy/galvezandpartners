@@ -14,7 +14,7 @@ import EditableText from "@/components/admin/editable/EditableText";
 import { PARTNERS, partnerLogo, type PartnerLogo, type PartnersContent } from "@/content/partners";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { logoSrc } from "./PartnerMarquee";
-import { useTrimmedLogo } from "./useTrimmedLogo";
+import { useWhiteLogo } from "./useTrimmedLogo";
 
 /** Seconds between one grid row's reveal and the next, when several rows come
  * into view together (the first screenful, a fast scroll, a new filter). */
@@ -363,21 +363,27 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
   );
 }
 
-/** A roster logo, trimmed of any empty margin in its file (see useTrimmedLogo)
- * and given a box of its own inside the tile's padding: it scales up to meet
- * that padding however small the file, and object-contain keeps it whole.
- * Drawn in grayscale, so the roster reads as one even set whatever colours
- * each brand brings. */
+/** A roster logo in white: every coloured pixel turned white with its
+ * transparency kept, a solid background knocked out, and any empty margin
+ * trimmed (see useWhiteLogo) — so the roster reads as one even set whatever
+ * colours each brand brings. A white version from the CMS (see partnerLogo)
+ * comes through as it is. It gets a box of its own inside the tile's padding:
+ * it scales up to meet that padding however small the file, and
+ * object-contain keeps it whole. Held back until it is ready, so the colours
+ * never flash first; a file that can't be read is whitened by a CSS filter
+ * instead (brightness(0) takes the mark to black, invert(1) to white). */
 function RosterLogo({ src, alt }: { src: string; alt: string }) {
-  const trimmed = useTrimmedLogo(src);
+  const white = useWhiteLogo(src);
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={trimmed}
+      src={white.src ?? src}
       alt={alt}
       loading="lazy"
       draggable={false}
-      className="h-[52%] w-[70%] object-contain grayscale"
+      className={`h-[52%] w-[70%] object-contain transition-opacity duration-300 ${
+        white.src === null ? "opacity-0" : white.failed ? "brightness-0 invert" : ""
+      }`}
     />
   );
 }
