@@ -114,6 +114,12 @@ function NavButton({
  * your steps. All of it is CSS keyframes (gp-emerge / gp-sweep / gp-fade-in /
  * gp-fade-out in globals.css).
  */
+/** Phone: how far the folded profile card rides up over the polaroid — its
+ * blank bottom margin (pb-14) and a sliver of the picture above it. */
+const FOLD_OVERLAP = "5.5rem";
+/** Phone: the band of the photograph left in view above the opened card. */
+const OPEN_PHOTO_BAND = "9rem";
+
 export default function MemberCardModal({
   members,
   index,
@@ -599,13 +605,17 @@ export default function MemberCardModal({
                 data-gp-piece
                 style={{
                   ...piece("1.2deg", "12deg", 0, { left: 0, right: 70 }, exiting, sweepDir),
-                  // Folded, the card rises to the foot of the photograph and
-                  // stops — the gap between them is space the profile may as
-                  // well be using, so as much of it shows as fits and the rest
-                  // fades off the bottom. Opened, it keeps a band of the
-                  // photograph in view and takes the rest.
+                  // Folded, the card rises over the foot of the photograph —
+                  // the polaroid's blank bottom margin and a little of the
+                  // picture (FOLD_OVERLAP) — so the profile has room for its
+                  // first lines, and the rest fades off the bottom. Opened, it
+                  // keeps a band of the photograph in view and takes the rest.
                   ...(phone
-                    ? { maxHeight: opened ? "calc(100% - 15rem)" : `calc(100% - ${photoH}px)` }
+                    ? {
+                        maxHeight: opened
+                          ? `calc(100% - ${OPEN_PHOTO_BAND})`
+                          : `calc(100% - ${photoH}px + ${FOLD_OVERLAP})`,
+                      }
                     : null),
                 }}
                 // Capped so the card stops growing before its lines get too
@@ -698,8 +708,11 @@ export default function MemberCardModal({
                   onFocusCapture={phone ? () => setOpened(true) : undefined}
                   style={phone ? { touchAction: "pan-y" } : undefined}
                   className={
+                    // The bottom padding lets the last line scroll up clear of
+                    // the fade over the card's foot (see below), instead of
+                    // stopping underneath it.
                     phone
-                      ? `min-h-0 flex-1 ${
+                      ? `min-h-0 flex-1 pb-10 ${
                           opened ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
                         }`
                       : undefined
