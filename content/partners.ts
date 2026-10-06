@@ -8,8 +8,21 @@
  * navy); `name` is the partner's name (and the logo's alt text); `industry`
  * files it under a filter in the roster's industry panel; `href` is where its
  * roster card goes when pressed (its site, say) — optional, and a card without
- * one is not a link. */
-export type PartnerLogo = { img: string; name: string; industry: string; href?: string };
+ * one is not a link. `white` is an optional pure-white version of the logo;
+ * where there is one the site shows it in place of `img` (see partnerLogo). */
+export type PartnerLogo = {
+  img: string;
+  white?: string;
+  name: string;
+  industry: string;
+  href?: string;
+};
+
+/** The logo to draw for a partner: its white version when one is set, the
+ * coloured one otherwise. Empty when the partner has neither. */
+export function partnerLogo(p: Pick<PartnerLogo, "img" | "white">): string {
+  return p.white?.trim() || p.img || "";
+}
 
 /** Copy for the roster section under the lander. */
 export type PartnersDirectory = {

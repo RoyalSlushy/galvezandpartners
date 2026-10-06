@@ -11,7 +11,7 @@ import { useMotionOff } from "@/components/motion/MotionProvider";
 import { useCmsValue } from "@/components/admin/AdminProvider";
 import { useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
-import { PARTNERS, type PartnerLogo, type PartnersContent } from "@/content/partners";
+import { PARTNERS, partnerLogo, type PartnerLogo, type PartnersContent } from "@/content/partners";
 import CtaGrid from "@/components/sections/home/CtaGrid";
 import { logoSrc } from "./PartnerMarquee";
 import { useTrimmedLogo } from "./useTrimmedLogo";
@@ -75,7 +75,7 @@ export default function PartnersDirectory({ partners: serverPartners }: { partne
   const tv = useEditableT();
   const motionOff = useMotionOff();
   const dir = { ...PARTNERS.directory, ...(partners.directory ?? {}) };
-  const list = (partners.logos ?? []).filter((p) => p && (p.img || p.name?.trim()));
+  const list = (partners.logos ?? []).filter((p) => p && (partnerLogo(p) || p.name?.trim()));
 
   // One tag per industry, first spelling kept, in the order partners list them.
   const industries = useMemo(() => {
@@ -349,8 +349,8 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
       {row.map((p, c) => (
         <RevealOnScroll key={c} as="li" shown={shown} delay={delay + c * CELL_STAGGER}>
           <PartnerCard href={partnerHref(p.href)} name={p.name}>
-            {p.img ? (
-              <RosterLogo src={logoSrc(p.img)} alt={p.name} />
+            {partnerLogo(p) ? (
+              <RosterLogo src={logoSrc(partnerLogo(p))} alt={p.name} />
             ) : (
               <span className="px-4 text-center font-display text-xl leading-tight text-white/70 sm:text-2xl">
                 {p.name}

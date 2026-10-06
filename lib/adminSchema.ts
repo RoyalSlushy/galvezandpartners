@@ -70,7 +70,7 @@ const LIST_TEMPLATES: Record<string, () => unknown> = {
   "case_studies.studies.*.gallery": () => "",
   // The Our Team lander's own frames — bare media values, like a case gallery.
   "team.lander.images": () => "",
-  "partners.logos": () => ({ img: "", name: "Partner", industry: "Industry", href: "" }),
+  "partners.logos": () => ({ img: "", white: "", name: "Partner", industry: "Industry", href: "" }),
 };
 
 export function templateFor(listPath: string): unknown {
@@ -154,6 +154,7 @@ const FIELD_LABELS: Record<string, string> = {
   "partners.ctaLabel": "button label",
   "partners.background": "lander backdrop",
   "partners.logos.*.img": "partner logo",
+  "partners.logos.*.white": "white partner logo",
   "partners.logos.*.name": "partner name",
   "partners.logos.*.industry": "industry",
   "partners.logos.*.href": "partner link",

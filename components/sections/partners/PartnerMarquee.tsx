@@ -6,7 +6,7 @@ import { useMotionOff } from "@/components/motion/MotionProvider";
 import { resolveImage } from "@/lib/adminClient";
 import { wixImageFit } from "@/lib/wix";
 import { GLYPHS } from "@/content/site";
-import type { PartnerLogo } from "@/content/partners";
+import { partnerLogo, type PartnerLogo } from "@/content/partners";
 import { useTrimmedLogo } from "./useTrimmedLogo";
 
 /** Drift speed of the lane, in px/s. */
@@ -66,16 +66,17 @@ export default function PartnerMarquee({
   tall?: boolean;
 }) {
   const glyphs = useGlyphMap();
-  const listed = (logos ?? []).filter((l) => l?.img);
+  // Each partner's white logo where it has one, its coloured one otherwise.
+  const listed = (logos ?? []).filter((l) => l && partnerLogo(l));
   const named = reverse ? [...listed].reverse() : listed;
   // `named` is rebuilt every render, so the tiles key off its contents.
-  const logoKey = named.map((l) => l.img).join("|");
+  const logoKey = named.map((l) => partnerLogo(l)).join("|");
 
   const tiles = useMemo<Tile[]>(() => {
     if (named.length > 0) {
       return named.map((l, i) => ({
-        key: `l${i}:${l.img}`,
-        node: <MarqueeLogo src={logoSrc(l.img)} />,
+        key: `l${i}:${partnerLogo(l)}`,
+        node: <MarqueeLogo src={logoSrc(partnerLogo(l))} />,
       }));
     }
     // No logos yet — the glyphs stand in. Only the uploaded letterforms if

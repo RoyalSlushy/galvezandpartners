@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Container from "@/components/ui/Container";
 import { GlyphNumber } from "@/components/ui/Glyph";
 import type { PartnersContent } from "@/lib/cms";
-import { useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
+import { useAdmin, useCmsValue, useEditMode } from "@/components/admin/AdminProvider";
 import { useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
@@ -42,6 +42,7 @@ const LOGOS_PATH = "partners.logos";
 export default function PartnersHero({ partners: serverPartners }: { partners: PartnersContent }) {
   const partners = useCmsValue("partners", serverPartners);
   const editMode = useEditMode();
+  const admin = useAdmin();
   const tv = useEditableT();
   const phase = useRevealPhase();
 
@@ -117,8 +118,8 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
           />
 
           <p className="mt-8 font-din text-[10px] uppercase tracking-[0.3em] text-white/40">
-            Partners — logo, name, industry and link (where the roster card goes). The marquee runs the site&rsquo;s glyphs until
-            there are logos
+            Partners — logo, its white version (optional; shown in place of the coloured logo when set), name, industry and
+            link (where the roster card goes). The marquee runs the site&rsquo;s glyphs until there are logos
           </p>
           <div className="mt-3 flex flex-wrap items-start gap-3">
             {logos.map((logo, i) => (
@@ -130,6 +131,29 @@ export default function PartnersHero({ partners: serverPartners }: { partners: P
                   src={resolveImage(logo.img, 320, 160)}
                   alt={logo.name}
                   className="h-20 w-40 border border-white/15 bg-white/[0.03] object-contain p-3"
+                />
+                {/* The pure-white version, shown on the site in place of the
+                    coloured logo above; left empty, the coloured one is used. */}
+                <div className="mt-1.5 flex items-center justify-between font-din text-[9px] uppercase tracking-[0.2em] text-white/40">
+                  <span>White version{logo.white ? "" : " — none, colour used"}</span>
+                  {logo.white && (
+                    <button
+                      type="button"
+                      onClick={() => admin.setValue(`${LOGOS_PATH}.${i}.white`, "")}
+                      className="text-white/60 transition-colors hover:text-gold"
+                    >
+                      use colour
+                    </button>
+                  )}
+                </div>
+                <EditableImage
+                  path={`${LOGOS_PATH}.${i}.white`}
+                  raw={logo.white ?? ""}
+                  src={resolveImage(logo.white ?? "", 320, 160)}
+                  alt={`${logo.name} (white)`}
+                  className={`mt-1 h-12 w-40 border border-white/15 bg-navy object-contain p-2${
+                    logo.white ? "" : " opacity-40"
+                  }`}
                 />
                 <EditableText
                   path={`${LOGOS_PATH}.${i}.name`}
