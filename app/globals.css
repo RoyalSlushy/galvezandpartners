@@ -569,6 +569,484 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Manifesto: Curtain Call (manifesto/CurtainCall). A gold bar sweeps across
+   each line from the left, holds over it, and draws off to the right, leaving
+   the line behind; the visual gets a bar of its own. Driven by the section's
+   [data-cc]: absent, everything simply shows (no JS, motion off); "wait"
+   holds the copy hidden; "in" plays, each part on its own --d delay.
+   --------------------------------------------------------------------------- */
+.cc-bar,
+.cc-vbar {
+  position: absolute;
+  pointer-events: none;
+  background: rgb(var(--c-gold));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+/* Hugs the capitals, a touch wider than the line so its ends read as a bar. */
+.cc-bar {
+  inset: 0.05em -0.1em 0.09em;
+}
+.cc-vbar {
+  inset: 0;
+  z-index: 1;
+}
+/* The rule under the payoff: drawn for good in the static layout, drawn in as
+   the payoff's bar leaves in the animated one. */
+.cc-underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.1em;
+  height: 0.055em;
+  background: rgb(var(--c-gold) / 0.55);
+  transform-origin: left center;
+}
+[data-cc="wait"] .cc-text,
+[data-cc="wait"] .cc-media,
+[data-cc="wait"] .cc-intro [data-word] {
+  opacity: 0;
+}
+[data-cc="wait"] .cc-underline {
+  transform: scaleX(0);
+}
+.cc-intro [data-word] {
+  display: inline-block;
+}
+
+[data-cc="in"] .cc-bar {
+  animation: cc-sweep 1000ms var(--ease-in-out-soft) var(--d, 0ms) both;
+}
+[data-cc="in"] .cc-text {
+  animation: cc-show 1000ms linear var(--d, 0ms) both;
+}
+[data-cc="in"] .cc-underline {
+  animation: cc-draw 1100ms var(--ease-out-expo) calc(var(--d, 0ms) + 860ms) both;
+}
+[data-cc="in"] .cc-vbar {
+  animation: cc-sweep 1250ms var(--ease-in-out-soft) var(--d, 0ms) both;
+}
+/* The picture appears under the bar the moment it is fully covered, then
+   settles back from a slight zoom as the bar draws off. */
+[data-cc="in"] .cc-media {
+  animation: cc-settle 1900ms var(--ease-out-expo) calc(var(--d, 0ms) + 600ms) both;
+}
+[data-cc="in"] .cc-intro [data-word] {
+  animation: cc-rise var(--spring-soft-ms) var(--spring-soft)
+    calc(var(--d0, 0ms) + var(--i, 0) * 26ms) both;
+}
+
+@keyframes cc-sweep {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  44% {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+  56% {
+    transform: scaleX(1);
+    transform-origin: right center;
+  }
+  100% {
+    transform: scaleX(0);
+    transform-origin: right center;
+  }
+}
+/* Hidden until the bar has it covered, then out from under it with a short
+   skid back into place. */
+@keyframes cc-show {
+  0%,
+  49.9% {
+    opacity: 0;
+    transform: translate3d(-0.14em, 0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(-0.14em, 0, 0);
+    animation-timing-function: var(--ease-out-expo);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cc-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes cc-settle {
+  0% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cc-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.55em, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Kinetic: each line leans into its skid and springs upright. */
+:root[data-gp-motion="kinetic"] [data-cc="in"] .cc-text {
+  animation-name: cc-show-kinetic;
+}
+@keyframes cc-show-kinetic {
+  0%,
+  49.9% {
+    opacity: 0;
+    transform: translate3d(-0.4em, 0, 0) skewX(-12deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(-0.4em, 0, 0) skewX(-12deg);
+    animation-timing-function: var(--spring-bounce);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+:root[data-gp-motion="kinetic"] [data-cc="in"] .cc-intro [data-word] {
+  animation-duration: var(--spring-bounce-ms);
+  animation-timing-function: var(--spring-bounce);
+}
+
+/* Manifesto: Gravity (manifesto/Gravity). The falls themselves are Web
+   Animations; this only holds back what is still to fall while the section
+   waits for its entrance ([data-gv="wait"]), and hangs the visual from the
+   middle of its top edge, so it swings like a sign on a nail. */
+.gv-visual {
+  transform-origin: 50% 0;
+}
+.gv-intro [data-word] {
+  display: inline-block;
+}
+[data-gv="wait"] [data-letter],
+[data-gv="wait"] .gv-intro [data-word],
+[data-gv="wait"] .gv-visual {
+  opacity: 0;
+}
+
+/* Manifesto: Departures (manifesto/Departures). A board of split-flap tiles
+   sized by the component (--tw/--th tile, --tf letter, --gap). Each tile is
+   four half-tiles — the top and bottom halves at rest, and a top and bottom
+   flap that only show while they fall (the flaps are Web Animations). Lit
+   from above: the top half a shade lighter than the bottom, a dark seam
+   between them. */
+.df-board {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gap) * 1.8);
+}
+.df-row {
+  display: flex;
+  gap: var(--gap);
+}
+.df-tile {
+  position: relative;
+  flex: none;
+  width: var(--tw);
+  height: var(--th);
+  font-size: var(--tf);
+  perspective: calc(var(--th) * 5);
+  border-radius: 3px;
+  box-shadow:
+    0 2px 5px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(0 0 0 / 0.35);
+}
+.df-tile::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 1px);
+  height: 2px;
+  z-index: 3;
+  background: rgb(0 0 0 / 0.55);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.05);
+}
+.df-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  color: #fff;
+}
+.df-top {
+  top: 0;
+  border-radius: 3px 3px 0 0;
+  transform-origin: 50% 100%;
+  background:
+    linear-gradient(rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02)),
+    rgb(var(--c-navy-soft));
+}
+.df-bot {
+  bottom: 0;
+  border-radius: 0 0 3px 3px;
+  transform-origin: 50% 0;
+  background:
+    linear-gradient(rgb(0 0 0 / 0.22), rgb(0 0 0 / 0.1)),
+    rgb(var(--c-navy-soft));
+}
+.df-flap {
+  visibility: hidden;
+  z-index: 2;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* The letter fills the whole tile; each half shows its own half of it. */
+.df-ch {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--th);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  /* At a 1em line the face's capitals sit centred on the line, so on the
+     tile's seam, as a flap board's letters do. */
+  line-height: 1;
+}
+.df-top .df-ch {
+  top: 0;
+}
+.df-bot .df-ch {
+  bottom: 0;
+}
+.df-gold {
+  color: rgb(var(--c-gold));
+}
+
+/* The visual turns over like a card, from its back to the picture. */
+.df-frame {
+  perspective: 1800px;
+}
+.df-card {
+  transform-style: preserve-3d;
+  transition: transform 1400ms var(--spring-bounce) 120ms;
+}
+.df-face {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.df-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotateX(180deg);
+  border: 1px solid rgb(var(--c-gold) / 0.25);
+  background:
+    linear-gradient(to bottom, transparent calc(50% - 1px), rgb(0 0 0 / 0.5) calc(50% - 1px), rgb(0 0 0 / 0.5) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.15)),
+    rgb(var(--c-navy-soft));
+}
+[data-df="wait"] .df-card {
+  transform: rotateX(-180deg);
+  transition: none;
+}
+.df-intro [data-word] {
+  display: inline-block;
+}
+/* The plain title stands in until the board is measured — but not while an
+   entrance is armed, when the board is about to arrive blank anyway. */
+[data-df] .df-fallback {
+  visibility: hidden;
+}
+[data-df] .df-intro [data-word] {
+  opacity: 0;
+}
+[data-df][data-df-intro] .df-intro [data-word] {
+  animation: cc-rise var(--spring-soft-ms) var(--spring-soft) calc(var(--i, 0) * 26ms) both;
+}
+:root[data-gp-motion="minimal"] [data-df="wait"] .df-board {
+  opacity: 0;
+}
+:root[data-gp-motion="minimal"] [data-df="in"] .df-board {
+  animation: gp-hero-fade 800ms var(--ease-out-expo) both;
+}
+:root[data-gp-motion="minimal"] .df-card {
+  transition: opacity 700ms ease;
+}
+:root[data-gp-motion="minimal"] [data-df="wait"] .df-card {
+  transform: none;
+  opacity: 0;
+}
+
+/* Manifesto: Stardust (manifesto/Stardust). The dust is drawn on a canvas;
+   this holds the copy back while it gathers ([data-sd="wait"|"gather"]) and
+   lets it in once it has landed ("done") — the crisp type fading up over the
+   dust as the dust fades away, the picture coming up in its frame, the intro
+   rising. Behind it all, a faint field of stars twinkles. */
+/* Only the way in is a fade: going back to waiting is instant, so a section
+   that arms itself on screen never visibly snatches its copy away. */
+[data-sd="done"] .sd-title {
+  transition: opacity 700ms ease;
+}
+/* Unbreakable words, so a line wraps between words (as Ink Fill's do) and
+   each word is one box the dust can trace. */
+.sd-title [data-word] {
+  display: inline-block;
+}
+[data-sd="wait"] .sd-title,
+[data-sd="gather"] .sd-title {
+  opacity: 0;
+}
+[data-sd="done"] .sd-media {
+  transition:
+    opacity 1000ms ease,
+    transform 1600ms var(--ease-out-expo);
+}
+[data-sd="wait"] .sd-media,
+[data-sd="gather"] .sd-media {
+  opacity: 0;
+  transform: scale(1.06);
+}
+.sd-intro [data-word] {
+  display: inline-block;
+}
+[data-sd="wait"] .sd-intro [data-word],
+[data-sd="gather"] .sd-intro [data-word] {
+  opacity: 0;
+}
+[data-sd="done"] .sd-intro [data-word] {
+  animation: cc-rise var(--spring-soft-ms) var(--spring-soft) calc(250ms + var(--i, 0) * 26ms) both;
+}
+.sd-star {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: calc(var(--tw-max) * 0.5);
+  animation: sd-twinkle var(--tw-dur) ease-in-out var(--tw-delay) infinite;
+}
+@keyframes sd-twinkle {
+  0%,
+  100% {
+    opacity: calc(var(--tw-max) * 0.12);
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: var(--tw-max);
+    transform: scale(1);
+  }
+}
+:root[data-gp-motion="off"] .sd-star {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-star {
+    animation: none;
+  }
+}
+
+/* Manifesto: Go Big (manifesto/GoBig). The section is a scroll track — a
+   screen for the stage plus the distance the dive is scrolled through — and
+   the stage is pinned while the page scrolls along it. The stage's ground is
+   painted on a canvas with the payoff cut out of it; until the canvas has
+   painted ([data-gb-ready]) the DOM ground and the payoff's own type stand
+   in. With no visual set, the letters open onto a slowly shifting sheet of
+   gold. */
+.gb-track {
+  height: calc(100vh + 170vh);
+  height: calc(100svh + 170svh);
+}
+@media (max-width: 750px) {
+  .gb-track {
+    height: calc(100vh + 140vh);
+    height: calc(100svh + 140svh);
+  }
+}
+[data-gb-ready] .gb-ground {
+  visibility: hidden;
+}
+[data-gb-ready] .gb-title [data-payoff] {
+  color: transparent;
+}
+/* The lines above the payoff wrap between words only, as the other styles'
+   do. (The payoff never wraps, and its words stay inline: the canvas reads
+   their baselines off their inline boxes.) */
+.gb-title > span:not([data-payoff]) [data-word] {
+  display: inline-block;
+}
+.gb-gold {
+  background: linear-gradient(
+    115deg,
+    rgb(var(--c-gold-dark)) 0%,
+    rgb(var(--c-gold)) 30%,
+    rgb(var(--c-cream)) 48%,
+    rgb(var(--c-gold)) 62%,
+    rgb(var(--c-gold-dark)) 100%
+  );
+  background-size: 240% 100%;
+  animation: gb-sheen 9s ease-in-out infinite alternate;
+}
+@keyframes gb-sheen {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+:root[data-gp-motion="off"] .gb-gold {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gb-gold {
+    animation: none;
+  }
+}
+/* Through the letter, the intro sits on the picture over a shade. */
+.gb-outro-scrim {
+  background: linear-gradient(to top, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.15) 55%, transparent 80%);
+}
+/* The marquee pinned over the top of the screen steps aside for the dive. */
+html[data-gp-dive] .wm-band {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A plain fade-in, for a style's minimal take (GoBig's still layout). */
+[data-fade="wait"] .fade-part {
+  opacity: 0;
+}
+[data-fade="in"] .fade-part {
+  animation: gp-hero-fade 800ms var(--ease-out-expo) var(--d, 0ms) both;
+}
+
+/* Minimal: no bars — the lines and the picture fade up in the same order. */
+:root[data-gp-motion="minimal"] [data-cc] .cc-bar,
+:root[data-gp-motion="minimal"] [data-cc] .cc-vbar {
+  display: none;
+}
+:root[data-gp-motion="minimal"] [data-cc="in"] .cc-text,
+:root[data-gp-motion="minimal"] [data-cc="in"] .cc-media,
+:root[data-gp-motion="minimal"] [data-cc="in"] .cc-intro [data-word] {
+  animation: gp-hero-fade 700ms var(--ease-out-expo) var(--d, 0ms) both;
+}
+:root[data-gp-motion="minimal"] [data-cc="in"] .cc-intro [data-word] {
+  animation-delay: var(--d0, 0ms);
+}
+
+/* ---------------------------------------------------------------------------
    Hero entrance.
 
    One choreographed arrival for the homepage hero, played once — when the page

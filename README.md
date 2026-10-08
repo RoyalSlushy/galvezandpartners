@@ -35,6 +35,19 @@ npm run dev      # http://localhost:3000
   including the homepage hero — also accepts **video** (MP4/WebM up to 40 MB):
   drop a clip into the picker and it renders as a muted, looping, autoplaying
   background (a still first frame for `prefers-reduced-motion` visitors).
+- **Manifesto styles** — the homepage's "the multi-cultural / Agency doing /
+  big things" section comes in six animated styles (`components/sections/home/manifesto/`):
+  **Ink Fill** (the original, and the default), **Curtain Call** (gold bars
+  sweep each word in), **Stardust** (gold dust gathers into the headline; the
+  cursor scatters it), **Go Big** (scroll-pinned: you fly through the payoff's
+  letters into the visual), **Departures** (a split-flap board flips through
+  Spanish and English) and **Gravity** (letters drop and bounce into place).
+  In edit mode a chip in the section's corner opens a picker with a live
+  sketch of each; picking one stages `home.multicultural.style`, Preview plays
+  it full size in place, and the drawer's save publishes it. Every style uses
+  the same title, intro and visual, follows the site's motion setting
+  (off/minimal/kinetic) and reduced motion, and visitors only download the
+  style that is on.
 - **Styling** — Tailwind CSS. Design tokens (navy/gold/cream palette, the
   Garet/Sebastien font scale as fluid `clamp()` sizes, 980px site width,
   750/1000px breakpoints) live in `tailwind.config.ts`; `@font-face` and base

@@ -184,6 +184,10 @@ export const MULTICULTURAL = {
   /** The visual beside the manifesto on desktop, framed 4:3 (an image, or an
    * uploaded video). Empty leaves the frame's space open. */
   image: "",
+  /** How the manifesto makes its entrance — one of the styles listed in
+   * components/sections/home/manifesto/styles.ts, picked in the editor. "ink"
+   * is the original word-by-word ink fill. */
+  style: "ink",
   cards: [
     {
       title: "reach new Heights",

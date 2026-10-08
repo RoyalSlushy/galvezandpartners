@@ -85,6 +85,8 @@ export type HomeContent = {
     titleLines: string[];
     intro: string;
     image: string;
+    /** The manifesto's animation style (see manifesto/styles.ts). */
+    style: string;
     cards: { title: string; body: string }[];
   };
   marqueeWords: string[];
@@ -144,6 +146,7 @@ export const DEFAULT_HOME: HomeContent = {
     titleLines: [...MULTICULTURAL.titleLines],
     intro: MULTICULTURAL.intro,
     image: MULTICULTURAL.image,
+    style: MULTICULTURAL.style,
     cards: MULTICULTURAL.cards.map((c) => ({ ...c })),
   },
   marqueeWords: [...MARQUEE_WORDS],

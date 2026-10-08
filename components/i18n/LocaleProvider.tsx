@@ -24,6 +24,9 @@ type LocaleContextValue = {
   setLocale: (l: Locale) => void;
   /** Translate an English source string into the active locale. */
   t: (source: string) => string;
+  /** Translate an English source string into a given locale, active or not —
+   * for copy that shows both languages at once (the manifesto's flip board). */
+  tIn: (locale: Locale, source: string) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -116,6 +119,10 @@ export default function LocaleProvider({
         // client, where the panel that reads it lives.
         noteSource(source);
         return translate(locale, source, translations);
+      },
+      tIn: (target: Locale, source: string) => {
+        noteSource(source);
+        return translate(target, source, translations);
       },
     }),
     [locale, setLocale, translations],
