@@ -86,8 +86,8 @@ const ES: Record<string, string> = {
   "Every story on one page.": "Cada historia en una sola página.",
 
   // --- Instagram ---
-  "on the gram": "en el gram",
-  "Follow the Story.": "Sigue la Historia.",
+  "socials": "redes sociales",
+  "Follow Our Story.": "Sigue Nuestra Historia.",
   "In Good Company.": "En Buena Compañía.",
   "Meet Our Partners": "Conoce a Nuestros Socios",
   "Or find us on": "O encuéntranos en",

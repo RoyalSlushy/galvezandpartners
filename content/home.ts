@@ -128,8 +128,8 @@ export type InstagramPost = { img: string; href: string; caption: string };
 /** Instagram preview strip. Posts are CMS-managed (image + link + caption);
  * defaults reuse campaign imagery already on the Wix CDN. */
 export const INSTAGRAM = {
-  eyebrow: "on the gram",
-  heading: "Follow the Story.",
+  eyebrow: "socials",
+  heading: "Follow Our Story.",
   handle: "@galvezandpartners",
   href: "https://www.instagram.com/galvezandpartners/",
   ctaLabel: "Follow Us",

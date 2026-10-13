@@ -230,7 +230,7 @@ export default function InstagramFeed({
         }
         tabIndex={clone ? -1 : undefined}
         aria-label={p.caption ? `Instagram: ${tv(p.caption)}` : t("Open Instagram post")}
-        className={`group relative block aspect-square w-44 shrink-0 overflow-hidden bg-navy-soft shadow-lg transition-transform duration-300 hover:z-10 hover:rotate-0 hover:scale-[1.06] focus-visible:z-10 focus-visible:rotate-0 focus-visible:scale-[1.06] sm:w-56 ${
+        className={`group relative block aspect-[4/5] w-44 shrink-0 overflow-hidden bg-navy-soft shadow-lg transition-transform duration-300 hover:z-10 hover:rotate-0 hover:scale-[1.06] focus-visible:z-10 focus-visible:rotate-0 focus-visible:scale-[1.06] sm:w-56 ${
           TILTS[i % TILTS.length]
         }`}
       >
@@ -315,7 +315,7 @@ export default function InstagramFeed({
                   label="post"
                   className="right-2 top-2"
                 />
-                <div className="group relative aspect-square overflow-hidden bg-navy-soft">
+                <div className="group relative aspect-[4/5] overflow-hidden bg-navy-soft">
                   <EditableImage
                     path={`home.instagram.posts.${i}.img`}
                     raw={p.img}
