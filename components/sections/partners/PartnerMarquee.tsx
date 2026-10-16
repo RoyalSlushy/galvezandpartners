@@ -112,7 +112,8 @@ export default function PartnerMarquee({
 }
 
 /** A logo trimmed of its empty margin and filling its cell's content box (the
- * cell supplies the padding); object-contain keeps it whole. */
+ * cell supplies the padding); object-contain keeps it whole. Drawn in white
+ * (brightness-0 + invert), like the roster. */
 function MarqueeLogo({ src }: { src: string }) {
   const trimmed = useTrimmedLogo(src);
   return (
@@ -121,7 +122,7 @@ function MarqueeLogo({ src }: { src: string }) {
       src={trimmed}
       alt=""
       draggable={false}
-      className="pm-logo h-full w-full min-h-0 min-w-0 object-contain opacity-85"
+      className="pm-logo h-full w-full min-h-0 min-w-0 object-contain opacity-85 brightness-0 invert"
     />
   );
 }

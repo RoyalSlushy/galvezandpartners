@@ -84,7 +84,7 @@ const reducedMotion = () =>
 
 export default function PageReveal({
   navOrder = [],
-  favicon = "/favicon.svg",
+  favicon = "/favicon-white.svg",
 }: {
   navOrder?: string[];
   /** The site's favicon URL (site.favicon, resolved), breathed by the veil. */

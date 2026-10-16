@@ -60,7 +60,7 @@ export type SiteContent = {
   glyphs: Glyph[];
   headerImage: string;
   /** The browser-tab icon (and the mark the page-load veil breathes): an
-   * uploaded image, or empty for the built-in /favicon.svg. */
+   * uploaded image, or empty for the built-in /favicon-white.svg. */
   favicon: string;
   /** Translations for copy written in the editor, which content/i18n.ts can't
    * know about. Kept with the rest of the site-wide settings rather than in a

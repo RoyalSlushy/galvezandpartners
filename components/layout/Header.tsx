@@ -85,7 +85,7 @@ export default function Header({
         <div className="hidden shrink-0 items-center gap-4 sm:flex sm:self-stretch">
           <Link href="/" aria-label="Galvez & Partners — home" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
+            <img src="/logo-white.svg" alt="Galvez & Partners" className="h-16 w-auto sm:h-24" />
           </Link>
           {/* Header image: hidden for visitors at every viewport — the masthead
               is logo + nav only. The field itself is untouched (it still feeds
