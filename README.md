@@ -123,6 +123,34 @@ reaches the browser. With neither set, the curated posts show and nothing breaks
 - The Spanish (`/es`) site and the old captured `*.html` files have been removed;
   legacy `*.html` and `/es/*` URLs 301-redirect to their English routes
   (`next.config.mjs`).
-- The contact form writes submissions to the Supabase `contact_submissions`
-  table.
+- The contact form posts to `/api/contact`, which stores the submission in the
+  Supabase `contact_submissions` table and emails it via Resend (see below).
+
+## Contact form email (Resend)
+
+`app/api/contact/route.ts` stores each submission in Supabase and, when
+Resend is configured, emails it to the team (`lib/resend.ts`), with Reply-To
+set to the visitor so a reply goes straight to them. The visitor sees success
+if either step worked; failures are logged on the server. A hidden honeypot
+field drops obvious bot posts.
+
+```sh
+RESEND_API_KEY=re_xxxxxxxxxxxx                                          # required to send
+RESEND_FROM_EMAIL="Galvez & Partners <website@galvezandpartners.com>"   # verified sender
+CONTACT_TO_EMAIL=media@galvezandpartners.com                            # optional, comma-separated
+```
+
+1. Create an API key at <https://resend.com/api-keys> (a *Sending access* key
+   is enough).
+2. Verify the sending domain under *Domains* (add the DNS records Resend
+   shows), then set `RESEND_FROM_EMAIL` to an address on it. Until then the
+   default `onboarding@resend.dev` sender only delivers to the Resend
+   account's own email.
+3. `CONTACT_TO_EMAIL` is optional; without it, mail goes to the contact email
+   set in the CMS (`site.contact.email`).
+4. Set the variables in the host env (Netlify → Site configuration →
+   Environment variables) and redeploy.
+
+All three are server-only (no `NEXT_PUBLIC_` prefix). Without
+`RESEND_API_KEY`, submissions are only stored in Supabase, as before.
 - Images and fonts require network access to the Wix CDN to render.

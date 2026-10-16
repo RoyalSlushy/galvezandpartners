@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { supabase } from "@/lib/supabase";
 import { useT } from "@/components/i18n/LocaleProvider";
 
 export default function ContactForm() {
   const t = useT();
   const [values, setValues] = useState({ first: "", last: "", email: "", message: "" });
+  const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -23,17 +23,22 @@ export default function ContactForm() {
     setError(null);
     setSubmitting(true);
 
-    const { error: dbError } = await supabase.from("contact_submissions").insert({
-      first_name: values.first.trim(),
-      last_name: values.last.trim(),
-      email: values.email.trim(),
-      message: values.message.trim(),
-    });
+    // Stored in Supabase and emailed through Resend by app/api/contact/route.ts.
+    const res = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...values, company: honeypot }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
 
     setSubmitting(false);
 
-    if (dbError) {
-      setError("Something went wrong. Please try again.");
+    if (!res?.ok) {
+      setError(
+        data.error === "invalid_email"
+          ? "Please enter a valid email address."
+          : "Something went wrong. Please try again."
+      );
       return;
     }
 
@@ -83,6 +88,17 @@ export default function ContactForm() {
         className={field}
         value={values.message}
         onChange={set("message")}
+      />
+      {/* Spam trap: hidden from people and screen readers, filled in by bots. */}
+      <input
+        type="text"
+        name="company"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] h-px w-px opacity-0"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
       />
       {error && <p className="text-sm text-gold-bright">{t(error)}</p>}
       <button type="submit" className="btn-gold self-start" disabled={submitting}>

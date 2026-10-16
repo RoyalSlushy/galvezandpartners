@@ -291,6 +291,7 @@ const ES: Record<string, string> = {
   // --- Contact form ---
   "Please add your email and a message.": "Por favor añade tu correo y un mensaje.",
   "Something went wrong. Please try again.": "Algo salió mal. Por favor inténtalo de nuevo.",
+  "Please enter a valid email address.": "Por favor escribe un correo válido.",
   "Thank you!": "¡Gracias!",
   "We received your message and will be in touch soon.":
     "Recibimos tu mensaje y nos pondremos en contacto pronto.",
