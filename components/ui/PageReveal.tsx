@@ -305,7 +305,7 @@ export default function PageReveal({ navOrder = [] }: { navOrder?: string[] }) {
             it; the brand favicon gently "breathes" while loading. */}
         <span className="gp-veil-spinner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/favicon.svg" alt="" className="gp-veil-breathe h-16 w-16" />
+          <img src="/favicon-white.svg" alt="" className="gp-veil-breathe h-16 w-16" />
         </span>
       </div>
     </div>

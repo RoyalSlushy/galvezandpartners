@@ -124,7 +124,7 @@ export default function Footer({
             logo fills it (w-full). */}
         <div className="w-fit wide:order-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Galvez & Partners" className="block h-auto w-full" />
+          <img src="/logo-white.svg" alt="Galvez & Partners" className="block h-auto w-full" />
           <EditableText
             path="site.tagline"
             value={editMode ? tagline : t(tagline)}

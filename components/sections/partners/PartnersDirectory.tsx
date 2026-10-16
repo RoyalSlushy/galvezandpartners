@@ -366,8 +366,8 @@ function GridRow({ row, nextDelay }: { row: PartnerLogo[]; nextDelay: () => numb
 /** A roster logo, trimmed of any empty margin in its file (see useTrimmedLogo)
  * and given a box of its own inside the tile's padding: it scales up to meet
  * that padding however small the file, and object-contain keeps it whole.
- * Drawn in grayscale, so the roster reads as one even set whatever colours
- * each brand brings. */
+ * Drawn in white (brightness-0 + invert flattens every visible pixel to white),
+ * so the roster reads as one even set whatever colours each brand brings. */
 function RosterLogo({ src, alt }: { src: string; alt: string }) {
   const trimmed = useTrimmedLogo(src);
   return (
@@ -377,7 +377,7 @@ function RosterLogo({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       loading="lazy"
       draggable={false}
-      className="h-[52%] w-[70%] object-contain grayscale"
+      className="h-[52%] w-[70%] object-contain brightness-0 invert"
     />
   );
 }

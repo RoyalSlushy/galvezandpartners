@@ -338,7 +338,7 @@ export default function MobileMenu({
             className="block"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Galvez & Partners" className="h-auto w-full" />
+            <img src="/logo-white.svg" alt="Galvez & Partners" className="h-auto w-full" />
           </Link>
         </div>
 
@@ -449,7 +449,7 @@ export default function MobileMenu({
         className="flex w-[60%] items-center"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img ref={logoImgRef} src="/logo.svg" alt="Galvez & Partners" className="w-full h-auto" />
+        <img ref={logoImgRef} src="/logo-white.svg" alt="Galvez & Partners" className="w-full h-auto" />
       </button>
       {/* The picture is bottom-anchored (flush with the hero) and padded down to
           the logo's measured top offset, so its top never passes the logo's top.
