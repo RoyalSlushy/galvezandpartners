@@ -14,6 +14,7 @@ import {
 import { labelFor } from "@/lib/adminSchema";
 import { stripFocus } from "@/lib/wix";
 import { DEFAULT_HERO_GRADIENT, type HeroGradient } from "@/content/home";
+import type { GalleryItem } from "@/content/work";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
 import HeroGradientPicker from "./HeroGradientPicker";
 import FocusPicker from "./FocusPicker";
@@ -30,6 +31,11 @@ const FOCUS_PATHS = [
   /^work\.items\.\d+\.img$/,
   /^partners\.background$/,
 ];
+
+/** A case study's gallery slot (capturing the study's index), and the Our
+ * Works main gallery that uploads into one are copied to. */
+const CASE_GALLERY_SLOT = /^case_studies\.studies\.(\d+)\.gallery\.\d+$/;
+const MAIN_GALLERY_PATH = "work.gallery.items";
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -48,6 +54,33 @@ export default function ImagePicker() {
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlDebounce = useRef<ReturnType<typeof setTimeout>>();
+  // Files uploaded in this session of the picker. Only a fresh upload into a
+  // case gallery is copied to the main gallery — picking an image already on
+  // the site, or pasting a URL, is not.
+  const uploadedHere = useRef(new Set<string>());
+
+  // A photo/video uploaded into a case study's gallery is also added to the
+  // Our Works main gallery (titled and tagged after the case). It is a copy:
+  // the two lists hold their own entries, so removing it from the main gallery
+  // leaves the case's image in place (and vice versa).
+  const addToMainGallery = (img: string) => {
+    const m = picker.path.match(CASE_GALLERY_SLOT);
+    if (!m) return;
+    const drafts = admin.drafts ?? {};
+    const items = (getByPath(drafts, MAIN_GALLERY_PATH) as GalleryItem[] | undefined) ?? [];
+    const bare = stripFocus(img);
+    if (items.some((g) => stripFocus(g?.img ?? "") === bare)) return;
+    const caseTitle =
+      ((getByPath(drafts, `case_studies.studies.${m[1]}.title`) as string | undefined) ?? "").trim() ||
+      "Case study";
+    const n = items.filter((g) => g?.title?.startsWith(`${caseTitle} `)).length + 1;
+    admin.listOp(MAIN_GALLERY_PATH, {
+      type: "insert",
+      index: items.length,
+      item: { title: `${caseTitle} ${String(n).padStart(2, "0")}`, img: bare, tags: caseTitle.toLowerCase() },
+    });
+    admin.notify("Also added to the main gallery");
+  };
 
   // For the header-image config, the hero gradient is edited alongside the
   // image. Its edits are held here as a pending value (captured on open) and
@@ -108,6 +141,7 @@ export default function ImagePicker() {
     setUploading(true);
     try {
       const url = await uploadImage(admin.password, file);
+      uploadedHere.current.add(url);
       setUploaded((prev) => [url, ...prev]);
       setSelected(url);
       setPreviewError(false);
@@ -140,7 +174,10 @@ export default function ImagePicker() {
     FOCUS_PATHS.some((re) => re.test(picker.path)) && !!selected && !isVideoUrl(selected);
 
   const applyChanges = () => {
-    if (imageChanged) admin.setValue(picker.path, selected.trim());
+    if (imageChanged) {
+      admin.setValue(picker.path, selected.trim());
+      if (uploadedHere.current.has(selected.trim())) addToMainGallery(selected.trim());
+    }
     if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
     admin.closeImagePicker();
   };
