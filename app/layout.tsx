@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: site.site.description,
     // Brand favicon — the CMS one (site.favicon, set from the admin's Site
-    // details panel), else the built-in white "&" tile (public/favicon-white.svg).
+    // details panel), else the built-in gold "&" tile (public/favicon.svg).
     // The page-load veil (PageReveal) breathes this same mark while a page's
     // first-viewport assets load, so the loader and the browser tab share one.
     icons: { icon: faviconSrc(site.favicon) },

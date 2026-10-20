@@ -230,7 +230,7 @@ export function resolveImage(raw: string, w = 400, h = 300): string {
  * the built-in mark otherwise. */
 export function faviconSrc(raw: string | undefined): string {
   const src = stripFocus(raw ?? "").trim();
-  if (!src) return "/favicon-white.svg";
+  if (!src) return "/favicon.svg";
   return /^(https?:|data:|\/)/.test(src) ? src : wixImageFit(src, 256, 256);
 }
 
