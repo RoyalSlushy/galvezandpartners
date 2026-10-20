@@ -59,7 +59,10 @@ npm run dev      # http://localhost:3000
 | `content/` | Typed content: `site`, `home`, `work`, `team`, `caseStudies` |
 | `lib/wix.ts` | Wix CDN image URL helper |
 | `tailwind.config.ts` | Brand design tokens |
-| `public/logo.svg` | Wordmark logo |
+| `public/logo-white.svg` | Wordmark logo, all white (used site-wide) |
+| `public/logo.svg` | Wordmark logo, original white + gold |
+| `public/favicon-white.svg` | "&" mark, white (favicon + page-load veil) |
+| `public/favicon.svg` | "&" mark, original gold |
 
 ## Instagram feed (optional live posts)
 

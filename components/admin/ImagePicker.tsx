@@ -14,6 +14,7 @@ import {
 import { labelFor } from "@/lib/adminSchema";
 import { stripFocus } from "@/lib/wix";
 import { DEFAULT_HERO_GRADIENT, type HeroGradient } from "@/content/home";
+import type { GalleryItem } from "@/content/work";
 import { SpinnerIcon, UploadIcon, XIcon } from "./icons";
 import HeroGradientPicker from "./HeroGradientPicker";
 import FocusPicker from "./FocusPicker";
@@ -30,6 +31,11 @@ const FOCUS_PATHS = [
   /^work\.items\.\d+\.img$/,
   /^partners\.background$/,
 ];
+
+/** A case study's gallery slot (capturing the study's index), and the Our
+ * Works main gallery that uploads into one are copied to. */
+const CASE_GALLERY_SLOT = /^case_studies\.studies\.(\d+)\.gallery\.\d+$/;
+const MAIN_GALLERY_PATH = "work.gallery.items";
 
 /**
  * Visual image chooser: shows the current image, accepts drag-drop/file
@@ -48,6 +54,38 @@ export default function ImagePicker() {
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlDebounce = useRef<ReturnType<typeof setTimeout>>();
+  // A case study's gallery image can be copied to the Our Works main gallery
+  // (titled and tagged after the case) with the "Also copy to main gallery"
+  // option. It is ticked for a fresh upload and greyed out when the image is
+  // already there. The copy is a separate entry: removing it from the main
+  // gallery leaves the case's image in place (and vice versa).
+  const caseMatch = picker.path.match(CASE_GALLERY_SLOT);
+  const galleryItems =
+    (getByPath(admin.drafts ?? {}, MAIN_GALLERY_PATH) as GalleryItem[] | undefined) ?? [];
+  const inMainGallery =
+    !!selected.trim() &&
+    galleryItems.some((g) => stripFocus(g?.img ?? "") === stripFocus(selected.trim()));
+  const [copyToGallery, setCopyToGallery] = useState(false);
+  const willCopy = !!caseMatch && copyToGallery && !inMainGallery && !!selected.trim();
+
+  const addToMainGallery = (img: string) => {
+    if (!caseMatch) return;
+    const caseTitle =
+      ((getByPath(admin.drafts ?? {}, `case_studies.studies.${caseMatch[1]}.title`) as
+        | string
+        | undefined) ?? "").trim() || "Case study";
+    const n = galleryItems.filter((g) => g?.title?.startsWith(`${caseTitle} `)).length + 1;
+    admin.listOp(MAIN_GALLERY_PATH, {
+      type: "insert",
+      index: galleryItems.length,
+      item: {
+        title: `${caseTitle} ${String(n).padStart(2, "0")}`,
+        img: stripFocus(img),
+        tags: caseTitle.toLowerCase(),
+      },
+    });
+    admin.notify("Copied to the main gallery");
+  };
 
   // For the header-image config, the hero gradient is edited alongside the
   // image. Its edits are held here as a pending value (captured on open) and
@@ -108,6 +146,7 @@ export default function ImagePicker() {
     setUploading(true);
     try {
       const url = await uploadImage(admin.password, file);
+      setCopyToGallery(true);
       setUploaded((prev) => [url, ...prev]);
       setSelected(url);
       setPreviewError(false);
@@ -132,7 +171,7 @@ export default function ImagePicker() {
   }
 
   const imageChanged = selected !== picker.raw && selected.trim().length > 0;
-  const changed = imageChanged || gradientChanged;
+  const changed = imageChanged || gradientChanged || willCopy;
 
   // Hard-cropped slots get a focal point (images only — object-position is
   // meaningless for the video element).
@@ -141,6 +180,7 @@ export default function ImagePicker() {
 
   const applyChanges = () => {
     if (imageChanged) admin.setValue(picker.path, selected.trim());
+    if (willCopy) addToMainGallery(selected.trim());
     if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
     admin.closeImagePicker();
   };
@@ -218,6 +258,24 @@ export default function ImagePicker() {
 
         {/* Focal point for case-study frames (the tall phone hero crop). */}
         {showsFocus && <FocusPicker raw={selected} onChange={setSelected} />}
+
+        {/* Case-study frames can be copied to the Our Works main gallery. */}
+        {caseMatch && selected.trim() && (
+          <label
+            className={`mt-4 flex items-center gap-2 text-sm ${
+              inMainGallery ? "cursor-not-allowed text-white/30" : "cursor-pointer text-white/75"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={inMainGallery || copyToGallery}
+              disabled={inMainGallery}
+              onChange={(e) => setCopyToGallery(e.target.checked)}
+              className="h-4 w-4 accent-[#e6b367] disabled:opacity-40"
+            />
+            {inMainGallery ? "Already in the main gallery" : "Also copy to main gallery"}
+          </label>
+        )}
 
         {/* Upload */}
         <div

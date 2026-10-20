@@ -12,6 +12,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls from "@/components/admin/editable/ListControls";
+import Masonry from "@/components/ui/Masonry";
 import { ImageIcon, TrashIcon } from "@/components/admin/icons";
 
 /**
@@ -159,14 +160,15 @@ export default function CaseStudyBody({
               </span>
             </a>
           )}
-          {/* Masonry wall (CSS columns) — images render whole at their true
-              aspect, so varied heights pack into a staggered grid. */}
-          <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
+          {/* Masonry wall — images render whole at their true aspect, so varied
+              heights pack into a staggered grid ordered top to bottom on
+              screen (see Masonry). */}
+          <Masonry cols={{ base: 1, sm: 2, lg: 3 }} gap={24} gridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {cs.gallery.map((id, i) => (
               <RevealOnScroll
                 key={i}
                 delay={0.05 * (i % 2)}
-                className={`mb-6 break-inside-avoid ${editMode ? "relative" : ""}`}
+                className={editMode ? "relative" : undefined}
               >
                 <EditableImage
                   path={`${base}.gallery.${i}`}
@@ -195,13 +197,13 @@ export default function CaseStudyBody({
                     raw: "",
                   })
                 }
-                className="mb-6 flex min-h-40 w-full break-inside-avoid flex-col items-center justify-center gap-2 border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
+                className="flex min-h-40 w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-white/15 py-14 text-white/50 transition hover:border-gold/60 hover:text-gold"
               >
                 <ImageIcon className="h-6 w-6" />
                 <span className="font-heading text-sm">Add gallery image</span>
               </button>
             )}
-          </div>
+          </Masonry>
         </Container>
       </section>
     </article>
