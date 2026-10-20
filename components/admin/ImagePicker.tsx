@@ -54,32 +54,37 @@ export default function ImagePicker() {
   const [previewError, setPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlDebounce = useRef<ReturnType<typeof setTimeout>>();
-  // Files uploaded in this session of the picker. Only a fresh upload into a
-  // case gallery is copied to the main gallery — picking an image already on
-  // the site, or pasting a URL, is not.
-  const uploadedHere = useRef(new Set<string>());
+  // A case study's gallery image can be copied to the Our Works main gallery
+  // (titled and tagged after the case) with the "Also copy to main gallery"
+  // option. It is ticked for a fresh upload and greyed out when the image is
+  // already there. The copy is a separate entry: removing it from the main
+  // gallery leaves the case's image in place (and vice versa).
+  const caseMatch = picker.path.match(CASE_GALLERY_SLOT);
+  const galleryItems =
+    (getByPath(admin.drafts ?? {}, MAIN_GALLERY_PATH) as GalleryItem[] | undefined) ?? [];
+  const inMainGallery =
+    !!selected.trim() &&
+    galleryItems.some((g) => stripFocus(g?.img ?? "") === stripFocus(selected.trim()));
+  const [copyToGallery, setCopyToGallery] = useState(false);
+  const willCopy = !!caseMatch && copyToGallery && !inMainGallery && !!selected.trim();
 
-  // A photo/video uploaded into a case study's gallery is also added to the
-  // Our Works main gallery (titled and tagged after the case). It is a copy:
-  // the two lists hold their own entries, so removing it from the main gallery
-  // leaves the case's image in place (and vice versa).
   const addToMainGallery = (img: string) => {
-    const m = picker.path.match(CASE_GALLERY_SLOT);
-    if (!m) return;
-    const drafts = admin.drafts ?? {};
-    const items = (getByPath(drafts, MAIN_GALLERY_PATH) as GalleryItem[] | undefined) ?? [];
-    const bare = stripFocus(img);
-    if (items.some((g) => stripFocus(g?.img ?? "") === bare)) return;
+    if (!caseMatch) return;
     const caseTitle =
-      ((getByPath(drafts, `case_studies.studies.${m[1]}.title`) as string | undefined) ?? "").trim() ||
-      "Case study";
-    const n = items.filter((g) => g?.title?.startsWith(`${caseTitle} `)).length + 1;
+      ((getByPath(admin.drafts ?? {}, `case_studies.studies.${caseMatch[1]}.title`) as
+        | string
+        | undefined) ?? "").trim() || "Case study";
+    const n = galleryItems.filter((g) => g?.title?.startsWith(`${caseTitle} `)).length + 1;
     admin.listOp(MAIN_GALLERY_PATH, {
       type: "insert",
-      index: items.length,
-      item: { title: `${caseTitle} ${String(n).padStart(2, "0")}`, img: bare, tags: caseTitle.toLowerCase() },
+      index: galleryItems.length,
+      item: {
+        title: `${caseTitle} ${String(n).padStart(2, "0")}`,
+        img: stripFocus(img),
+        tags: caseTitle.toLowerCase(),
+      },
     });
-    admin.notify("Also added to the main gallery");
+    admin.notify("Copied to the main gallery");
   };
 
   // For the header-image config, the hero gradient is edited alongside the
@@ -141,7 +146,7 @@ export default function ImagePicker() {
     setUploading(true);
     try {
       const url = await uploadImage(admin.password, file);
-      uploadedHere.current.add(url);
+      setCopyToGallery(true);
       setUploaded((prev) => [url, ...prev]);
       setSelected(url);
       setPreviewError(false);
@@ -166,7 +171,7 @@ export default function ImagePicker() {
   }
 
   const imageChanged = selected !== picker.raw && selected.trim().length > 0;
-  const changed = imageChanged || gradientChanged;
+  const changed = imageChanged || gradientChanged || willCopy;
 
   // Hard-cropped slots get a focal point (images only — object-position is
   // meaningless for the video element).
@@ -174,10 +179,8 @@ export default function ImagePicker() {
     FOCUS_PATHS.some((re) => re.test(picker.path)) && !!selected && !isVideoUrl(selected);
 
   const applyChanges = () => {
-    if (imageChanged) {
-      admin.setValue(picker.path, selected.trim());
-      if (uploadedHere.current.has(selected.trim())) addToMainGallery(selected.trim());
-    }
+    if (imageChanged) admin.setValue(picker.path, selected.trim());
+    if (willCopy) addToMainGallery(selected.trim());
     if (gradientChanged) admin.setValue(GRADIENT_PATH, gradient);
     admin.closeImagePicker();
   };
@@ -255,6 +258,24 @@ export default function ImagePicker() {
 
         {/* Focal point for case-study frames (the tall phone hero crop). */}
         {showsFocus && <FocusPicker raw={selected} onChange={setSelected} />}
+
+        {/* Case-study frames can be copied to the Our Works main gallery. */}
+        {caseMatch && selected.trim() && (
+          <label
+            className={`mt-4 flex items-center gap-2 text-sm ${
+              inMainGallery ? "cursor-not-allowed text-white/30" : "cursor-pointer text-white/75"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={inMainGallery || copyToGallery}
+              disabled={inMainGallery}
+              onChange={(e) => setCopyToGallery(e.target.checked)}
+              className="h-4 w-4 accent-[#e6b367] disabled:opacity-40"
+            />
+            {inMainGallery ? "Already in the main gallery" : "Also copy to main gallery"}
+          </label>
+        )}
 
         {/* Upload */}
         <div

@@ -16,6 +16,7 @@ import { useT, useEditableT } from "@/components/i18n/LocaleProvider";
 import EditableText from "@/components/admin/editable/EditableText";
 import EditableImage from "@/components/admin/editable/EditableImage";
 import ListControls, { AddChip } from "@/components/admin/editable/ListControls";
+import Masonry from "@/components/ui/Masonry";
 
 type GalleryContent = { heading: string; items: GalleryItem[] };
 
@@ -418,13 +419,14 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
       </div>
 
       <Container>
-        {/* Masonry wall — CSS columns; images render whole at their true aspect. */}
+        {/* Masonry wall — images render whole at their true aspect, ordered
+            top to bottom on screen (see Masonry). */}
         {visible.length > 0 ? (
-          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
+          <Masonry cols={{ base: 2, sm: 3, lg: 4 }} gap={16} gridClassName="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
             {shown.map(({ item, idx }) => (
               <figure
                 key={idx}
-                className="group relative mb-4 break-inside-avoid overflow-hidden bg-navy-soft"
+                className="group relative overflow-hidden bg-navy-soft"
               >
                 {editMode && (
                   <ListControls
@@ -485,7 +487,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                 )}
               </figure>
             ))}
-          </div>
+          </Masonry>
         ) : (
           <div className="mt-6 flex flex-col items-center gap-4 border border-white/10 bg-navy-soft/40 px-6 py-16 text-center">
             <p className="font-display text-f6 lowercase text-white/80">{tv("nothing on the wall")}</p>
