@@ -434,6 +434,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                     index={idx}
                     count={items.length}
                     label="gallery image"
+                    jumps={[5, 20]}
                     className="right-2 top-2"
                   />
                 )}

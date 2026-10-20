@@ -15,6 +15,7 @@ export default function ListControls({
   count,
   label,
   className = "-top-3 right-2",
+  jumps,
 }: {
   listPath: string;
   index: number;
@@ -23,6 +24,8 @@ export default function ListControls({
   label: string;
   /** Positioning classes (absolute offsets) for the chip bar. */
   className?: string;
+  /** Extra "jump" sizes (e.g. [5, 20]) shown as ±N buttons for long lists. */
+  jumps?: number[];
 }) {
   const editMode = useEditMode();
   const admin = useAdmin();
@@ -32,6 +35,12 @@ export default function ListControls({
     e.preventDefault();
     e.stopPropagation();
     fn();
+  };
+
+  // Clamp so a big jump near either end lands on the first/last slot.
+  const moveBy = (delta: number) => {
+    const to = Math.max(0, Math.min(count - 1, index + delta));
+    if (to !== index) admin.listOp(listPath, { type: "move", from: index, to });
   };
 
   return (
@@ -58,6 +67,26 @@ export default function ListControls({
       >
         <ArrowDownIcon className="h-3.5 w-3.5" />
       </ControlButton>
+      {jumps?.map((n) => (
+        <span key={n} className="flex items-center">
+          <ControlButton
+            label={`Move ${label} up ${n} spaces`}
+            disabled={index === 0}
+            wide
+            onClick={(e) => act(e, () => moveBy(-n))}
+          >
+            ↑{n}
+          </ControlButton>
+          <ControlButton
+            label={`Move ${label} down ${n} spaces`}
+            disabled={index === count - 1}
+            wide
+            onClick={(e) => act(e, () => moveBy(n))}
+          >
+            ↓{n}
+          </ControlButton>
+        </span>
+      ))}
       <ControlButton
         label={`Add ${label} after this one`}
         onClick={(e) =>
@@ -89,12 +118,14 @@ function ControlButton({
   label,
   disabled,
   danger,
+  wide,
   onClick,
   children,
 }: {
   label: string;
   disabled?: boolean;
   danger?: boolean;
+  wide?: boolean;
   onClick: (e: React.MouseEvent) => void;
   children: React.ReactNode;
 }) {
@@ -105,7 +136,7 @@ function ControlButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-6 w-6 items-center justify-center transition ${
+      className={`flex h-6 ${wide ? "min-w-6 px-1 text-[10px] font-semibold tabular-nums" : "w-6"} items-center justify-center transition ${
         danger ? "text-red-400 hover:bg-red-400/15" : "text-white/75 hover:bg-white/10 hover:text-gold"
       } disabled:opacity-30`}
     >
@@ -123,6 +154,8 @@ export function AddChip({
   listPath: string;
   label: string;
   className?: string;
+  /** Extra "jump" sizes (e.g. [5, 20]) shown as ±N buttons for long lists. */
+  jumps?: number[];
 }) {
   const editMode = useEditMode();
   const admin = useAdmin();

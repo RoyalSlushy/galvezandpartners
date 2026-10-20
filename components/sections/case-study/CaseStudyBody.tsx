@@ -183,6 +183,7 @@ export default function CaseStudyBody({
                     index={i}
                     count={cs.gallery.length}
                     label="gallery image"
+                    jumps={[5, 20]}
                     className="top-2 right-2"
                   />
                 )}
