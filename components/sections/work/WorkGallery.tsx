@@ -476,16 +476,7 @@ export default function WorkGallery({ gallery: serverGallery }: { gallery: Galle
                       />
                     </p>
                   </figcaption>
-                ) : (
-                  // Hover carries the title alone — tags stay in the filter bar
-                  // above, so the overlay reads as a caption rather than a
-                  // control strip.
-                  <figcaption className="pointer-events-none absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-navy/90 via-navy/25 to-transparent p-4 opacity-0 transition duration-300 focus-within:opacity-100 group-hover:opacity-100">
-                    <p className="font-heading text-sm leading-snug text-white sm:text-base">
-                      {item.title}
-                    </p>
-                  </figcaption>
-                )}
+                ) : null}
               </figure>
             ))}
           </Masonry>

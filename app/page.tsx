@@ -8,6 +8,8 @@ import InstagramFeed from "@/components/sections/home/InstagramFeed";
 import HomePartners from "@/components/sections/home/HomePartners";
 import { getHome, getPartners, getSite, getWork } from "@/lib/cms";
 import { getInstagramFeed } from "@/lib/instagram";
+import { isVideoUrl } from "@/lib/adminClient";
+import { stripFocus } from "@/lib/wix";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +21,21 @@ export default async function Home() {
     getSite(),
     getInstagramFeed(),
   ]);
+  // Side-gutter photocards: images from the work gallery and the social
+  // marquee, alternating between the two, videos left out.
+  const isImage = (raw: string | undefined): raw is string => !!raw && !isVideoUrl(stripFocus(raw));
+  const fromGallery = work.gallery.items.map((g) => g.img).filter(isImage);
+  const igPosts = instagramPosts && instagramPosts.length > 0 ? instagramPosts : home.instagram.posts;
+  const fromSocial = igPosts.map((p) => p.img).filter(isImage);
+  const photos: string[] = [];
+  for (let i = 0; photos.length < 6 && i < Math.max(fromGallery.length, fromSocial.length); i++) {
+    for (const src of [fromGallery[i], fromSocial[i]]) {
+      if (src && photos.length < 6 && !photos.includes(src)) photos.push(src);
+    }
+  }
   return (
     <>
-      <HomeHero hero={home.hero} services={home.services} />
+      <HomeHero hero={home.hero} services={home.services} photos={photos} />
       {/* Everything below the hero rises up and over it as you scroll (the hero
           is pinned). This block sits above the hero (z-10), capped by the
           cityscape skyline so the skyline rises together with the section. The

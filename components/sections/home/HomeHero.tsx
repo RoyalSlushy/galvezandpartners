@@ -66,9 +66,12 @@ const BEAT = {
 export default function HomeHero({
   hero: serverHero,
   services: serverServices,
+  photos = [],
 }: {
   hero: Hero;
   services: Service[];
+  /** Images for the side-gutter photocards (see HeroPhotoCards). */
+  photos?: string[];
 }) {
   const hero = useCmsValue("home.hero", serverHero);
   const services = useCmsValue("home.services", serverServices);
@@ -111,7 +114,7 @@ export default function HomeHero({
     >
       {/* Decorative case-study "photocards" sprinkled into the side gutters —
           outside the film's frame, which on desktop ends at the body bounds. */}
-      <HeroPhotoCards />
+      <HeroPhotoCards photos={photos} />
 
       {/* The film's frame: edge to edge on mobile, and on desktop the body
           column, its edges flush with the header's content bounds (same
