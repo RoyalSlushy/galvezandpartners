@@ -21,18 +21,19 @@ export default async function Home() {
     getSite(),
     getInstagramFeed(),
   ]);
-  // Side-gutter photocards: images from the work gallery and the social
-  // marquee, alternating between the two, videos left out.
+  // Side-gutter photocards: 18 images picked at random on every load from the
+  // work gallery and the social marquee, videos left out. The page renders per
+  // request, so each load (or reload) gets a fresh set.
   const isImage = (raw: string | undefined): raw is string => !!raw && !isVideoUrl(stripFocus(raw));
-  const fromGallery = work.gallery.items.map((g) => g.img).filter(isImage);
   const igPosts = instagramPosts && instagramPosts.length > 0 ? instagramPosts : home.instagram.posts;
-  const fromSocial = igPosts.map((p) => p.img).filter(isImage);
-  const photos: string[] = [];
-  for (let i = 0; photos.length < 6 && i < Math.max(fromGallery.length, fromSocial.length); i++) {
-    for (const src of [fromGallery[i], fromSocial[i]]) {
-      if (src && photos.length < 6 && !photos.includes(src)) photos.push(src);
-    }
+  const pool = Array.from(
+    new Set([...work.gallery.items.map((g) => g.img), ...igPosts.map((p) => p.img)].filter(isImage)),
+  );
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
+  const photos = pool.slice(0, 18);
   return (
     <>
       <HomeHero hero={home.hero} services={home.services} photos={photos} />

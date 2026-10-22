@@ -327,9 +327,10 @@ type TitleLinesProps = {
 } & Omit<HTMLAttributes<HTMLHeadingElement>, "children" | "className">;
 
 /**
- * "the multi-cultural / Agency doing / big things": every line set on its own,
- * the first in lowercase and the last — the payoff — in gold, scaled until it
- * spans the copy column exactly, flush with the lines above it.
+ * "where brands come to do / big things": every line set on its own, on one
+ * line, scaled until it spans the copy column exactly — so every line's ends
+ * line up with the payoff's. The first is in lowercase and the last — the
+ * payoff — in gold.
  */
 export const TitleLines = forwardRef<HTMLHeadingElement, TitleLinesProps>(function TitleLines(
   { lines, t, renderLine = (text) => splitWords(text), className = "", ...rest },
@@ -352,13 +353,16 @@ export const TitleLines = forwardRef<HTMLHeadingElement, TitleLinesProps>(functi
             {renderLine(text, i, true)}
           </FitLine>
         ) : (
-          <span
+          // Lines above the payoff are fitted to the same column, so each
+          // sits on one line with its ends flush with the payoff's.
+          <FitLine
             key={i}
             className={`block text-f2 leading-[0.82] ${i === 0 ? "lowercase" : ""}`}
+            refit={text}
             data-line={i}
           >
             {renderLine(text, i, false)}
-          </span>
+          </FitLine>
         );
       })}
     </h2>

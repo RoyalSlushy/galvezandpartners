@@ -1,9 +1,15 @@
+"use client";
+
+import { useState, type AnimationEvent } from "react";
 import { resolveImage } from "@/lib/adminClient";
 import PhotoCard from "@/components/ui/PhotoCard";
 
 /**
- * Small decorative "photocards" of work — images from the work gallery and the
- * social media marquee (videos left out), passed in as `photos` — scattered
+ * Small decorative "photocards" of work — a random set of up to 18 images from
+ * the work gallery and the social media marquee, picked per page load and
+ * passed in as `photos`. Six cards share the set: each one swaps to its next
+ * photo at the dimmest point of its fade cycle, so every photo gets a turn.
+ * They are scattered
  * into the hero's side gutters — away from the body content — as a subtle
  * sprinkled-in flourish that slowly falls in place. Purely decorative
  * (aria-hidden, pointer-transparent) and shown from min-[1440px] where the side
@@ -41,6 +47,14 @@ const CARDS: Card[] = [
 ];
 
 export default function HeroPhotoCards({ photos }: { photos: string[] }) {
+  // How many times each card has swapped photo. Card i shows photo
+  // i, i + 6, i + 12, … in turn, so the six cards never show the same one.
+  const [turns, setTurns] = useState<number[]>(() => CARDS.map(() => 0));
+  const onCycle = (i: number) => (e: AnimationEvent<HTMLElement>) => {
+    if (e.animationName !== "photocard-phase" || photos.length <= CARDS.length) return;
+    setTurns((t) => t.map((n, j) => (j === i ? n + 1 : n)));
+  };
+
   if (photos.length === 0) return null;
   return (
     <div
@@ -48,7 +62,7 @@ export default function HeroPhotoCards({ photos }: { photos: string[] }) {
       className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden min-[1440px]:block"
     >
       {CARDS.map((card, i) => {
-        const id = photos[i % photos.length];
+        const id = photos[(i + turns[i] * CARDS.length) % photos.length];
         return (
           <PhotoCard
             key={i}
@@ -56,6 +70,9 @@ export default function HeroPhotoCards({ photos }: { photos: string[] }) {
             rot={card.rot}
             positionClassName={card.pos}
             widthClassName={card.w}
+            onAnimationIteration={onCycle(i)}
+            // Fully transparent at the turn of the fade, so a swap is never seen.
+            style={{ ["--phase-min" as string]: "0" }}
             motion={{
               dur: card.dur,
               delay: card.delay,
