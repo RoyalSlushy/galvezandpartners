@@ -149,6 +149,8 @@ export default function FeaturedWork({
         <CaseCarousel
           items={items}
           endCard={endCard}
+          // Every case on the same line — no every-other step down.
+          stagger={false}
           rowClassName={editMode ? "mt-16 pb-6" : "mt-2 pb-4 sm:mt-3"}
         />
         {editMode && (
