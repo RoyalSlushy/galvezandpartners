@@ -18,6 +18,8 @@ import {
   useIsoLayoutEffect,
   type ManifestoProps,
 } from "./shared";
+import GoBigIdle from "./GoBigIdle";
+import { resolveManifestoIdle } from "./idle";
 
 /**
  * Go Big — "big things" gets big.
@@ -54,7 +56,7 @@ export default function GoBig(props: ManifestoProps) {
 const DIVE_FROM = 0.06;
 const DIVE_TO = 0.66;
 
-function GoBigDive({ multicultural }: ManifestoProps) {
+function GoBigDive({ multicultural, gallery = [] }: ManifestoProps) {
   const t = useT();
   const tv = useEditableT();
   const motion = useMotionStyle();
@@ -67,9 +69,9 @@ function GoBigDive({ multicultural }: ManifestoProps) {
   const image = multicultural.image;
 
   // Stops: the hero, the top of the track (the composed title), the end of
-  // the track (through the letter), and the featured work. The track between
-  // the middle two is left free, so a scroll through the dive rests wherever
-  // the visitor leaves it.
+  // the track (through the letter), and the featured work. A scroll that rests
+  // inside the dive glides on through it (or back) over about a second, gently
+  // enough that any further scroll takes over.
   useScrollStops(() => {
     const section = sectionRef.current;
     const stage = stageRef.current;
@@ -79,7 +81,7 @@ function GoBigDive({ multicultural }: ManifestoProps) {
     const top = Math.round(r.top + y);
     const next = Math.round(r.bottom + y);
     const end = Math.max(top, next - stage.clientHeight);
-    return { stops: [0, top, end, next], freeGap: 1 };
+    return { stops: [0, top, end, next], glideGap: { gap: 1, ms: 1000 } };
   });
 
   const words = multicultural.titleLines.map(tv).join("\n");
@@ -395,6 +397,7 @@ function GoBigDive({ multicultural }: ManifestoProps) {
           <p className="mt-3 max-w-2xl whitespace-pre-line font-body text-f9 text-white/80 sm:mt-4 sm:text-f8">
             {tv(multicultural.intro)}
           </p>
+          <GoBigIdle idle={resolveManifestoIdle(multicultural.idle)} gallery={gallery} copyRef={copyRef} />
         </div>
 
         {/* Through the letter: the intro again, over the visual. */}

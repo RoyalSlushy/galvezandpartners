@@ -36,8 +36,11 @@ const STYLES: Record<ManifestoStyleId, ComponentType<ManifestoProps>> = {
  */
 export default function MulticulturalReveal({
   multicultural: serverMulticultural,
+  gallery = [],
 }: {
   multicultural: Multicultural;
+  /** The work gallery's images, for the idle animations (see manifesto/idle.ts). */
+  gallery?: string[];
 }) {
   const multicultural = useCmsValue("home.multicultural", serverMulticultural);
   const editMode = useEditMode();
@@ -90,7 +93,7 @@ export default function MulticulturalReveal({
   return (
     <>
       <span ref={markerRef} aria-hidden className="block h-0" />
-      <Style key={`${style}:${take}`} multicultural={multicultural} />
+      <Style key={`${style}:${take}`} multicultural={multicultural} gallery={gallery} />
       {editMode && previewing && (
         <PreviewBar
           style={style}
@@ -119,8 +122,10 @@ function playFrom(top: number, track: (() => Element | null) | null): () => void
   let raf = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
+  const root = document.documentElement;
   const stop = () => {
     stopped = true;
+    root.removeAttribute("data-gp-autoscroll");
     cancelAnimationFrame(raf);
     clearTimeout(timer);
     window.removeEventListener("wheel", stop);
@@ -128,26 +133,32 @@ function playFrom(top: number, track: (() => Element | null) | null): () => void
     window.removeEventListener("keydown", stop);
   };
 
+  // The page's own snap stops stand aside while the preview drives the scroll.
+  root.setAttribute("data-gp-autoscroll", "");
   window.scrollTo({ top: Math.max(0, top - window.innerHeight), behavior: "instant" });
   raf = requestAnimationFrame(() => {
     window.scrollTo({ top, behavior: "smooth" });
-    if (!track) return;
+    if (!track) {
+      timer = setTimeout(() => root.removeAttribute("data-gp-autoscroll"), 1200);
+      return;
+    }
     // Give the glide time to land, hold on the composed title a beat, then
     // scroll through.
     timer = setTimeout(() => {
       const el = track();
-      if (stopped || !el) return;
+      if (stopped || !el) return stop();
       const end = top + Math.max(0, el.getBoundingClientRect().height - window.innerHeight);
-      if (end <= top) return;
+      if (end <= top) return stop();
       const from = window.scrollY;
       const start = performance.now();
-      const ms = 3400;
+      const ms = 1000;
       const step = (now: number) => {
         if (stopped) return;
         const u = Math.min(1, (now - start) / ms);
         const e = 0.5 - Math.cos(Math.PI * u) / 2;
         window.scrollTo({ top: from + (end - from) * e, behavior: "instant" });
         if (u < 1) raf = requestAnimationFrame(step);
+        else root.removeAttribute("data-gp-autoscroll");
       };
       raf = requestAnimationFrame(step);
     }, 1500);

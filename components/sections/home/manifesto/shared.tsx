@@ -32,10 +32,13 @@ export type Multicultural = {
   intro: string;
   image: string;
   style?: string;
+  /** The idle animation while the title waits (see manifesto/idle.ts). */
+  idle?: string;
 };
 
-/** What every style is handed. */
-export type ManifestoProps = { multicultural: Multicultural };
+/** What every style is handed: the copy, and the work gallery's images (for
+ * the idle animations that draw on them). */
+export type ManifestoProps = { multicultural: Multicultural; gallery?: string[] };
 
 /**
  * For arming an entrance: a style that holds its copy back until it arrives

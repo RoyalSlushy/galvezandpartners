@@ -986,6 +986,80 @@
 .gb-title > span:not([data-payoff]) [data-word] {
   display: inline-block;
 }
+/* Go Big idle animations (see manifesto/GoBigIdle.tsx). Each fills text with
+   something other than its colour, so they all clip a background to the
+   glyphs. */
+.gb-idle-letters,
+.gb-idle-flash,
+.gb-idle-sheen {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.gb-idle-letters {
+  background-image: var(--idle-img);
+  background-size: cover;
+  background-position: 50% 30%;
+  animation: gb-idle-pan 9s ease-in-out infinite alternate;
+  transition: opacity 450ms ease;
+}
+.gb-idle-letters.gb-idle-dip {
+  opacity: 0.12;
+}
+@keyframes gb-idle-pan {
+  from {
+    background-position: 40% 20%;
+  }
+  to {
+    background-position: 60% 80%;
+  }
+}
+.gb-idle-flash {
+  background-image: var(--idle-img);
+  background-size: cover;
+  background-position: center;
+  animation: gb-idle-flash 1.7s ease both;
+}
+@keyframes gb-idle-flash {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+}
+.gb-idle-sheen {
+  background-image: linear-gradient(
+    110deg,
+    #fff 0%,
+    #fff 42%,
+    rgb(var(--c-gold)) 50%,
+    #fff 58%,
+    #fff 100%
+  );
+  background-size: 300% 100%;
+  animation: gb-idle-sheen 6s ease-in-out infinite;
+}
+@keyframes gb-idle-sheen {
+  0%,
+  50% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
 .gb-gold {
   background: linear-gradient(
     115deg,
@@ -1888,6 +1962,9 @@ html[data-gp-swapping] body *::after {
   }
   /* Case-study masthead: freeze the slideshow drift (the first frame holds;
      auto-advance is already suppressed in the component) and the scroll cue. */
+  .gb-idle-letters,
+  .gb-idle-flash,
+  .gb-idle-sheen,
   .cs-kenburns,
   .cs-kenburns-alt,
   .cs-scroll-cue {

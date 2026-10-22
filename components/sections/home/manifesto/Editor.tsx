@@ -139,6 +139,7 @@ export default function ManifestoEditor({
       {picking && (
         <ManifestoStylePopover
           current={style}
+          idle={multicultural.idle}
           anchorRef={chipRef}
           onClose={() => setPicking(false)}
           onPreview={() => {

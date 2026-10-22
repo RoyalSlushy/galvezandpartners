@@ -9,8 +9,13 @@ import {
   manifestoStyleMeta,
   type ManifestoStyleId,
 } from "@/components/sections/home/manifesto/styles";
+import {
+  MANIFESTO_IDLES,
+  resolveManifestoIdle,
+} from "@/components/sections/home/manifesto/idle";
 
 const PATH = "home.multicultural.style";
+const IDLE_PATH = "home.multicultural.idle";
 
 /**
  * The manifesto style picker: one card per style, each with a small looping
@@ -21,15 +26,20 @@ const PATH = "home.multicultural.style";
  *
  * The sketches are CSS only and live in this component (they are only ever
  * loaded for an admin), and opening the picker starts fetching every style's
- * code, so a preview of any of them starts at once.
+ * code, so a preview of any of them starts at once. Below the styles, the idle
+ * animation — what the composed title does while it waits — is picked the
+ * same way.
  */
 export default function ManifestoStylePopover({
   current,
+  idle: storedIdle,
   anchorRef,
   onClose,
   onPreview,
 }: {
   current: ManifestoStyleId;
+  /** The stored idle animation (home.multicultural.idle). */
+  idle?: string;
   anchorRef: RefObject<HTMLElement>;
   onClose: () => void;
   onPreview: () => void;
@@ -84,6 +94,7 @@ export default function ManifestoStylePopover({
   }, []);
 
   const meta = manifestoStyleMeta(current);
+  const idle = resolveManifestoIdle(storedIdle);
 
   return createPortal(
     <div
@@ -149,9 +160,41 @@ export default function ManifestoStylePopover({
         })}
       </div>
 
+      <div className="border-t border-white/10 px-4 pb-3 pt-3">
+        <p className="font-heading text-xs uppercase tracking-widest text-white/50">Idle animation</p>
+        <p className="mt-1 text-[11px] leading-snug text-white/40">
+          What the title does while it waits for the visitor to scroll. Most use the work gallery&rsquo;s
+          photos inside the white line.
+        </p>
+        <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {MANIFESTO_IDLES.map((m) => {
+            const selected = m.id === idle;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => admin.setValue(IDLE_PATH, m.id)}
+                className={`flex flex-col border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                  selected ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/30 hover:bg-white/5"
+                }`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="font-heading text-sm text-white">{m.name}</span>
+                  {selected && (
+                    <span className="font-heading text-[10px] uppercase tracking-widest text-gold">On</span>
+                  )}
+                </span>
+                <span className="mt-0.5 text-[11px] leading-snug text-white/50">{m.blurb}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
         <p className="text-[11px] leading-snug text-white/40">
-          Every style uses the same title, intro and visual.
+          Preview plays the style with the idle animation you picked.
         </p>
         <button
           type="button"

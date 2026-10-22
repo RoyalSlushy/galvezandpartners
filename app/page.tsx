@@ -34,6 +34,13 @@ export default async function Home() {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const photos = pool.slice(0, 18);
+  // The manifesto's idle animations draw on the work gallery alone, shuffled
+  // the same way so each load starts on different photos.
+  const galleryImages = work.gallery.items.map((g) => g.img).filter(isImage);
+  for (let i = galleryImages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [galleryImages[i], galleryImages[j]] = [galleryImages[j], galleryImages[i]];
+  }
   return (
     <>
       <HomeHero hero={home.hero} services={home.services} photos={photos} />
@@ -52,7 +59,7 @@ export default async function Home() {
               this wrapper is what lets it go once the manifesto has passed. */}
           <div className="relative">
             <WordMarquee words={home.marqueeWords} />
-            <MulticulturalReveal multicultural={home.multicultural} />
+            <MulticulturalReveal multicultural={home.multicultural} gallery={galleryImages} />
           </div>
           <FeaturedWork featured={home.featuredWork} items={work.items} />
           <HomePartners copy={home.partners} logos={partners.logos} />

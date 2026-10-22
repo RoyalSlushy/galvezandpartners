@@ -187,6 +187,9 @@ export const MULTICULTURAL = {
   /** How the manifesto makes its entrance (see
    * components/sections/home/manifesto/styles.ts). Go Big is the only style. */
   style: "gobig",
+  /** What the composed title does while it waits (see
+   * components/sections/home/manifesto/idle.ts), picked in the editor. */
+  idle: "none",
   cards: [
     {
       title: "reach new Heights",
