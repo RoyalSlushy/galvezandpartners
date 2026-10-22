@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useAdmin } from "@/components/admin/AdminProvider";
 import { XIcon } from "@/components/admin/icons";
@@ -172,132 +172,14 @@ export default function ManifestoStylePopover({
 /* ------------------------------------------------------------------------ */
 /* The sketches: a few seconds of each style, in miniature, on a loop.      */
 
-const LINE_1 = "THE MULTI-CULTURAL";
-const LINE_2 = "AGENCY DOING";
+const LINE_1 = "WHERE BRANDS COME TO DO";
 const PAYOFF = "BIG THINGS";
 
 function Sketch({ id }: { id: ManifestoStyleId }) {
   return (
     <span aria-hidden className={`msp msp-${id}`}>
-      {id === "ink" && <InkSketch />}
-      {id === "curtain" && <CurtainSketch />}
-      {id === "stardust" && <StardustSketch />}
       {id === "gobig" && <GoBigSketch />}
-      {id === "departures" && <DeparturesSketch />}
-      {id === "gravity" && <GravitySketch />}
     </span>
-  );
-}
-
-const vars = (v: Record<string, string | number>) => v as CSSProperties;
-
-function Picture({ className = "" }: { className?: string }) {
-  return <span className={`msp-frame ${className}`}><span className="msp-pic" /></span>;
-}
-
-function InkSketch() {
-  let n = 0;
-  const words = (text: string) =>
-    text.split(" ").map((w, i) => (
-      <span key={i} className="msp-ink-w" style={vars({ "--i": n++ })}>
-        {w}{" "}
-      </span>
-    ));
-  return (
-    <>
-      <span className="msp-copy">
-        <span className="msp-l">{words(LINE_1)}</span>
-        <span className="msp-l">{words(LINE_2)}</span>
-        <span className="msp-l msp-pay">{words(PAYOFF)}</span>
-      </span>
-      <Picture className="msp-ink-pop" />
-    </>
-  );
-}
-
-function CurtainSketch() {
-  const line = (text: string, i: number, pay = false) => (
-    <span className={`msp-l ${pay ? "msp-pay" : ""}`}>
-      <span className="msp-cc" style={vars({ "--d": `${0.15 + i * 0.16}s` })}>
-        <span className="msp-cc-t">{text}</span>
-        <span className="msp-cc-bar" />
-      </span>
-    </span>
-  );
-  return (
-    <>
-      <span className="msp-copy">
-        {line(LINE_1, 0)}
-        {line(LINE_2, 1)}
-        {line(PAYOFF, 2, true)}
-      </span>
-      <span className="msp-frame msp-cc-frame" style={vars({ "--d": "0s" })}>
-        <span className="msp-pic msp-cc-t" />
-        <span className="msp-cc-bar" />
-      </span>
-    </>
-  );
-}
-
-/** A 5×7 dot face, just for the letters the sketch needs. */
-const DOT_FONT: Record<string, string[]> = {
-  B: ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
-  I: ["###", ".#.", ".#.", ".#.", ".#.", ".#.", "###"],
-  G: [".###.", "#....", "#....", "#.###", "#...#", "#...#", ".###."],
-  T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
-  H: ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
-  N: ["#...#", "##..#", "#.#.#", "#.#.#", "#..##", "#...#", "#...#"],
-  S: [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
-};
-
-const DUST = (() => {
-  let seed = 0x2f9b11;
-  const rnd = () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 2 ** 32;
-  };
-  const dots: { x: number; y: number; dx: number; dy: number; d: number }[] = [];
-  let col = 0;
-  for (const ch of PAYOFF) {
-    if (ch === " ") {
-      col += 2;
-      continue;
-    }
-    const rows = DOT_FONT[ch];
-    rows.forEach((row, y) =>
-      Array.from(row).forEach((c, x) => {
-        if (c === "#") {
-          dots.push({ x: col + x, y, dx: (rnd() - 0.5) * 90, dy: (rnd() - 0.5) * 70, d: 0 });
-        }
-      }),
-    );
-    col += rows[0].length + 1;
-  }
-  const width = col - 1;
-  dots.forEach((dot) => (dot.d = (dot.x / width) * 0.5 + rnd() * 0.25));
-  return { dots, width };
-})();
-
-function StardustSketch() {
-  return (
-    <>
-      <span className="msp-sd-stars" />
-      <span className="msp-sd-dots" style={vars({ "--cols": DUST.width })}>
-        {DUST.dots.map((d, i) => (
-          <span
-            key={i}
-            className="msp-sd-dot"
-            style={vars({
-              left: `calc(${d.x} * var(--cell))`,
-              top: `calc(${d.y} * var(--cell))`,
-              "--dx": `${d.dx.toFixed(1)}cqw`,
-              "--dy": `${d.dy.toFixed(1)}cqw`,
-              "--d": `${d.d.toFixed(2)}s`,
-            })}
-          />
-        ))}
-      </span>
-    </>
   );
 }
 
@@ -306,67 +188,12 @@ function GoBigSketch() {
     <>
       <span className="msp-gb-lines">
         {LINE_1}
-        <br />
-        {LINE_2}
       </span>
       <span className="msp-gb-pay">
         <span className="msp-gb-gold">{PAYOFF}</span>
         <span className="msp-gb-win">{PAYOFF}</span>
       </span>
       <span className="msp-gb-full" />
-    </>
-  );
-}
-
-const FLAP_RUN = "QZKRMWXJ";
-
-function DeparturesSketch() {
-  const es = "GRANDES COSAS";
-  const en = PAYOFF.padEnd(es.length, " ");
-  return (
-    <span className="msp-df-board">
-      {Array.from(es).map((c, i) => {
-        // Blank, a couple of flaps, the Spanish, a couple more, the English.
-        const strip = [" ", FLAP_RUN[i % 8], FLAP_RUN[(i + 3) % 8], c, FLAP_RUN[(i + 5) % 8], FLAP_RUN[(i + 1) % 8], en[i]];
-        return (
-          <span key={i} className="msp-df-tile" style={vars({ "--d": `${(i * 0.06).toFixed(2)}s` })}>
-            <span className="msp-df-strip">
-              {strip.map((ch, k) => (
-                <span key={k} className={k === strip.length - 1 ? "msp-df-gold" : ""}>
-                  {ch === " " ? " " : ch}
-                </span>
-              ))}
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-function GravitySketch() {
-  let n = 0;
-  const letters = (text: string, pay = false) =>
-    Array.from(text).map((ch, i) => (
-      <span
-        key={i}
-        className="msp-gv-c"
-        style={vars({
-          "--d": `${(pay ? 0.9 + i * 0.015 : n++ * 0.035).toFixed(3)}s`,
-          "--r": `${pay ? 0 : ((i * 37) % 50) - 25}deg`,
-        })}
-      >
-        {ch === " " ? " " : ch}
-      </span>
-    ));
-  return (
-    <>
-      <span className="msp-copy">
-        <span className="msp-l">{letters(LINE_1)}</span>
-        <span className="msp-l">{letters(LINE_2)}</span>
-        <span className="msp-l msp-pay msp-gv-pay">{letters(PAYOFF, true)}</span>
-      </span>
-      <Picture className="msp-gv-swing" />
     </>
   );
 }
@@ -389,58 +216,6 @@ const PREVIEW_CSS = `
     radial-gradient(circle at 70% 34%, #fff6e0 0 7%, transparent 8%),
     linear-gradient(to bottom, transparent 62%, rgb(var(--c-navy) / 0.85) 62%),
     linear-gradient(165deg, rgb(var(--c-cream)) 0%, rgb(var(--c-gold)) 38%, #4d608a 78%);
-}
-
-/* Ink Fill */
-.msp-ink-w { opacity: 0.15; animation: msp-ink 4.4s ease infinite; animation-delay: calc(var(--i) * 0.16s); }
-@keyframes msp-ink { 0% { opacity: 0.15 } 8% { opacity: 1 } 70% { opacity: 1 } 80%, 100% { opacity: 0.15 } }
-.msp-ink-pop { animation: msp-pop 4.4s infinite; }
-@keyframes msp-pop {
-  0%, 26% { transform: scale(0.8); opacity: 0; animation-timing-function: cubic-bezier(0.34, 1.8, 0.64, 1); }
-  42%, 84% { transform: none; opacity: 1; }
-  94%, 100% { transform: scale(0.8); opacity: 0; }
-}
-
-/* Curtain Call */
-.msp-cc { position: relative; display: inline-block; }
-.msp-cc-bar {
-  position: absolute; inset: 0.04em -0.08em 0.08em; display: block; background: rgb(var(--c-gold));
-  transform: scaleX(0); transform-origin: left center;
-  animation: msp-cc-bar 4.4s cubic-bezier(0.65, 0, 0.35, 1) infinite both; animation-delay: var(--d);
-}
-.msp-cc-frame .msp-cc-bar { inset: 0; }
-.msp-cc-t { animation: msp-cc-t 4.4s linear infinite both; animation-delay: var(--d); }
-@keyframes msp-cc-bar {
-  0% { transform: scaleX(0); transform-origin: left center; }
-  9% { transform: scaleX(1); transform-origin: left center; }
-  11% { transform: scaleX(1); transform-origin: right center; }
-  20%, 100% { transform: scaleX(0); transform-origin: right center; }
-}
-@keyframes msp-cc-t { 0%, 9.9% { opacity: 0 } 10%, 86% { opacity: 1 } 92%, 100% { opacity: 0 } }
-
-/* Stardust */
-.msp-sd-stars {
-  position: absolute; inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 78% 18%, #fff, transparent),
-    radial-gradient(1px 1px at 88% 70%, rgb(var(--c-gold)), transparent), radial-gradient(1px 1px at 30% 82%, #fff, transparent),
-    radial-gradient(1px 1px at 55% 12%, rgb(var(--c-gold)), transparent), radial-gradient(1px 1px at 64% 88%, #fff, transparent);
-  animation: msp-twinkle 2.6s ease-in-out infinite alternate;
-}
-@keyframes msp-twinkle { from { opacity: 0.35 } to { opacity: 1 } }
-.msp-sd-dots {
-  --cell: 1.55cqw; position: absolute; left: 50%; top: 50%;
-  width: calc(var(--cols) * var(--cell)); height: calc(7 * var(--cell)); translate: -50% -50%;
-}
-.msp-sd-dot {
-  position: absolute; width: calc(var(--cell) * 0.72); height: calc(var(--cell) * 0.72); border-radius: 9999px;
-  background: rgb(var(--c-gold)); box-shadow: 0 0 3px rgb(var(--c-gold) / 0.8);
-  animation: msp-dust 4.8s cubic-bezier(0.65, 0, 0.35, 1) infinite both; animation-delay: var(--d);
-}
-@keyframes msp-dust {
-  0% { transform: translate(var(--dx), var(--dy)) rotate(40deg); opacity: 0.2; }
-  40%, 76% { transform: none; opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) rotate(40deg); opacity: 0.2; }
 }
 
 /* Go Big */
@@ -478,63 +253,4 @@ const PREVIEW_CSS = `
 }
 @keyframes msp-gb-full { 0%, 75% { opacity: 0 } 80%, 92% { opacity: 1 } 98%, 100% { opacity: 0 } }
 
-/* Departures */
-.msp-df-board {
-  --tw: 5.6cqw; --th: 8cqw;
-  position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: flex; gap: 0.5cqw;
-}
-.msp-df-tile {
-  position: relative; display: block; width: var(--tw); height: var(--th); overflow: hidden; border-radius: 1px;
-  background: linear-gradient(to bottom, rgb(var(--c-navy-soft)) 50%, rgb(var(--c-navy-soft) / 0.75) 50%);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
-}
-.msp-df-tile::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; background: rgb(0 0 0 / 0.6); }
-.msp-df-strip {
-  display: flex; flex-direction: column; font-size: 6cqw;
-  animation: msp-df 4.8s infinite both; animation-delay: var(--d);
-}
-.msp-df-strip > span { display: flex; height: var(--th); flex: none; align-items: center; justify-content: center; line-height: 1; }
-.msp-df-gold { color: rgb(var(--c-gold)); }
-@keyframes msp-df {
-  0% { transform: none; animation-timing-function: steps(3, end); }
-  16%, 46% { transform: translateY(calc(-3 * var(--th))); animation-timing-function: steps(3, end); }
-  58%, 90% { transform: translateY(calc(-6 * var(--th))); opacity: 1; }
-  96%, 100% { transform: translateY(calc(-6 * var(--th))); opacity: 0; }
-}
-
-/* Gravity */
-.msp-gv-c {
-  display: inline-block; white-space: pre;
-  animation: msp-drop 4.6s infinite both; animation-delay: var(--d);
-}
-.msp-gv-pay .msp-gv-c { animation-name: msp-thud; }
-@keyframes msp-drop {
-  0% { transform: translateY(-40cqw) rotate(var(--r)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  14% { transform: none; animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
-  20% { transform: translateY(-3.5cqw); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  26% { transform: none; animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
-  29% { transform: translateY(-1cqw); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  32%, 86% { transform: none; opacity: 1; }
-  94%, 100% { transform: none; opacity: 0; }
-}
-@keyframes msp-thud {
-  0% { transform: translateY(-50cqw); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  14% { transform: none; animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
-  18% { transform: translateY(-1.2cqw); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  21%, 70% { transform: none; opacity: 1; }
-  78%, 100% { transform: none; opacity: 0; }
-}
-.msp-gv-swing { transform-origin: 50% 0; animation: msp-swing 4.6s infinite both; }
-@keyframes msp-swing {
-  0% { transform: translateY(-120%) rotate(-10deg); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  12% { transform: rotate(7deg); animation-timing-function: ease-in-out; }
-  20% { transform: rotate(-4deg); animation-timing-function: ease-in-out; }
-  27% { transform: rotate(2deg); animation-timing-function: ease-in-out; }
-  33%, 86% { transform: none; opacity: 1; }
-  94%, 100% { transform: none; opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .msp *, .msp *::after { animation: none !important; }
-}
 `;
