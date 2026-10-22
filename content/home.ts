@@ -178,16 +178,15 @@ export const INSTAGRAM = {
 };
 
 export const MULTICULTURAL = {
-  titleLines: ["where brands", "come to do", "big things"],
+  titleLines: ["where brands come to do", "big things"],
   intro:
     "Welcome to G+P Advertising, your go-to destination for all things marketing and advertising.",
   /** The visual beside the manifesto on desktop, framed 4:3 (an image, or an
    * uploaded video). Empty leaves the frame's space open. */
   image: "",
-  /** How the manifesto makes its entrance — one of the styles listed in
-   * components/sections/home/manifesto/styles.ts, picked in the editor. "ink"
-   * is the original word-by-word ink fill. */
-  style: "ink",
+  /** How the manifesto makes its entrance (see
+   * components/sections/home/manifesto/styles.ts). Go Big is the only style. */
+  style: "gobig",
   cards: [
     {
       title: "reach new Heights",

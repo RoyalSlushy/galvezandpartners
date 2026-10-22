@@ -310,7 +310,21 @@ export default function PageReveal({
       <div className="pointer-events-none fixed inset-0 flex items-center justify-center">
         {/* Delayed fade-in (see .gp-veil-spinner) so instant loads never flash
             it; the brand favicon gently "breathes" while loading. */}
-        <span className="gp-veil-spinner">
+        <span className="gp-veil-spinner relative flex h-24 w-24 items-center justify-center">
+          {/* Loading ring: a faint track with a gold arc running around it. */}
+          <svg viewBox="0 0 100 100" className="gp-veil-ring absolute inset-0 h-full w-full">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="3" />
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke="rgb(var(--c-gold, 230 179 103))"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray="72 217"
+            />
+          </svg>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={favicon} alt="" className="gp-veil-breathe h-16 w-16 object-contain" />
         </span>

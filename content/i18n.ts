@@ -114,8 +114,7 @@ const ES: Record<string, string> = {
   "Loading…": "Cargando…",
 
   // --- Multicultural manifesto ---
-  "where brands": "donde las marcas",
-  "come to do": "vienen a hacer",
+  "where brands come to do": "donde las marcas vienen a hacer",
   "the multi-cultural": "la agencia multicultural",
   "Agency doing": "que hace",
   "big things": "grandes cosas",

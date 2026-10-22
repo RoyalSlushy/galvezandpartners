@@ -80,12 +80,7 @@ export default function ManifestoStylePopover({
 
   // Fetch every style's code now, so whichever is previewed plays straight away.
   useEffect(() => {
-    void import("@/components/sections/home/manifesto/InkFill");
-    void import("@/components/sections/home/manifesto/CurtainCall");
-    void import("@/components/sections/home/manifesto/Stardust");
     void import("@/components/sections/home/manifesto/GoBig");
-    void import("@/components/sections/home/manifesto/Departures");
-    void import("@/components/sections/home/manifesto/Gravity");
   }, []);
 
   const meta = manifestoStyleMeta(current);

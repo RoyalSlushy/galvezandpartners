@@ -1340,6 +1340,14 @@ html[data-gp-dive] .wm-band {
     opacity: 1;
   }
 }
+.gp-veil-ring {
+  animation: gp-veil-ring 1.1s linear infinite;
+}
+@keyframes gp-veil-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .gp-veil-breathe {
   animation: gp-veil-breathe 2.4s ease-in-out infinite;
   will-change: transform, opacity;
@@ -1868,6 +1876,11 @@ html[data-gp-swapping] body *::after {
     animation: none !important;
   }
   /* The loader mark settles to a static, fully-visible icon. */
+  /* The ring keeps turning under reduced motion, just slower: it is the one
+     sign the page is still loading. */
+  .gp-veil-ring {
+    animation-duration: 2.4s !important;
+  }
   .gp-veil-breathe {
     animation: none !important;
     transform: none;

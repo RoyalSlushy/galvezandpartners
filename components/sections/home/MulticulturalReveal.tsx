@@ -15,12 +15,7 @@ import type { ManifestoProps, Multicultural } from "./manifesto/shared";
 // folding up under the admin meanwhile.
 const holding = () => <div aria-hidden className="mc-screen w-full bg-navy" />;
 const STYLES: Record<ManifestoStyleId, ComponentType<ManifestoProps>> = {
-  ink: dynamic(() => import("./manifesto/InkFill"), { loading: holding }),
-  curtain: dynamic(() => import("./manifesto/CurtainCall"), { loading: holding }),
-  stardust: dynamic(() => import("./manifesto/Stardust"), { loading: holding }),
   gobig: dynamic(() => import("./manifesto/GoBig"), { loading: holding }),
-  departures: dynamic(() => import("./manifesto/Departures"), { loading: holding }),
-  gravity: dynamic(() => import("./manifesto/Gravity"), { loading: holding }),
 };
 
 /**

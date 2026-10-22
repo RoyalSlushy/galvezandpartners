@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlyphNumber } from "@/components/ui/Glyph";
-import { focusPosition, wixImage, wixImageFit } from "@/lib/wix";
+import { focusPosition, stripFocus, wixImage, wixImageFit } from "@/lib/wix";
+import { isVideoUrl } from "@/lib/adminClient";
 import { useMotionOff } from "@/components/motion/MotionProvider";
 import { useRevealPhase } from "@/components/motion/useRevealPhase";
 
@@ -13,6 +14,14 @@ const SLIDE_MS = 5000;
 const MAX_SLIDES = 8;
 /** Frames wider than this (w/h) get collaged instead of brute-cropped. */
 const WIDE = 16 / 9 + 0.01;
+
+/** A backdrop frame's URL: Wix ids go through the Wix CDN at the size asked
+ * for; uploaded images (full URLs) are used as they are. */
+function frameSrc(raw: string, w: number, h: number, fit = false): string {
+  const src = stripFocus(raw);
+  if (/^(https?:|data:|\/)/.test(src)) return src;
+  return fit ? wixImageFit(src, w, h) : wixImage(src, w, h);
+}
 
 /** The 1–3 frames collaged under a wide slide: the next frames in gallery
  * order (wrapping, never the slide itself), as many as bring the block close
@@ -67,7 +76,8 @@ export default function CaseStudyHero({
   const reduced = useMotionOff();
   const phase = useRevealPhase();
 
-  const slides = gallery.filter(Boolean).slice(0, MAX_SLIDES);
+  // Images only: videos in the gallery stay out of the backdrop.
+  const slides = gallery.filter((g) => g && !isVideoUrl(stripFocus(g))).slice(0, MAX_SLIDES);
   const [active, setActive] = useState(0);
 
   // Revolve through the frames; a single interval crossfades one to the next.
@@ -95,7 +105,7 @@ export default function CaseStudyHero({
           a[id] ? a : { ...a, [id]: probe.naturalWidth / probe.naturalHeight },
         );
       };
-      probe.src = wixImageFit(id, 200, 200);
+      probe.src = frameSrc(id, 200, 200, true);
     }
     return () => {
       alive = false;
@@ -148,7 +158,7 @@ export default function CaseStudyHero({
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={wixImage(id, 1200, Math.max(200, Math.round(1200 / collage)))}
+                      src={frameSrc(id, 1200, Math.max(200, Math.round(1200 / collage)))}
                       alt=""
                       loading={i === 0 ? "eager" : "lazy"}
                       style={{ objectPosition: focusPosition(id), gridColumn: "1 / -1" }}
@@ -158,7 +168,7 @@ export default function CaseStudyHero({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         key={j}
-                        src={wixImage(cid, 600, 600)}
+                        src={frameSrc(cid, 600, 600)}
                         alt=""
                         loading="lazy"
                         style={{ objectPosition: focusPosition(cid) }}
@@ -169,7 +179,7 @@ export default function CaseStudyHero({
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={wixImage(id, 1200, 1200)}
+                    src={frameSrc(id, 1200, 1200)}
                     alt=""
                     loading={i === 0 ? "eager" : "lazy"}
                     // The CMS focal point keeps the important part of the frame
