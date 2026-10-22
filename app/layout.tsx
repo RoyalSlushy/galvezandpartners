@@ -25,10 +25,10 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: site.site.description,
     // Brand favicon — the CMS one (site.favicon, set from the admin's Site
-    // details panel), else the built-in gold "&" tile (public/favicon.svg).
+    // details panel), else the built-in GP+ badge (public/favicon.png).
     // The page-load veil (PageReveal) breathes this same mark while a page's
     // first-viewport assets load, so the loader and the browser tab share one.
-    icons: { icon: faviconSrc(site.favicon) },
+    icons: { icon: faviconSrc(site.favicon), apple: site.favicon ? faviconSrc(site.favicon) : "/apple-touch-icon.png" },
   };
 }
 
